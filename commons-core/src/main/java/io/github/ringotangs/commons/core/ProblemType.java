@@ -36,10 +36,10 @@ public interface ProblemType {
     String getTitle();
 
     /**
-     * 返回问题的默认详情，可由 {@link BusinessException} 中的自定义详情覆盖。
+     * 返回问题的默认详情，可由 {@link ProblemException} 中的自定义详情覆盖。
      *
      * <p>Returns the default problem detail, which a custom detail in
-     * {@link BusinessException} may override.</p>
+     * {@link ProblemException} may override.</p>
      *
      * @return 默认问题详情 / the default problem detail
      */

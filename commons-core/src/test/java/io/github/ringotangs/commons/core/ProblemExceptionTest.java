@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-class BusinessExceptionTest {
+class ProblemExceptionTest {
 
     private static final ProblemType PROBLEM_TYPE = new ProblemType() {
         @Override
@@ -35,7 +35,7 @@ class BusinessExceptionTest {
 
     @Test
     void usesDefaultDetail() {
-        BusinessException exception = new BusinessException(PROBLEM_TYPE);
+        ProblemException exception = new ProblemException(PROBLEM_TYPE);
 
         assertEquals("Default detail", exception.getMessage());
         assertSame(PROBLEM_TYPE, exception.getProblemType());
@@ -44,22 +44,22 @@ class BusinessExceptionTest {
 
     @Test
     void preservesCustomDetail() {
-        BusinessException exception = new BusinessException(PROBLEM_TYPE, "Custom detail");
+        ProblemException exception = new ProblemException(PROBLEM_TYPE, "Custom detail");
 
         assertEquals("Custom detail", exception.getMessage());
     }
 
     @Test
     void fallsBackToDefaultDetailForBlankDetails() {
-        assertEquals("Default detail", new BusinessException(PROBLEM_TYPE, null).getMessage());
-        assertEquals("Default detail", new BusinessException(PROBLEM_TYPE, "").getMessage());
-        assertEquals("Default detail", new BusinessException(PROBLEM_TYPE, "   ").getMessage());
+        assertEquals("Default detail", new ProblemException(PROBLEM_TYPE, null).getMessage());
+        assertEquals("Default detail", new ProblemException(PROBLEM_TYPE, "").getMessage());
+        assertEquals("Default detail", new ProblemException(PROBLEM_TYPE, "   ").getMessage());
     }
 
     @Test
     void preservesCause() {
         RuntimeException cause = new RuntimeException("cause");
-        BusinessException exception = BusinessException.withCause(PROBLEM_TYPE, cause);
+        ProblemException exception = ProblemException.withCause(PROBLEM_TYPE, cause);
 
         assertEquals("Default detail", exception.getMessage());
         assertSame(cause, exception.getCause());
@@ -69,7 +69,7 @@ class BusinessExceptionTest {
     void rejectsNullCauseInFactory() {
         NullPointerException exception = assertThrows(
                 NullPointerException.class,
-                () -> BusinessException.withCause(PROBLEM_TYPE, null)
+                () -> ProblemException.withCause(PROBLEM_TYPE, null)
         );
 
         assertEquals("cause must not be null", exception.getMessage());
@@ -79,7 +79,7 @@ class BusinessExceptionTest {
     void rejectsNullProblemType() {
         NullPointerException exception = assertThrows(
                 NullPointerException.class,
-                () -> new BusinessException(null)
+                () -> new ProblemException(null)
         );
 
         assertEquals("problemType must not be null", exception.getMessage());
@@ -87,19 +87,19 @@ class BusinessExceptionTest {
 
     @Test
     void acceptsClientAndServerErrorStatuses() {
-        new BusinessException(problemTypeWithStatus(400));
-        new BusinessException(problemTypeWithStatus(599));
+        new ProblemException(problemTypeWithStatus(400));
+        new ProblemException(problemTypeWithStatus(599));
     }
 
     @Test
     void rejectsNonErrorStatuses() {
         IllegalArgumentException belowRange = assertThrows(
                 IllegalArgumentException.class,
-                () -> new BusinessException(problemTypeWithStatus(399))
+                () -> new ProblemException(problemTypeWithStatus(399))
         );
         IllegalArgumentException aboveRange = assertThrows(
                 IllegalArgumentException.class,
-                () -> new BusinessException(problemTypeWithStatus(600))
+                () -> new ProblemException(problemTypeWithStatus(600))
         );
 
         assertEquals("httpStatus must be between 400 and 599: 399", belowRange.getMessage());

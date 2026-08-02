@@ -1,6 +1,6 @@
 package io.github.ringotangs.boot.play;
 
-import io.github.ringotangs.commons.core.BusinessException;
+import io.github.ringotangs.commons.core.ProblemException;
 import io.github.ringotangs.commons.core.ProblemType;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -13,9 +13,9 @@ import java.net.URI;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(BusinessException.class)
-    public ProblemDetail handleBusinessException(
-            BusinessException exception,
+    @ExceptionHandler(ProblemException.class)
+    public ProblemDetail handleProblemException(
+            ProblemException exception,
             HttpServletRequest request
     ) {
         ProblemType problemType = exception.getProblemType();

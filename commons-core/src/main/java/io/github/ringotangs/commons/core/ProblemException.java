@@ -5,43 +5,43 @@ import org.jspecify.annotations.Nullable;
 import java.util.Objects;
 
 /**
- * 表示可预期的业务失败，并携带用于构建 RFC 9457 Problem Details 响应的问题类型。
+ * 表示可预期的问题，并携带用于构建 RFC 9457 Problem Details 响应的问题类型。
  * 异常消息对应 Problem Details 的 {@code detail} 字段，异常处理层负责将该异常
  * 转换为具体的 HTTP 错误响应。
  *
- * <p>Represents an expected business failure and carries the problem type used to build
+ * <p>Represents an expected problem and carries the problem type used to build
  * an RFC 9457 Problem Details response. The exception message corresponds to the
  * {@code detail} member, while an exception handler converts this exception into the
  * concrete HTTP error response.</p>
  *
  * @see ProblemType
  */
-public final class BusinessException extends RuntimeException {
+public final class ProblemException extends RuntimeException {
 
     /**
-     * 描述该业务失败的稳定问题类型。
+     * 描述该失败的稳定问题类型。
      *
-     * <p>The stable problem type that describes this business failure.</p>
+     * <p>The stable problem type that describes this failure.</p>
      */
     private final ProblemType problemType;
 
     /**
-     * 使用问题类型的默认详情创建业务异常。
+     * 使用问题类型的默认详情创建问题异常。
      *
-     * <p>Creates a business exception using the problem type's default detail.</p>
+     * <p>Creates a problem exception using the problem type's default detail.</p>
      *
      * @param problemType 问题类型 / the problem type
      * @throws NullPointerException 当问题类型为 {@code null} 时 /
      *                              if the problem type is {@code null}
      */
-    public BusinessException(ProblemType problemType) {
+    public ProblemException(ProblemType problemType) {
         this(problemType, null, null);
     }
 
     /**
-     * 使用自定义详情创建业务异常；详情为 {@code null} 或空白时使用默认详情。
+     * 使用自定义详情创建问题异常；详情为 {@code null} 或空白时使用默认详情。
      *
-     * <p>Creates a business exception with a custom detail. The default detail is used
+     * <p>Creates a problem exception with a custom detail. The default detail is used
      * when the supplied detail is {@code null} or blank.</p>
      *
      * @param problemType 问题类型 / the problem type
@@ -49,14 +49,14 @@ public final class BusinessException extends RuntimeException {
      * @throws NullPointerException 当问题类型为 {@code null} 时 /
      *                              if the problem type is {@code null}
      */
-    public BusinessException(ProblemType problemType, @Nullable String detail) {
+    public ProblemException(ProblemType problemType, @Nullable String detail) {
         this(problemType, detail, null);
     }
 
     /**
-     * 使用自定义详情和原始异常创建业务异常；详情为 {@code null} 或空白时使用默认详情。
+     * 使用自定义详情和原始异常创建问题异常；详情为 {@code null} 或空白时使用默认详情。
      *
-     * <p>Creates a business exception with a custom detail and the original cause. The
+     * <p>Creates a problem exception with a custom detail and the original cause. The
      * default detail is used when the supplied detail is {@code null} or blank.</p>
      *
      * @param problemType 问题类型 / the problem type
@@ -65,7 +65,7 @@ public final class BusinessException extends RuntimeException {
      * @throws NullPointerException 当问题类型为 {@code null} 时 /
      *                              if the problem type is {@code null}
      */
-    public BusinessException(
+    public ProblemException(
             ProblemType problemType,
             @Nullable String detail,
             @Nullable Throwable cause
@@ -75,19 +75,19 @@ public final class BusinessException extends RuntimeException {
     }
 
     /**
-     * 使用问题类型的默认详情和非空原始异常创建业务异常。
+     * 使用问题类型的默认详情和非空原始异常创建问题异常。
      *
-     * <p>Creates a business exception using the problem type's default detail and a
+     * <p>Creates a problem exception using the problem type's default detail and a
      * non-null original cause.</p>
      *
      * @param problemType 问题类型 / the problem type
      * @param cause 非空原始异常 / the non-null original cause
-     * @return 业务异常 / the business exception
+     * @return 问题异常 / the problem exception
      * @throws NullPointerException 当问题类型或原始异常为 {@code null} 时 /
      *                              if the problem type or cause is {@code null}
      */
-    public static BusinessException withCause(ProblemType problemType, Throwable cause) {
-        return new BusinessException(
+    public static ProblemException withCause(ProblemType problemType, Throwable cause) {
+        return new ProblemException(
                 problemType,
                 null,
                 Objects.requireNonNull(cause, "cause must not be null")
@@ -95,9 +95,9 @@ public final class BusinessException extends RuntimeException {
     }
 
     /**
-     * 返回描述该业务失败的问题类型。
+     * 返回描述该失败的问题类型。
      *
-     * <p>Returns the problem type that describes this business failure.</p>
+     * <p>Returns the problem type that describes this failure.</p>
      *
      * @return 问题类型 / the problem type
      */
