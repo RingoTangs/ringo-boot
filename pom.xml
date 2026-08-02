@@ -14,7 +14,7 @@
 
     <modules>
         <module>spring-commons-core</module>
-        <module>spring-commons-web</module>
+        <module>spring-commons-autoconfigure</module>
         <module>spring-commons-sample</module>
     </modules>
 
@@ -66,10 +66,10 @@
                 <version>${project.version}</version>
             </dependency>
 
-            <!-- spring-commons-web -->
+            <!-- spring-commons-autoconfigure -->
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>spring-commons-web</artifactId>
+                <artifactId>spring-commons-autoconfigure</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>
