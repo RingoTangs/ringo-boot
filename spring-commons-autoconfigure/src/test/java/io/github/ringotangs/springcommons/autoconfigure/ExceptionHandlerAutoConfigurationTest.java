@@ -3,6 +3,7 @@ package io.github.ringotangs.springcommons.autoconfigure;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -13,6 +14,28 @@ class ExceptionHandlerAutoConfigurationTest {
                     .withConfiguration(AutoConfigurations.of(
                             ExceptionHandlerAutoConfiguration.class
                     ));
+
+    private final ApplicationContextRunner nonWebContextRunner =
+            new ApplicationContextRunner()
+                    .withConfiguration(AutoConfigurations.of(
+                            ExceptionHandlerAutoConfiguration.class
+                    ));
+
+    @Test
+    void doesNotConfigureHandlersInNonWebApplication() {
+        nonWebContextRunner
+                .withPropertyValues(
+                        "ringotangs.spring-commons.web.exception-handler.enabled=true",
+                        "ringotangs.spring-commons.web.exception-handler.problem-enabled=true",
+                        "ringotangs.spring-commons.web.exception-handler.fallback-enabled=true",
+                        "ringotangs.spring-commons.web.exception-handler.i18n-enabled=true"
+                )
+                .run(context -> {
+                    assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);
+                    assertThat(context).doesNotHaveBean(FallbackExceptionHandler.class);
+                    assertThat(context).doesNotHaveBean(ProblemMessageResolver.class);
+                });
+    }
 
     @Test
     void doesNotConfigureExceptionHandlingByDefault() {

@@ -26,7 +26,7 @@ import org.springframework.http.ProblemDetail;
  * resolution for enabled handlers.</p>
  */
 @AutoConfiguration
-@ConditionalOnWebApplication
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass({ProblemDetail.class, ProblemException.class})
 @ConditionalOnProperty(
         prefix = ExceptionHandlerProperties.PREFIX,

@@ -7,6 +7,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.context.annotation.Import;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -16,6 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@Import(HelloControllerTest.FailingController.class)
 class HelloControllerTest {
 
     @Autowired
@@ -120,6 +124,25 @@ class HelloControllerTest {
                 .andExpect(jsonPath("$.instance").value("/user"));
     }
 
+    @Test
+    void returnsSafeProblemForUnexpectedException() throws Exception {
+        mockMvc.perform(get("/test/failure"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().contentTypeCompatibleWith(
+                        MediaType.APPLICATION_PROBLEM_JSON
+                ))
+                .andExpect(jsonPath("$.type").value(
+                        "urn:problem:spring-commons:internal-server-error"
+                ))
+                .andExpect(jsonPath("$.title").value("Internal server error"))
+                .andExpect(jsonPath("$.status").value(500))
+                .andExpect(jsonPath("$.detail").value("An unexpected error occurred"))
+                .andExpect(jsonPath("$.instance").value("/test/failure"))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("sample-secret")
+                )));
+    }
+
     private void assertValidationProblem(String requestBody) throws Exception {
         mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -132,5 +155,14 @@ class HelloControllerTest {
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.detail").isNotEmpty())
                 .andExpect(jsonPath("$.instance").value("/users"));
+    }
+
+    @RestController
+    static class FailingController {
+
+        @GetMapping("/test/failure")
+        void fail() {
+            throw new IllegalStateException("sample-secret");
+        }
     }
 }

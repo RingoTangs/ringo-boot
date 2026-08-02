@@ -2,6 +2,9 @@ package io.github.ringotangs.springcommons.autoconfigure;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.context.support.StaticMessageSource;
 import org.springframework.http.HttpHeaders;
@@ -17,7 +20,9 @@ import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.assertj.core.api.Assertions.assertThat;
 
+@ExtendWith(OutputCaptureExtension.class)
 class FallbackExceptionHandlerTest {
 
     private final StaticMessageSource messageSource = new StaticMessageSource();
@@ -30,7 +35,7 @@ class FallbackExceptionHandlerTest {
     }
 
     @Test
-    void returnsSafeInternalServerErrorForUnexpectedException() {
+    void returnsSafeInternalServerErrorForUnexpectedException(CapturedOutput output) {
         FallbackExceptionHandler handler = createHandler(new DefaultProblemMessageResolver());
 
         ResponseEntity<ProblemDetail> response = handler.handleException(
@@ -48,10 +53,14 @@ class FallbackExceptionHandlerTest {
         assertEquals("An unexpected error occurred", body.getDetail());
         assertFalse(body.getDetail().contains("secret"));
         assertFalse(body.getDetail().contains("select"));
+        assertThat(output)
+                .contains("ERROR")
+                .contains("Unhandled exception")
+                .contains(IllegalStateException.class.getName());
     }
 
     @Test
-    void preservesFrameworkErrorResponseStatusHeadersAndBody() {
+    void preservesFrameworkErrorResponseStatusHeadersAndBody(CapturedOutput output) {
         FallbackExceptionHandler handler = createHandler(new DefaultProblemMessageResolver());
         FrameworkException exception = new FrameworkException();
 
@@ -60,6 +69,7 @@ class FallbackExceptionHandlerTest {
         assertEquals(HttpStatus.TOO_MANY_REQUESTS, response.getStatusCode());
         assertEquals("120", response.getHeaders().getFirst("Retry-After"));
         assertEquals(exception.getBody(), response.getBody());
+        assertThat(output).doesNotContain("Unhandled exception");
     }
 
     @Test
