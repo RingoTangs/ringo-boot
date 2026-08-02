@@ -2,6 +2,9 @@ package io.github.ringotangs.springcommons.core;
 
 import org.jspecify.annotations.Nullable;
 
+import java.text.MessageFormat;
+import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 /**
@@ -25,6 +28,12 @@ public final class ProblemException extends RuntimeException {
      */
     private final ProblemType problemType;
 
+    /** 显式问题详情；为 {@code null} 时由异常处理层解析默认详情消息。 */
+    private final @Nullable String detailOverride;
+
+    /** 用于格式化默认详情的不可变消息参数。 */
+    private final List<Object> detailArguments;
+
     /**
      * 使用问题类型的默认详情创建问题异常。
      *
@@ -35,7 +44,7 @@ public final class ProblemException extends RuntimeException {
      *                              if the problem type is {@code null}
      */
     public ProblemException(ProblemType problemType) {
-        this(problemType, null, null);
+        this(problemType, null, null, List.of());
     }
 
     /**
@@ -50,7 +59,7 @@ public final class ProblemException extends RuntimeException {
      *                              if the problem type is {@code null}
      */
     public ProblemException(ProblemType problemType, @Nullable String detail) {
-        this(problemType, detail, null);
+        this(problemType, detail, null, List.of());
     }
 
     /**
@@ -70,8 +79,19 @@ public final class ProblemException extends RuntimeException {
             @Nullable String detail,
             @Nullable Throwable cause
     ) {
-        super(resolveDetail(problemType, detail), cause);
+        this(problemType, detail, cause, List.of());
+    }
+
+    private ProblemException(
+            ProblemType problemType,
+            @Nullable String detail,
+            @Nullable Throwable cause,
+            List<Object> detailArguments
+    ) {
+        super(resolveMessage(problemType, detail, detailArguments), cause);
         this.problemType = problemType;
+        this.detailOverride = normalizeDetail(detail);
+        this.detailArguments = List.copyOf(detailArguments);
     }
 
     /**
@@ -90,7 +110,53 @@ public final class ProblemException extends RuntimeException {
         return new ProblemException(
                 problemType,
                 null,
-                Objects.requireNonNull(cause, "cause must not be null")
+                Objects.requireNonNull(cause, "cause must not be null"),
+                List.of()
+        );
+    }
+
+    /**
+     * 使用问题类型和非空消息参数创建问题异常。
+     *
+     * <p>Creates a problem exception with non-null detail message arguments.</p>
+     *
+     * @param problemType 问题类型 / the problem type
+     * @param detailArguments 非空详情消息参数 / the non-null detail message arguments
+     * @return 问题异常 / the problem exception
+     */
+    public static ProblemException withArguments(
+            ProblemType problemType,
+            Object... detailArguments
+    ) {
+        return new ProblemException(
+                problemType,
+                null,
+                null,
+                copyArguments(detailArguments)
+        );
+    }
+
+    /**
+     * 使用问题类型、原始异常和非空消息参数创建问题异常。
+     *
+     * <p>Creates a problem exception with an original cause and non-null detail message
+     * arguments.</p>
+     *
+     * @param problemType 问题类型 / the problem type
+     * @param cause 非空原始异常 / the non-null original cause
+     * @param detailArguments 非空详情消息参数 / the non-null detail message arguments
+     * @return 问题异常 / the problem exception
+     */
+    public static ProblemException withArgumentsAndCause(
+            ProblemType problemType,
+            Throwable cause,
+            Object... detailArguments
+    ) {
+        return new ProblemException(
+                problemType,
+                null,
+                Objects.requireNonNull(cause, "cause must not be null"),
+                copyArguments(detailArguments)
         );
     }
 
@@ -106,18 +172,59 @@ public final class ProblemException extends RuntimeException {
     }
 
     /**
+     * 返回显式问题详情；未提供时返回 {@code null}。
+     *
+     * <p>Returns the explicit problem detail, or {@code null} when none was supplied.</p>
+     *
+     * @return 显式问题详情 / the explicit problem detail
+     */
+    public @Nullable String getDetailOverride() {
+        return detailOverride;
+    }
+
+    /**
+     * 返回不可变的详情消息参数。
+     *
+     * <p>Returns the immutable detail message arguments.</p>
+     *
+     * @return 详情消息参数 / the detail message arguments
+     */
+    public List<Object> getDetailArguments() {
+        return detailArguments;
+    }
+
+    /**
      * 校验问题类型，并在自定义详情缺失或为空白时返回默认详情。
      *
      * <p>Validates the problem type, then returns its default detail when the custom detail
      * is absent or blank.</p>
      */
-    private static String resolveDetail(ProblemType problemType, @Nullable String detail) {
+    private static String resolveMessage(
+            ProblemType problemType,
+            @Nullable String detail,
+            List<Object> detailArguments
+    ) {
         ProblemType requiredProblemType = Objects.requireNonNull(
                 problemType,
                 "problemType must not be null"
         );
-        return detail == null || detail.isBlank()
-                ? requiredProblemType.getDefaultDetail()
-                : detail;
+        String detailOverride = normalizeDetail(detail);
+        if (detailOverride != null) {
+            return detailOverride;
+        }
+        String defaultDetail = requiredProblemType.getDefaultDetail();
+        return detailArguments.isEmpty()
+                ? defaultDetail
+                : new MessageFormat(defaultDetail, Locale.ROOT)
+                        .format(detailArguments.toArray());
+    }
+
+    private static @Nullable String normalizeDetail(@Nullable String detail) {
+        return detail == null || detail.isBlank() ? null : detail;
+    }
+
+    private static List<Object> copyArguments(Object[] detailArguments) {
+        Objects.requireNonNull(detailArguments, "detailArguments must not be null");
+        return List.of(detailArguments);
     }
 }

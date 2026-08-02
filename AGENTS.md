@@ -5,6 +5,7 @@
 This is a Java 21 multi-module Maven project. The root `pom.xml` manages shared versions and builds two modules:
 
 - `spring-commons-core/`: framework-neutral Problem Details abstractions under `src/main/java/io/github/ringotangs/springcommons/core`.
+- `spring-commons-web/`: Spring Web localization and exception handling under `src/main/java/io/github/ringotangs/springcommons/web`.
 - `spring-commons-sample/`: a Spring Boot example under `src/main/java/io/github/ringotangs/springcommons/sample`; runtime settings live in `src/main/resources/application.yaml`.
 
 Keep production code in each module's `src/main/java` tree. Add tests in the matching `src/test/java` package structure and test resources in `src/test/resources`. Do not commit generated `target/` content or IDE metadata.
@@ -16,6 +17,7 @@ Run commands from the repository root with Maven 3.9.x:
 - `mvn clean verify`: clean and compile every module, then run all tests and verification steps.
 - `mvn test`: run the full reactor test suite without packaging.
 - `mvn -pl spring-commons-core -am test`: test the core module and required reactor dependencies.
+- `mvn -pl spring-commons-web -am test`: test the reusable Spring Web integration.
 - `mvn -pl spring-commons-sample -am spring-boot:run`: build dependencies and start the sample application locally.
 - `mvn -pl spring-commons-sample -am package`: produce the runnable sample JAR.
 

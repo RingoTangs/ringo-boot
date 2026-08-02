@@ -9,12 +9,14 @@ import java.util.Objects;
  * <p>Stores the immutable metadata of an RFC 9457 Problem Details type.</p>
  *
  * @param type 问题类型 URI / the problem type URI
+ * @param messageCode 国际化消息基础键 / the base internationalization message code
  * @param title 问题标题 / the problem title
  * @param defaultDetail 默认问题详情 / the default problem detail
  * @param httpStatus HTTP 错误状态码 / the HTTP error status code
  */
 public record ProblemDefinition(
         URI type,
+        String messageCode,
         String title,
         String defaultDetail,
         int httpStatus
@@ -31,6 +33,10 @@ public record ProblemDefinition(
      */
     public ProblemDefinition {
         Objects.requireNonNull(type, "type must not be null");
+        Objects.requireNonNull(messageCode, "messageCode must not be null");
+        if (messageCode.isBlank()) {
+            throw new IllegalArgumentException("messageCode must not be blank");
+        }
         Objects.requireNonNull(title, "title must not be null");
         Objects.requireNonNull(defaultDetail, "defaultDetail must not be null");
         if (!isErrorStatus(httpStatus)) {
@@ -51,6 +57,7 @@ public record ProblemDefinition(
      * <p>Creates a problem definition from a URI string.</p>
      *
      * @param type 问题类型 URI 字符串 / the problem type URI string
+     * @param messageCode 国际化消息基础键 / the base internationalization message code
      * @param title 问题标题 / the problem title
      * @param defaultDetail 默认问题详情 / the default problem detail
      * @param httpStatus HTTP 错误状态码 / the HTTP error status code
@@ -58,12 +65,14 @@ public record ProblemDefinition(
      */
     public static ProblemDefinition of(
             String type,
+            String messageCode,
             String title,
             String defaultDetail,
             int httpStatus
     ) {
         return new ProblemDefinition(
                 URI.create(Objects.requireNonNull(type, "type must not be null")),
+                messageCode,
                 title,
                 defaultDetail,
                 httpStatus

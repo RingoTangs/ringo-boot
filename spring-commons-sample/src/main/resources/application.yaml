@@ -1,6 +1,8 @@
 spring:
   application:
     name: spring-commons-sample
+  messages:
+    fallback-to-system-locale: false
   mvc:
     problemdetails:
       enabled: true

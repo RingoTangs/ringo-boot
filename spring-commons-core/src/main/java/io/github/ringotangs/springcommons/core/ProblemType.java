@@ -37,6 +37,18 @@ public interface ProblemType {
     }
 
     /**
+     * 返回用于解析标题和详情的国际化消息基础键。
+     *
+     * <p>Returns the base internationalization message code used to resolve the title
+     * and detail.</p>
+     *
+     * @return 国际化消息基础键 / the base internationalization message code
+     */
+    default String getMessageCode() {
+        return getDefinition().messageCode();
+    }
+
+    /**
      * 返回简短且人类可读的问题标题；除本地化外，同一问题类型的标题应保持不变。
      *
      * <p>Returns a short, human-readable problem title. Except for localization, the title

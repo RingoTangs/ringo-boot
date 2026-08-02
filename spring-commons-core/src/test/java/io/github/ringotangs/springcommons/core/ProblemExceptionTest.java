@@ -6,14 +6,24 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ProblemExceptionTest {
 
     private static final ProblemType PROBLEM_TYPE = () -> ProblemDefinition.of(
             "urn:problem:test",
+            "problem.test",
             "Test problem",
             "Default detail",
             400
+    );
+
+    private static final ProblemType PARAMETERIZED_PROBLEM_TYPE = () -> ProblemDefinition.of(
+            "urn:problem:test:parameterized",
+            "problem.test.parameterized",
+            "Parameterized problem",
+            "User {0} does not exist",
+            404
     );
 
     @Test
@@ -30,6 +40,7 @@ class ProblemExceptionTest {
         ProblemException exception = new ProblemException(PROBLEM_TYPE, "Custom detail");
 
         assertEquals("Custom detail", exception.getMessage());
+        assertEquals("Custom detail", exception.getDetailOverride());
     }
 
     @Test
@@ -37,6 +48,7 @@ class ProblemExceptionTest {
         assertEquals("Default detail", new ProblemException(PROBLEM_TYPE, null).getMessage());
         assertEquals("Default detail", new ProblemException(PROBLEM_TYPE, "").getMessage());
         assertEquals("Default detail", new ProblemException(PROBLEM_TYPE, "   ").getMessage());
+        assertNull(new ProblemException(PROBLEM_TYPE, "   ").getDetailOverride());
     }
 
     @Test
@@ -66,5 +78,49 @@ class ProblemExceptionTest {
         );
 
         assertEquals("problemType must not be null", exception.getMessage());
+    }
+
+    @Test
+    void formatsAndPreservesDetailArguments() {
+        Object[] arguments = {42};
+        ProblemException exception = ProblemException.withArguments(
+                PARAMETERIZED_PROBLEM_TYPE,
+                arguments
+        );
+        arguments[0] = 99;
+
+        assertEquals("User 42 does not exist", exception.getMessage());
+        assertEquals(42, exception.getDetailArguments().getFirst());
+        assertNull(exception.getDetailOverride());
+        assertThrows(
+                UnsupportedOperationException.class,
+                () -> exception.getDetailArguments().add(99)
+        );
+    }
+
+    @Test
+    void preservesCauseWithDetailArguments() {
+        RuntimeException cause = new RuntimeException("cause");
+        ProblemException exception = ProblemException.withArgumentsAndCause(
+                PARAMETERIZED_PROBLEM_TYPE,
+                cause,
+                42
+        );
+
+        assertSame(cause, exception.getCause());
+        assertEquals("User 42 does not exist", exception.getMessage());
+    }
+
+    @Test
+    void rejectsNullDetailArguments() {
+        assertThrows(
+                NullPointerException.class,
+                () -> ProblemException.withArguments(PROBLEM_TYPE, (Object[]) null)
+        );
+        assertThrows(
+                NullPointerException.class,
+                () -> ProblemException.withArguments(PROBLEM_TYPE, (Object) null)
+        );
+        assertTrue(ProblemException.withArguments(PROBLEM_TYPE).getDetailArguments().isEmpty());
     }
 }

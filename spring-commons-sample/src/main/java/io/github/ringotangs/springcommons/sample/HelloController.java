@@ -14,7 +14,7 @@ public class HelloController {
             throw new ProblemException(UserProblemType.INVALID_USER_ID);
         }
         if (id != 1) {
-            throw new ProblemException(UserProblemType.USER_NOT_FOUND);
+            throw ProblemException.withArguments(UserProblemType.USER_NOT_FOUND, id);
         }
 
         return User.builder().name("zs").age(18).build();
