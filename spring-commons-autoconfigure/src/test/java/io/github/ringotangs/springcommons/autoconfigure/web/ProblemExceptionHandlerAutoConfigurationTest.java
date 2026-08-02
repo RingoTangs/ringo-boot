@@ -1,4 +1,4 @@
-package io.github.ringotangs.springcommons.web.autoconfigure;
+package io.github.ringotangs.springcommons.autoconfigure.web;
 
 import io.github.ringotangs.springcommons.web.ProblemExceptionHandler;
 import io.github.ringotangs.springcommons.web.ProblemMessageResolver;

@@ -1,4 +1,4 @@
-package io.github.ringotangs.springcommons.web.autoconfigure;
+package io.github.ringotangs.springcommons.autoconfigure.web;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
