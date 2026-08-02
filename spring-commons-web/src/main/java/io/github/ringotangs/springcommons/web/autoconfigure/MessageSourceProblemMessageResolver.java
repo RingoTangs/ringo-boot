@@ -33,15 +33,12 @@ final class MessageSourceProblemMessageResolver implements ProblemMessageResolve
                 definition.title(),
                 locale
         );
-        String detailOverride = exception.getDetailOverride();
-        String detail = detailOverride != null
-                ? detailOverride
-                : messageSource.getMessage(
-                        definition.messageCode() + DETAIL_SUFFIX,
-                        exception.getDetailArguments().toArray(),
-                        definition.defaultDetail(),
-                        locale
-                );
+        String detail = messageSource.getMessage(
+                definition.messageCode() + DETAIL_SUFFIX,
+                exception.getDetailArguments().toArray(),
+                definition.defaultDetail(),
+                locale
+        );
         return new ProblemMessages(
                 Objects.requireNonNull(title),
                 Objects.requireNonNull(detail)

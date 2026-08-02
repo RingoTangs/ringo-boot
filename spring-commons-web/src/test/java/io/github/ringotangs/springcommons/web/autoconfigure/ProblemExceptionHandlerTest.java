@@ -70,22 +70,6 @@ class ProblemExceptionHandlerTest {
     }
 
     @Test
-    void explicitDetailOverridesLocalizedMessage() {
-        messageSource.addMessage(
-                "problem.test.not-found.detail",
-                Locale.SIMPLIFIED_CHINESE,
-                "用户不存在"
-        );
-        LocaleContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
-
-        ProblemDetail problem = handler.handleProblemException(
-                new ProblemException(PROBLEM_TYPE, "Explicit detail")
-        );
-
-        assertEquals("Explicit detail", problem.getDetail());
-    }
-
-    @Test
     void defaultResolverDoesNotUseLocalizedMessages() {
         messageSource.addMessage(
                 "problem.test.not-found.title",

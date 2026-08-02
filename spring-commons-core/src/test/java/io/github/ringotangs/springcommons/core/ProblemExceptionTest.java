@@ -36,22 +36,6 @@ class ProblemExceptionTest {
     }
 
     @Test
-    void preservesCustomDetail() {
-        ProblemException exception = new ProblemException(PROBLEM_TYPE, "Custom detail");
-
-        assertEquals("Custom detail", exception.getMessage());
-        assertEquals("Custom detail", exception.getDetailOverride());
-    }
-
-    @Test
-    void fallsBackToDefaultDetailForBlankDetails() {
-        assertEquals("Default detail", new ProblemException(PROBLEM_TYPE, null).getMessage());
-        assertEquals("Default detail", new ProblemException(PROBLEM_TYPE, "").getMessage());
-        assertEquals("Default detail", new ProblemException(PROBLEM_TYPE, "   ").getMessage());
-        assertNull(new ProblemException(PROBLEM_TYPE, "   ").getDetailOverride());
-    }
-
-    @Test
     void preservesCause() {
         RuntimeException cause = new RuntimeException("cause");
         ProblemException exception = ProblemException.withCause(PROBLEM_TYPE, cause);
@@ -91,7 +75,6 @@ class ProblemExceptionTest {
 
         assertEquals("User 42 does not exist", exception.getMessage());
         assertEquals(42, exception.getDetailArguments().getFirst());
-        assertNull(exception.getDetailOverride());
         assertThrows(
                 UnsupportedOperationException.class,
                 () -> exception.getDetailArguments().add(99)
