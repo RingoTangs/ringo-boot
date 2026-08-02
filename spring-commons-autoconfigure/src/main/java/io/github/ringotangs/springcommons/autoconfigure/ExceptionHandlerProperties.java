@@ -30,6 +30,14 @@ public class ExceptionHandlerProperties {
     private boolean problemEnabled = false;
 
     /**
+     * 是否启用 Spring MVC 内置异常处理；仅在总开关开启后生效。
+     *
+     * <p>Whether to handle built-in Spring MVC exceptions; effective only when the
+     * main switch is enabled.</p>
+     */
+    private boolean mvcEnabled = false;
+
+    /**
      * 是否使用 Spring MessageSource 解析标题和详情；仅在总开关开启后生效。
      *
      * <p>Whether to resolve titles and details through Spring MessageSource;
@@ -59,6 +67,14 @@ public class ExceptionHandlerProperties {
 
     public void setProblemEnabled(boolean problemEnabled) {
         this.problemEnabled = problemEnabled;
+    }
+
+    public boolean isMvcEnabled() {
+        return mvcEnabled;
+    }
+
+    public void setMvcEnabled(boolean mvcEnabled) {
+        this.mvcEnabled = mvcEnabled;
     }
 
     public boolean isI18nEnabled() {

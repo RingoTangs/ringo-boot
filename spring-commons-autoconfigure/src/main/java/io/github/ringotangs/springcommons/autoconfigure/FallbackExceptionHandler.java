@@ -3,12 +3,12 @@ package io.github.ringotangs.springcommons.autoconfigure;
 import io.github.ringotangs.springcommons.core.ProblemDefinition;
 import io.github.ringotangs.springcommons.core.ProblemException;
 import io.github.ringotangs.springcommons.core.ProblemType;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -24,8 +24,8 @@ import java.util.Objects;
  * <p>Converts exceptions not handled by a dedicated handler into safe Problem Details
  * responses.</p>
  *
- * <p>应用自定义 Advice 和 Spring Boot 默认 Problem Details Handler 优先处理其负责的
- * 异常；随后由 {@link ProblemExceptionHandler} 处理业务问题，最后由本处理器兜底。</p>
+ * <p>应用自定义 Advice、{@link ProblemExceptionHandler} 和
+ * {@link SpringMvcExceptionHandler} 优先处理其负责的异常，最后由本处理器兜底。</p>
  */
 @RestControllerAdvice
 @Order(Ordered.LOWEST_PRECEDENCE)

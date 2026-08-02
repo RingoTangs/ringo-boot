@@ -3,29 +3,31 @@ package io.github.ringotangs.springcommons.autoconfigure;
 import io.github.ringotangs.springcommons.core.ProblemException;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.*;
+import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.ProblemDetail;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 /**
  * 自动配置 Spring Commons Web 异常处理体系。
  *
  * <p>{@code enabled} 是整个自动配置的总开关；总开关开启后，
- * {@code problem-enabled} 和 {@code fallback-enabled} 分别控制业务问题异常处理与
- * 未知异常兜底处理。{@code i18n-enabled} 不会单独启用处理器，只决定已启用的处理器
- * 是否通过 Spring {@code MessageSource} 解析错误文案。</p>
+ * {@code problem-enabled}、{@code mvc-enabled} 和 {@code fallback-enabled} 分别控制
+ * 业务问题异常、Spring MVC 内置异常与未知异常处理。{@code i18n-enabled} 不会单独
+ * 启用处理器，只决定已启用的处理器是否通过 Spring {@code MessageSource} 解析错误文案。</p>
  *
  * <p>Auto-configures the Spring Commons Web exception-handling system.
  * {@code enabled} is the master switch. Once it is enabled,
- * {@code problem-enabled} and {@code fallback-enabled} independently control
- * problem-exception handling and fallback handling. {@code i18n-enabled} does
- * not enable a handler by itself; it only selects MessageSource-based message
- * resolution for enabled handlers.</p>
+ * {@code problem-enabled}, {@code mvc-enabled}, and {@code fallback-enabled}
+ * independently control problem exceptions, built-in Spring MVC exceptions, and
+ * fallback handling. {@code i18n-enabled} does not enable a handler by itself; it
+ * only selects MessageSource-based message resolution for enabled handlers.</p>
  */
-@AutoConfiguration
+@AutoConfiguration(before = WebMvcAutoConfiguration.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass({ProblemDetail.class, ProblemException.class})
 @ConditionalOnProperty(
@@ -35,6 +37,27 @@ import org.springframework.http.ProblemDetail;
 )
 @EnableConfigurationProperties(ExceptionHandlerProperties.class)
 public class ExceptionHandlerAutoConfiguration {
+
+    /** 配置 Spring MVC 内置异常的稳定 Problem Details 映射。 */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(ResponseEntityExceptionHandler.class)
+    @ConditionalOnProperty(
+            prefix = ExceptionHandlerProperties.PREFIX,
+            name = "mvc-enabled",
+            havingValue = "true"
+    )
+    static class SpringMvcConfiguration {
+
+        /** 用户提供 ResponseEntityExceptionHandler 时不创建默认 MVC 处理器。 */
+        @Bean
+        @ConditionalOnMissingBean(ResponseEntityExceptionHandler.class)
+        SpringMvcExceptionHandler springMvcExceptionHandler(
+                ApplicationContext applicationContext,
+                ExceptionHandlerProperties properties
+        ) {
+            return new SpringMvcExceptionHandler(applicationContext, properties);
+        }
+    }
 
     /**
      * 在 Problem 功能开关开启时装配 ProblemExceptionHandler。

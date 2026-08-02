@@ -4,16 +4,17 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.context.annotation.Import;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -95,6 +96,97 @@ class HelloControllerTest {
     }
 
     @Test
+    void returnsStableProblemForInvalidParameterType() throws Exception {
+        mockMvc.perform(get("/user")
+                        .param("id", "secret-invalid-value")
+                        .header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.type").value(
+                        "urn:problem:spring-commons:http:invalid-parameter"
+                ))
+                .andExpect(jsonPath("$.title").value("Invalid parameter"))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.detail").value(
+                        "A request parameter has an invalid value"
+                ))
+                .andExpect(jsonPath("$.instance").value("/user"))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("secret-invalid-value")
+                )));
+    }
+
+    @Test
+    void returnsStableProblemAndAllowHeaderForUnsupportedMethod() throws Exception {
+        mockMvc.perform(post("/user")
+                        .header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(header().string(HttpHeaders.ALLOW, "GET"))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.type").value(
+                        "urn:problem:spring-commons:http:method-not-allowed"
+                ))
+                .andExpect(jsonPath("$.title").value("Method not allowed"))
+                .andExpect(jsonPath("$.status").value(405))
+                .andExpect(jsonPath("$.instance").value("/user"));
+    }
+
+    @Test
+    void returnsLocalizedProblemForInvalidParameterType() throws Exception {
+        mockMvc.perform(get("/user")
+                        .param("id", "invalid")
+                        .header(HttpHeaders.ACCEPT_LANGUAGE, "zh-CN"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value(
+                        "urn:problem:spring-commons:http:invalid-parameter"
+                ))
+                .andExpect(jsonPath("$.title").value("无效参数"))
+                .andExpect(jsonPath("$.detail").value("请求参数值无效"));
+    }
+
+    @Test
+    void returnsStableProblemForMalformedRequestBody() throws Exception {
+        mockMvc.perform(post("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header(HttpHeaders.ACCEPT_LANGUAGE, "en")
+                        .content("{"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value(
+                        "urn:problem:spring-commons:http:malformed-request"
+                ))
+                .andExpect(jsonPath("$.detail").value("The request body could not be read"))
+                .andExpect(jsonPath("$.instance").value("/users"));
+    }
+
+    @Test
+    void returnsStableProblemForUnsupportedMediaType() throws Exception {
+        mockMvc.perform(post("/users")
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .header(HttpHeaders.ACCEPT_LANGUAGE, "en")
+                        .content("name=Alice"))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.type").value(
+                        "urn:problem:spring-commons:http:unsupported-media-type"
+                ))
+                .andExpect(jsonPath("$.detail").value(
+                        "The request content type is not supported"
+                ));
+    }
+
+    @Test
+    void returnsStableProblemWhenResourceDoesNotExist() throws Exception {
+        mockMvc.perform(get("/does-not-exist")
+                        .header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.type").value(
+                        "urn:problem:spring-commons:http:not-found"
+                ))
+                .andExpect(jsonPath("$.detail").value(
+                        "The requested resource was not found"
+                ));
+    }
+
+    @Test
     void returnsNotFoundProblemWhenUserDoesNotExist() throws Exception {
         mockMvc.perform(get("/user")
                         .param("id", "2")
@@ -150,10 +242,12 @@ class HelloControllerTest {
                         .content(requestBody))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andExpect(jsonPath("$.type").value("about:blank"))
-                .andExpect(jsonPath("$.title").value("Bad Request"))
+                .andExpect(jsonPath("$.type").value(
+                        "urn:problem:spring-commons:http:validation-failed"
+                ))
+                .andExpect(jsonPath("$.title").value("Validation failed"))
                 .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.detail").isNotEmpty())
+                .andExpect(jsonPath("$.detail").value("The request validation failed"))
                 .andExpect(jsonPath("$.instance").value("/users"));
     }
 

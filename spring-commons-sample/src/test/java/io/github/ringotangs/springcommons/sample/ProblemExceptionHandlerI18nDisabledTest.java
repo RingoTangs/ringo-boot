@@ -29,4 +29,19 @@ class ProblemExceptionHandlerI18nDisabledTest {
                 .andExpect(jsonPath("$.title").value("User not found"))
                 .andExpect(jsonPath("$.detail").value("User 2 does not exist"));
     }
+
+    @Test
+    void returnsDefaultSpringMvcMessagesForChineseRequest() throws Exception {
+        mockMvc.perform(get("/user")
+                        .param("id", "invalid")
+                        .header(HttpHeaders.ACCEPT_LANGUAGE, "zh-CN"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value(
+                        "urn:problem:spring-commons:http:invalid-parameter"
+                ))
+                .andExpect(jsonPath("$.title").value("Invalid parameter"))
+                .andExpect(jsonPath("$.detail").value(
+                        "A request parameter has an invalid value"
+                ));
+    }
 }

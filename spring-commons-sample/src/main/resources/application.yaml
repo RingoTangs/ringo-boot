@@ -15,5 +15,6 @@ ringotangs:
       exception-handler:
         enabled: true
         problem-enabled: true
+        mvc-enabled: true
         i18n-enabled: true
         fallback-enabled: true
