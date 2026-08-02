@@ -1,8 +1,9 @@
-package io.github.ringotangs.springcommons.web;
+package io.github.ringotangs.springcommons.web.autoconfigure;
 
 import io.github.ringotangs.springcommons.core.ProblemDefinition;
 import io.github.ringotangs.springcommons.core.ProblemException;
 import io.github.ringotangs.springcommons.core.ProblemType;
+import io.github.ringotangs.springcommons.web.ProblemExceptionHandler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -25,7 +26,9 @@ class ProblemExceptionHandlerTest {
     );
 
     private final StaticMessageSource messageSource = new StaticMessageSource();
-    private final ProblemExceptionHandler handler = new ProblemExceptionHandler(messageSource);
+    private final ProblemExceptionHandler handler = new ProblemExceptionHandler(
+            new MessageSourceProblemMessageResolver(messageSource)
+    );
 
     @AfterEach
     void resetLocale() {
@@ -80,5 +83,25 @@ class ProblemExceptionHandlerTest {
         );
 
         assertEquals("Explicit detail", problem.getDetail());
+    }
+
+    @Test
+    void defaultResolverDoesNotUseLocalizedMessages() {
+        messageSource.addMessage(
+                "problem.test.not-found.title",
+                Locale.SIMPLIFIED_CHINESE,
+                "未找到用户"
+        );
+        LocaleContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
+        ProblemExceptionHandler defaultHandler = new ProblemExceptionHandler(
+                new DefaultProblemMessageResolver()
+        );
+
+        ProblemDetail problem = defaultHandler.handleProblemException(
+                ProblemException.withArguments(PROBLEM_TYPE, 42)
+        );
+
+        assertEquals("User not found", problem.getTitle());
+        assertEquals("User 42 does not exist", problem.getDetail());
     }
 }

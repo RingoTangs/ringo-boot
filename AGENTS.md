@@ -5,7 +5,7 @@
 This is a Java 21 multi-module Maven project. The root `pom.xml` manages shared versions and builds two modules:
 
 - `spring-commons-core/`: framework-neutral Problem Details abstractions under `src/main/java/io/github/ringotangs/springcommons/core`.
-- `spring-commons-web/`: Spring Web localization and exception handling under `src/main/java/io/github/ringotangs/springcommons/web`.
+- `spring-commons-web/`: auto-configured Spring Boot Web localization and exception handling under `src/main/java/io/github/ringotangs/springcommons/web`.
 - `spring-commons-sample/`: a Spring Boot example under `src/main/java/io/github/ringotangs/springcommons/sample`; runtime settings live in `src/main/resources/application.yaml`.
 
 Keep production code in each module's `src/main/java` tree. Add tests in the matching `src/test/java` package structure and test resources in `src/test/resources`. Do not commit generated `target/` content or IDE metadata.
