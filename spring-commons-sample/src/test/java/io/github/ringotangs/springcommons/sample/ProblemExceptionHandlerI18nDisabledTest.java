@@ -12,10 +12,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(properties = {
-        "ringotangs.spring-commons.problem-details.i18n.enabled=false"
+        "ringotangs.spring-commons.web.exception-handler.i18n.enabled=false"
 })
 @AutoConfigureMockMvc
-class ProblemDetailsI18nDisabledTest {
+class ProblemExceptionHandlerI18nDisabledTest {
 
     @Autowired
     private MockMvc mockMvc;

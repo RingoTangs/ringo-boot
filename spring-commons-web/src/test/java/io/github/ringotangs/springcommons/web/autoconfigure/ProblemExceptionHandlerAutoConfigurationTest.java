@@ -8,12 +8,12 @@ import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class ProblemDetailsAutoConfigurationTest {
+class ProblemExceptionHandlerAutoConfigurationTest {
 
     private final WebApplicationContextRunner contextRunner =
             new WebApplicationContextRunner()
                     .withConfiguration(AutoConfigurations.of(
-                            ProblemDetailsAutoConfiguration.class
+                            ProblemExceptionHandlerAutoConfiguration.class
                     ));
 
     @Test
@@ -23,8 +23,9 @@ class ProblemDetailsAutoConfigurationTest {
             assertThat(context).hasSingleBean(ProblemMessageResolver.class);
             assertThat(context.getBean(ProblemMessageResolver.class))
                     .isInstanceOf(MessageSourceProblemMessageResolver.class);
-            assertThat(context.getBean(ProblemDetailsProperties.class).isEnabled()).isTrue();
-            assertThat(context.getBean(ProblemDetailsProperties.class)
+            assertThat(context.getBean(ProblemExceptionHandlerProperties.class).isEnabled())
+                    .isTrue();
+            assertThat(context.getBean(ProblemExceptionHandlerProperties.class)
                     .getI18n().isEnabled()).isTrue();
         });
     }
@@ -33,13 +34,13 @@ class ProblemDetailsAutoConfigurationTest {
     void usesDefaultMessagesWhenInternationalizationIsDisabled() {
         contextRunner
                 .withPropertyValues(
-                        "ringotangs.spring-commons.problem-details.i18n.enabled=false"
+                        "ringotangs.spring-commons.web.exception-handler.i18n.enabled=false"
                 )
                 .run(context -> {
                     assertThat(context).hasSingleBean(ProblemExceptionHandler.class);
                     assertThat(context.getBean(ProblemMessageResolver.class))
                             .isInstanceOf(DefaultProblemMessageResolver.class);
-                    assertThat(context.getBean(ProblemDetailsProperties.class)
+                    assertThat(context.getBean(ProblemExceptionHandlerProperties.class)
                             .getI18n().isEnabled()).isFalse();
                 });
     }
@@ -48,7 +49,7 @@ class ProblemDetailsAutoConfigurationTest {
     void disablesProblemHandlingWhenConfigured() {
         contextRunner
                 .withPropertyValues(
-                        "ringotangs.spring-commons.problem-details.enabled=false"
+                        "ringotangs.spring-commons.web.exception-handler.enabled=false"
                 )
                 .run(context -> {
                     assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);

@@ -14,18 +14,18 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.ProblemDetail;
 
-/** 自动配置 Spring Commons Problem Details 异常处理。 */
+/** 自动配置 Spring Commons Web ProblemExceptionHandler。 */
 @AutoConfiguration
 @ConditionalOnWebApplication
 @ConditionalOnClass({ProblemDetail.class, ProblemException.class})
 @ConditionalOnProperty(
-        prefix = ProblemDetailsProperties.PREFIX,
+        prefix = ProblemExceptionHandlerProperties.PREFIX,
         name = "enabled",
         havingValue = "true",
         matchIfMissing = true
 )
-@EnableConfigurationProperties(ProblemDetailsProperties.class)
-public class ProblemDetailsAutoConfiguration {
+@EnableConfigurationProperties(ProblemExceptionHandlerProperties.class)
+public class ProblemExceptionHandlerAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
@@ -35,7 +35,7 @@ public class ProblemDetailsAutoConfiguration {
 
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnProperty(
-            prefix = ProblemDetailsProperties.PREFIX + ".i18n",
+            prefix = ProblemExceptionHandlerProperties.PREFIX + ".i18n",
             name = "enabled",
             havingValue = "true",
             matchIfMissing = true
@@ -51,7 +51,7 @@ public class ProblemDetailsAutoConfiguration {
 
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnProperty(
-            prefix = ProblemDetailsProperties.PREFIX + ".i18n",
+            prefix = ProblemExceptionHandlerProperties.PREFIX + ".i18n",
             name = "enabled",
             havingValue = "false"
     )
