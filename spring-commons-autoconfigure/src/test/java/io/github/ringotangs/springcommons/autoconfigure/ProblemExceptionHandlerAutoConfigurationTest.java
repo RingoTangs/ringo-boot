@@ -19,6 +19,7 @@ class ProblemExceptionHandlerAutoConfigurationTest {
         contextRunner.run(context -> {
             assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);
             assertThat(context).doesNotHaveBean(ProblemMessageResolver.class);
+            assertThat(context).doesNotHaveBean(FallbackExceptionHandler.class);
             assertThat(context).doesNotHaveBean(ProblemExceptionHandlerProperties.class);
         });
     }
@@ -32,12 +33,40 @@ class ProblemExceptionHandlerAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).hasSingleBean(ProblemExceptionHandler.class);
                     assertThat(context).hasSingleBean(ProblemMessageResolver.class);
+                    assertThat(context).doesNotHaveBean(FallbackExceptionHandler.class);
                     assertThat(context.getBean(ProblemMessageResolver.class))
                             .isInstanceOf(DefaultProblemMessageResolver.class);
                     assertThat(context.getBean(ProblemExceptionHandlerProperties.class)
                             .isEnabled()).isTrue();
                     assertThat(context.getBean(ProblemExceptionHandlerProperties.class)
                             .isI18nEnabled()).isFalse();
+                });
+    }
+
+    @Test
+    void configuresFallbackHandlingWhenExplicitlyEnabled() {
+        contextRunner
+                .withPropertyValues(
+                        "ringotangs.spring-commons.web.exception-handler.enabled=true",
+                        "ringotangs.spring-commons.web.exception-handler.fallback-enabled=true"
+                )
+                .run(context -> {
+                    assertThat(context).hasSingleBean(ProblemExceptionHandler.class);
+                    assertThat(context).hasSingleBean(FallbackExceptionHandler.class);
+                    assertThat(context.getBean(ProblemExceptionHandlerProperties.class)
+                            .isFallbackEnabled()).isTrue();
+                });
+    }
+
+    @Test
+    void fallbackDoesNotEnableProblemHandling() {
+        contextRunner
+                .withPropertyValues(
+                        "ringotangs.spring-commons.web.exception-handler.fallback-enabled=true"
+                )
+                .run(context -> {
+                    assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);
+                    assertThat(context).doesNotHaveBean(FallbackExceptionHandler.class);
                 });
     }
 

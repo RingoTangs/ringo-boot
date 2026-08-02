@@ -4,6 +4,7 @@ import io.github.ringotangs.springcommons.core.ProblemDefinition;
 import io.github.ringotangs.springcommons.core.ProblemException;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
+import org.springframework.core.annotation.Order;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -16,6 +17,7 @@ import java.util.Objects;
  * responses.</p>
  */
 @RestControllerAdvice
+@Order(0)
 public class ProblemExceptionHandler {
 
     private final ProblemMessageResolver messageResolver;

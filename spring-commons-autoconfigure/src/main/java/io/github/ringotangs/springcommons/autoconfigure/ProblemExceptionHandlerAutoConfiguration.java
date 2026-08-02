@@ -33,6 +33,29 @@ public class ProblemExceptionHandlerAutoConfiguration {
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnProperty(
             prefix = ProblemExceptionHandlerProperties.PREFIX,
+            name = "fallback-enabled",
+            havingValue = "true"
+    )
+    static class FallbackConfiguration {
+
+        @Bean
+        @ConditionalOnMissingBean
+        FallbackExceptionHandler fallbackExceptionHandler(
+                ProblemExceptionHandler problemExceptionHandler,
+                ApplicationContext applicationContext,
+                ProblemExceptionHandlerProperties properties
+        ) {
+            return new FallbackExceptionHandler(
+                    problemExceptionHandler,
+                    applicationContext,
+                    properties
+            );
+        }
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnProperty(
+            prefix = ProblemExceptionHandlerProperties.PREFIX,
             name = "i18n-enabled",
             havingValue = "true"
     )

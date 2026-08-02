@@ -28,6 +28,14 @@ public class ProblemExceptionHandlerProperties {
      */
     private boolean i18nEnabled = false;
 
+    /**
+     * 是否启用未知异常兜底处理；需要显式开启。
+     *
+     * <p>Whether to enable fallback handling for unexpected exceptions;
+     * explicit opt-in is required.</p>
+     */
+    private boolean fallbackEnabled = false;
+
     public boolean isEnabled() {
         return enabled;
     }
@@ -42,5 +50,13 @@ public class ProblemExceptionHandlerProperties {
 
     public void setI18nEnabled(boolean i18nEnabled) {
         this.i18nEnabled = i18nEnabled;
+    }
+
+    public boolean isFallbackEnabled() {
+        return fallbackEnabled;
+    }
+
+    public void setFallbackEnabled(boolean fallbackEnabled) {
+        this.fallbackEnabled = fallbackEnabled;
     }
 }
