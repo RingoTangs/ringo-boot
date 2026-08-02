@@ -87,7 +87,7 @@ class HelloControllerTest {
                         .header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andExpect(jsonPath("$.type").value("urn:problem:spring-commons:user:invalid-id"))
+                .andExpect(jsonPath("$.type").value("urn:problem:business:user:invalid-id"))
                 .andExpect(jsonPath("$.title").value("Invalid user id"))
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.detail").value("User id must be greater than 0"))
@@ -103,7 +103,7 @@ class HelloControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.type").value(
-                        "urn:problem:spring-commons:http:invalid-parameter"
+                        "urn:problem:mvc:invalid-parameter"
                 ))
                 .andExpect(jsonPath("$.title").value("Invalid parameter"))
                 .andExpect(jsonPath("$.status").value(400))
@@ -124,7 +124,7 @@ class HelloControllerTest {
                 .andExpect(header().string(HttpHeaders.ALLOW, "GET"))
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.type").value(
-                        "urn:problem:spring-commons:http:method-not-allowed"
+                        "urn:problem:mvc:method-not-allowed"
                 ))
                 .andExpect(jsonPath("$.title").value("Method not allowed"))
                 .andExpect(jsonPath("$.status").value(405))
@@ -138,7 +138,7 @@ class HelloControllerTest {
                         .header(HttpHeaders.ACCEPT_LANGUAGE, "zh-CN"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.type").value(
-                        "urn:problem:spring-commons:http:invalid-parameter"
+                        "urn:problem:mvc:invalid-parameter"
                 ))
                 .andExpect(jsonPath("$.title").value("无效参数"))
                 .andExpect(jsonPath("$.detail").value("请求参数值无效"));
@@ -152,7 +152,7 @@ class HelloControllerTest {
                         .content("{"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.type").value(
-                        "urn:problem:spring-commons:http:malformed-request"
+                        "urn:problem:mvc:malformed-request"
                 ))
                 .andExpect(jsonPath("$.detail").value("The request body could not be read"))
                 .andExpect(jsonPath("$.instance").value("/users"));
@@ -166,7 +166,7 @@ class HelloControllerTest {
                         .content("name=Alice"))
                 .andExpect(status().isUnsupportedMediaType())
                 .andExpect(jsonPath("$.type").value(
-                        "urn:problem:spring-commons:http:unsupported-media-type"
+                        "urn:problem:mvc:unsupported-media-type"
                 ))
                 .andExpect(jsonPath("$.detail").value(
                         "The request content type is not supported"
@@ -179,7 +179,7 @@ class HelloControllerTest {
                         .header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.type").value(
-                        "urn:problem:spring-commons:http:not-found"
+                        "urn:problem:mvc:not-found"
                 ))
                 .andExpect(jsonPath("$.detail").value(
                         "The requested resource was not found"
@@ -193,7 +193,7 @@ class HelloControllerTest {
                         .header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andExpect(jsonPath("$.type").value("urn:problem:spring-commons:user:not-found"))
+                .andExpect(jsonPath("$.type").value("urn:problem:business:user:not-found"))
                 .andExpect(jsonPath("$.title").value("User not found"))
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.detail").value("User 2 does not exist"))
@@ -209,7 +209,7 @@ class HelloControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.type")
-                        .value("urn:problem:spring-commons:user:not-found"))
+                        .value("urn:problem:business:user:not-found"))
                 .andExpect(jsonPath("$.title").value("未找到用户"))
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.detail").value("用户 2 不存在"))
@@ -224,7 +224,7 @@ class HelloControllerTest {
                         MediaType.APPLICATION_PROBLEM_JSON
                 ))
                 .andExpect(jsonPath("$.type").value(
-                        "urn:problem:spring-commons:internal-server-error"
+                        "urn:problem:fallback:internal-server-error"
                 ))
                 .andExpect(jsonPath("$.title").value("Internal server error"))
                 .andExpect(jsonPath("$.status").value(500))
@@ -243,7 +243,7 @@ class HelloControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.type").value(
-                        "urn:problem:spring-commons:http:validation-failed"
+                        "urn:problem:mvc:validation-failed"
                 ))
                 .andExpect(jsonPath("$.title").value("Validation failed"))
                 .andExpect(jsonPath("$.status").value(400))

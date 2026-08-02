@@ -87,7 +87,7 @@ enum SpringMvcProblemType implements ProblemType {
             503
     )),
     INTERNAL_SERVER_ERROR(ProblemDefinition.of(
-            "urn:problem:spring-commons:internal-server-error",
+            "urn:problem:mvc:internal-server-error",
             "problem.internal-server-error",
             "Internal server error",
             "An unexpected error occurred",
@@ -161,7 +161,7 @@ enum SpringMvcProblemType implements ProblemType {
             int status
     ) {
         return ProblemDefinition.of(
-                "urn:problem:spring-commons:http:" + name,
+                "urn:problem:mvc:" + name,
                 "problem.spring-mvc." + name,
                 title,
                 detail,

@@ -45,7 +45,7 @@ class SpringMvcExceptionHandlerTest {
                 ProblemDetail.class,
                 problem -> {
                     assertThat(problem.getType()).isEqualTo(URI.create(
-                            "urn:problem:spring-commons:http:method-not-allowed"
+                            "urn:problem:mvc:method-not-allowed"
                     ));
                     assertThat(problem.getTitle()).isEqualTo("Method not allowed");
                     assertThat(problem.getDetail()).isEqualTo(
@@ -72,7 +72,7 @@ class SpringMvcExceptionHandlerTest {
                 ProblemDetail.class,
                 problem -> {
                     assertThat(problem.getType()).isEqualTo(URI.create(
-                            "urn:problem:spring-commons:internal-server-error"
+                            "urn:problem:mvc:internal-server-error"
                     ));
                     assertThat(problem.getDetail()).isEqualTo("An unexpected error occurred");
                     assertThat(problem.getDetail()).doesNotContain("secret");

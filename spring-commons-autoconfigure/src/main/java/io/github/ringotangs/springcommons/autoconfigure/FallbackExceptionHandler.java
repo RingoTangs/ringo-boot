@@ -35,7 +35,7 @@ public class FallbackExceptionHandler {
 
     private static final ProblemDefinition INTERNAL_SERVER_ERROR_DEFINITION =
             ProblemDefinition.of(
-                    "urn:problem:spring-commons:internal-server-error",
+                    "urn:problem:fallback:internal-server-error",
                     "problem.internal-server-error",
                     "Internal server error",
                     "An unexpected error occurred",

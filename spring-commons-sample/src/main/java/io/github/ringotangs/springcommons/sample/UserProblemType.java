@@ -7,7 +7,7 @@ import org.springframework.http.HttpStatus;
 public enum UserProblemType implements ProblemType {
 
     INVALID_USER_ID(ProblemDefinition.of(
-            "urn:problem:spring-commons:user:invalid-id",
+            "urn:problem:business:user:invalid-id",
             "problem.user.invalid-id",
             "Invalid user id",
             "User id must be greater than 0",
@@ -15,7 +15,7 @@ public enum UserProblemType implements ProblemType {
     )),
 
     USER_NOT_FOUND(ProblemDefinition.of(
-            "urn:problem:spring-commons:user:not-found",
+            "urn:problem:business:user:not-found",
             "problem.user.not-found",
             "User not found",
             "User {0} does not exist",

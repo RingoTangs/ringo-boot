@@ -37,7 +37,7 @@ class ProblemExceptionHandlerI18nDisabledTest {
                         .header(HttpHeaders.ACCEPT_LANGUAGE, "zh-CN"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.type").value(
-                        "urn:problem:spring-commons:http:invalid-parameter"
+                        "urn:problem:mvc:invalid-parameter"
                 ))
                 .andExpect(jsonPath("$.title").value("Invalid parameter"))
                 .andExpect(jsonPath("$.detail").value(

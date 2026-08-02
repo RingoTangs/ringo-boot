@@ -46,7 +46,7 @@ class FallbackExceptionHandlerTest {
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         assertEquals(
-                URI.create("urn:problem:spring-commons:internal-server-error"),
+                URI.create("urn:problem:fallback:internal-server-error"),
                 body.getType()
         );
         assertEquals("Internal server error", body.getTitle());
