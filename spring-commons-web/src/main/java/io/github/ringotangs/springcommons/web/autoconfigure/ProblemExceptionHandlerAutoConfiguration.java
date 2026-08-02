@@ -37,8 +37,7 @@ public class ProblemExceptionHandlerAutoConfiguration {
     @ConditionalOnProperty(
             prefix = ProblemExceptionHandlerProperties.PREFIX + ".i18n",
             name = "enabled",
-            havingValue = "true",
-            matchIfMissing = true
+            havingValue = "true"
     )
     static class InternationalizationConfiguration {
 
@@ -53,7 +52,8 @@ public class ProblemExceptionHandlerAutoConfiguration {
     @ConditionalOnProperty(
             prefix = ProblemExceptionHandlerProperties.PREFIX + ".i18n",
             name = "enabled",
-            havingValue = "false"
+            havingValue = "false",
+            matchIfMissing = true
     )
     static class DefaultMessagesConfiguration {
 

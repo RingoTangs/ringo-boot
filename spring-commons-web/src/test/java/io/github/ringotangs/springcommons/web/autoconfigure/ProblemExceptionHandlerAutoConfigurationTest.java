@@ -17,31 +17,31 @@ class ProblemExceptionHandlerAutoConfigurationTest {
                     ));
 
     @Test
-    void configuresLocalizedProblemHandlingByDefault() {
+    void configuresDefaultProblemHandlingWithoutInternationalization() {
         contextRunner.run(context -> {
             assertThat(context).hasSingleBean(ProblemExceptionHandler.class);
             assertThat(context).hasSingleBean(ProblemMessageResolver.class);
             assertThat(context.getBean(ProblemMessageResolver.class))
-                    .isInstanceOf(MessageSourceProblemMessageResolver.class);
+                    .isInstanceOf(DefaultProblemMessageResolver.class);
             assertThat(context.getBean(ProblemExceptionHandlerProperties.class).isEnabled())
                     .isTrue();
             assertThat(context.getBean(ProblemExceptionHandlerProperties.class)
-                    .getI18n().isEnabled()).isTrue();
+                    .getI18n().isEnabled()).isFalse();
         });
     }
 
     @Test
-    void usesDefaultMessagesWhenInternationalizationIsDisabled() {
+    void usesLocalizedMessagesWhenInternationalizationIsEnabled() {
         contextRunner
                 .withPropertyValues(
-                        "ringotangs.spring-commons.web.exception-handler.i18n.enabled=false"
+                        "ringotangs.spring-commons.web.exception-handler.i18n.enabled=true"
                 )
                 .run(context -> {
                     assertThat(context).hasSingleBean(ProblemExceptionHandler.class);
                     assertThat(context.getBean(ProblemMessageResolver.class))
-                            .isInstanceOf(DefaultProblemMessageResolver.class);
+                            .isInstanceOf(MessageSourceProblemMessageResolver.class);
                     assertThat(context.getBean(ProblemExceptionHandlerProperties.class)
-                            .getI18n().isEnabled()).isFalse();
+                            .getI18n().isEnabled()).isTrue();
                 });
     }
 

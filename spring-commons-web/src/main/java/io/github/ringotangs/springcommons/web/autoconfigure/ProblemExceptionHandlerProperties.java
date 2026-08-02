@@ -35,7 +35,7 @@ public class ProblemExceptionHandlerProperties {
     public static class Internationalization {
 
         /** 是否使用 Spring MessageSource 解析标题和详情。 */
-        private boolean enabled = true;
+        private boolean enabled = false;
 
         public boolean isEnabled() {
             return enabled;

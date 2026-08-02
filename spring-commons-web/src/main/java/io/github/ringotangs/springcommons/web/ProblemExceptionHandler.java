@@ -40,7 +40,7 @@ public class ProblemExceptionHandler {
      * <p>Builds a Problem Details response.</p>
      *
      * @param exception 问题异常 / the problem exception
-     * @return 国际化的 Problem Details / the localized Problem Details
+     * @return Problem Details 响应 / the Problem Details response
      */
     @ExceptionHandler(ProblemException.class)
     public ProblemDetail handleProblemException(ProblemException exception) {

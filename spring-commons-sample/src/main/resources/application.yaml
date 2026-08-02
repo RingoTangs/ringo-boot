@@ -9,3 +9,9 @@ spring:
       enabled: true
 server:
   port: 8080
+ringotangs:
+  spring-commons:
+    web:
+      exception-handler:
+        i18n:
+          enabled: true
