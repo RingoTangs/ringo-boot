@@ -1,8 +1,7 @@
-package io.github.ringotangs.springcommons.autoconfigure.web;
+package io.github.ringotangs.springcommons.autoconfigure;
 
 import io.github.ringotangs.springcommons.core.ProblemDefinition;
 import io.github.ringotangs.springcommons.core.ProblemException;
-import io.github.ringotangs.springcommons.web.ProblemMessageResolver;
 
 final class DefaultProblemMessageResolver implements ProblemMessageResolver {
 

@@ -1,9 +1,8 @@
-package io.github.ringotangs.springcommons.autoconfigure.web;
+package io.github.ringotangs.springcommons.autoconfigure;
 
 import io.github.ringotangs.springcommons.core.ProblemDefinition;
 import io.github.ringotangs.springcommons.core.ProblemException;
 import io.github.ringotangs.springcommons.core.ProblemType;
-import io.github.ringotangs.springcommons.web.ProblemExceptionHandler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.i18n.LocaleContextHolder;

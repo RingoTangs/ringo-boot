@@ -1,7 +1,5 @@
-package io.github.ringotangs.springcommons.autoconfigure.web;
+package io.github.ringotangs.springcommons.autoconfigure;
 
-import io.github.ringotangs.springcommons.web.ProblemExceptionHandler;
-import io.github.ringotangs.springcommons.web.ProblemMessageResolver;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;

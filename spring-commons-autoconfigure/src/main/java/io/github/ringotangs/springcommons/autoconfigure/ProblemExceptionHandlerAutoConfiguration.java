@@ -1,8 +1,6 @@
-package io.github.ringotangs.springcommons.autoconfigure.web;
+package io.github.ringotangs.springcommons.autoconfigure;
 
 import io.github.ringotangs.springcommons.core.ProblemException;
-import io.github.ringotangs.springcommons.web.ProblemExceptionHandler;
-import io.github.ringotangs.springcommons.web.ProblemMessageResolver;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;

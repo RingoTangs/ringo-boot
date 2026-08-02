@@ -1,1 +1,1 @@
-io.github.ringotangs.springcommons.autoconfigure.web.ProblemExceptionHandlerAutoConfiguration
+io.github.ringotangs.springcommons.autoconfigure.ProblemExceptionHandlerAutoConfiguration
