@@ -2,6 +2,7 @@ spring:
   application:
     name: spring-commons-sample
   messages:
+    encoding: UTF-8
     fallback-to-system-locale: false
   mvc:
     problemdetails:
