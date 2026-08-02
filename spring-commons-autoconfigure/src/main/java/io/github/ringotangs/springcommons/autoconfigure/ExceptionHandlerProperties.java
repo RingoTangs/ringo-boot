@@ -7,8 +7,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *
  * <p>Auto-configuration properties for the Spring Commons Web exception handler.</p>
  */
-@ConfigurationProperties(ProblemExceptionHandlerProperties.PREFIX)
-public class ProblemExceptionHandlerProperties {
+@ConfigurationProperties(ExceptionHandlerProperties.PREFIX)
+public class ExceptionHandlerProperties {
 
     /** 配置属性前缀。 */
     public static final String PREFIX = "ringotangs.spring-commons.web.exception-handler";

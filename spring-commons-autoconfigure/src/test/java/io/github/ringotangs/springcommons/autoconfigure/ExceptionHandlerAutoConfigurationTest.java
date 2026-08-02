@@ -6,12 +6,12 @@ import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class ProblemExceptionHandlerAutoConfigurationTest {
+class ExceptionHandlerAutoConfigurationTest {
 
     private final WebApplicationContextRunner contextRunner =
             new WebApplicationContextRunner()
                     .withConfiguration(AutoConfigurations.of(
-                            ProblemExceptionHandlerAutoConfiguration.class
+                            ExceptionHandlerAutoConfiguration.class
                     ));
 
     @Test
@@ -20,7 +20,7 @@ class ProblemExceptionHandlerAutoConfigurationTest {
             assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);
             assertThat(context).doesNotHaveBean(ProblemMessageResolver.class);
             assertThat(context).doesNotHaveBean(FallbackExceptionHandler.class);
-            assertThat(context).doesNotHaveBean(ProblemExceptionHandlerProperties.class);
+            assertThat(context).doesNotHaveBean(ExceptionHandlerProperties.class);
         });
     }
 
@@ -36,9 +36,9 @@ class ProblemExceptionHandlerAutoConfigurationTest {
                     assertThat(context).doesNotHaveBean(FallbackExceptionHandler.class);
                     assertThat(context.getBean(ProblemMessageResolver.class))
                             .isInstanceOf(DefaultProblemMessageResolver.class);
-                    assertThat(context.getBean(ProblemExceptionHandlerProperties.class)
+                    assertThat(context.getBean(ExceptionHandlerProperties.class)
                             .isEnabled()).isTrue();
-                    assertThat(context.getBean(ProblemExceptionHandlerProperties.class)
+                    assertThat(context.getBean(ExceptionHandlerProperties.class)
                             .isI18nEnabled()).isFalse();
                 });
     }
@@ -53,7 +53,7 @@ class ProblemExceptionHandlerAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).hasSingleBean(ProblemExceptionHandler.class);
                     assertThat(context).hasSingleBean(FallbackExceptionHandler.class);
-                    assertThat(context.getBean(ProblemExceptionHandlerProperties.class)
+                    assertThat(context.getBean(ExceptionHandlerProperties.class)
                             .isFallbackEnabled()).isTrue();
                 });
     }
@@ -81,7 +81,7 @@ class ProblemExceptionHandlerAutoConfigurationTest {
                     assertThat(context).hasSingleBean(ProblemExceptionHandler.class);
                     assertThat(context.getBean(ProblemMessageResolver.class))
                             .isInstanceOf(MessageSourceProblemMessageResolver.class);
-                    assertThat(context.getBean(ProblemExceptionHandlerProperties.class)
+                    assertThat(context.getBean(ExceptionHandlerProperties.class)
                             .isI18nEnabled()).isTrue();
                 });
     }
@@ -96,7 +96,7 @@ class ProblemExceptionHandlerAutoConfigurationTest {
                     assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);
                     assertThat(context).doesNotHaveBean(ProblemMessageResolver.class);
                     assertThat(context).doesNotHaveBean(
-                            ProblemExceptionHandlerProperties.class
+                            ExceptionHandlerProperties.class
                     );
                 });
     }

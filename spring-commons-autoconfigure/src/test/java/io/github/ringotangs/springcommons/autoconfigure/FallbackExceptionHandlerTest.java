@@ -21,8 +21,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 class FallbackExceptionHandlerTest {
 
     private final StaticMessageSource messageSource = new StaticMessageSource();
-    private final ProblemExceptionHandlerProperties properties =
-            new ProblemExceptionHandlerProperties();
+    private final ExceptionHandlerProperties properties =
+            new ExceptionHandlerProperties();
 
     @AfterEach
     void resetLocale() {

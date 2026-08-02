@@ -12,17 +12,17 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.ProblemDetail;
 
-/** 自动配置 Spring Commons Web ProblemExceptionHandler。 */
+/** 自动配置 Spring Commons Web 异常处理器。 */
 @AutoConfiguration
 @ConditionalOnWebApplication
 @ConditionalOnClass({ProblemDetail.class, ProblemException.class})
 @ConditionalOnProperty(
-        prefix = ProblemExceptionHandlerProperties.PREFIX,
+        prefix = ExceptionHandlerProperties.PREFIX,
         name = "enabled",
         havingValue = "true"
 )
-@EnableConfigurationProperties(ProblemExceptionHandlerProperties.class)
-public class ProblemExceptionHandlerAutoConfiguration {
+@EnableConfigurationProperties(ExceptionHandlerProperties.class)
+public class ExceptionHandlerAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
@@ -32,7 +32,7 @@ public class ProblemExceptionHandlerAutoConfiguration {
 
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnProperty(
-            prefix = ProblemExceptionHandlerProperties.PREFIX,
+            prefix = ExceptionHandlerProperties.PREFIX,
             name = "fallback-enabled",
             havingValue = "true"
     )
@@ -43,7 +43,7 @@ public class ProblemExceptionHandlerAutoConfiguration {
         FallbackExceptionHandler fallbackExceptionHandler(
                 ProblemExceptionHandler problemExceptionHandler,
                 ApplicationContext applicationContext,
-                ProblemExceptionHandlerProperties properties
+                ExceptionHandlerProperties properties
         ) {
             return new FallbackExceptionHandler(
                     problemExceptionHandler,
@@ -55,7 +55,7 @@ public class ProblemExceptionHandlerAutoConfiguration {
 
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnProperty(
-            prefix = ProblemExceptionHandlerProperties.PREFIX,
+            prefix = ExceptionHandlerProperties.PREFIX,
             name = "i18n-enabled",
             havingValue = "true"
     )
@@ -70,7 +70,7 @@ public class ProblemExceptionHandlerAutoConfiguration {
 
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnProperty(
-            prefix = ProblemExceptionHandlerProperties.PREFIX,
+            prefix = ExceptionHandlerProperties.PREFIX,
             name = "i18n-enabled",
             havingValue = "false",
             matchIfMissing = true

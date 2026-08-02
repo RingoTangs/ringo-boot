@@ -41,7 +41,7 @@ public class FallbackExceptionHandler {
 
     private final ProblemExceptionHandler problemExceptionHandler;
     private final MessageSource messageSource;
-    private final ProblemExceptionHandlerProperties properties;
+    private final ExceptionHandlerProperties properties;
 
     /**
      * 创建全局异常兜底处理器。
@@ -51,7 +51,7 @@ public class FallbackExceptionHandler {
     public FallbackExceptionHandler(
             ProblemExceptionHandler problemExceptionHandler,
             MessageSource messageSource,
-            ProblemExceptionHandlerProperties properties
+            ExceptionHandlerProperties properties
     ) {
         this.problemExceptionHandler = Objects.requireNonNull(
                 problemExceptionHandler,
