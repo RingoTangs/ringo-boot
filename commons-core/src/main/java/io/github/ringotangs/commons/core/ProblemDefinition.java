@@ -20,6 +20,9 @@ public record ProblemDefinition(
         int httpStatus
 ) {
 
+    private static final int MIN_HTTP_ERROR_STATUS = 400;
+    private static final int MAX_HTTP_ERROR_STATUS = 599;
+
     /**
      * 创建问题定义并校验必填字段和 HTTP 错误状态码。
      *
@@ -30,9 +33,14 @@ public record ProblemDefinition(
         Objects.requireNonNull(type, "type must not be null");
         Objects.requireNonNull(title, "title must not be null");
         Objects.requireNonNull(defaultDetail, "defaultDetail must not be null");
-        if (httpStatus < 400 || httpStatus > 599) {
+        if (!isErrorStatus(httpStatus)) {
             throw new IllegalArgumentException(
-                    "httpStatus must be between 400 and 599: " + httpStatus
+                    "httpStatus must be between "
+                            + MIN_HTTP_ERROR_STATUS
+                            + " and "
+                            + MAX_HTTP_ERROR_STATUS
+                            + ": "
+                            + httpStatus
             );
         }
     }
@@ -60,5 +68,10 @@ public record ProblemDefinition(
                 defaultDetail,
                 httpStatus
         );
+    }
+
+    private static boolean isErrorStatus(int httpStatus) {
+        return httpStatus >= MIN_HTTP_ERROR_STATUS
+                && httpStatus <= MAX_HTTP_ERROR_STATUS;
     }
 }
