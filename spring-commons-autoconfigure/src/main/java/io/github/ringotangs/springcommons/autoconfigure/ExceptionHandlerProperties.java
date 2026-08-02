@@ -22,6 +22,14 @@ public class ExceptionHandlerProperties {
     private boolean enabled = false;
 
     /**
+     * 是否启用 ProblemException 异常处理；仅在总开关开启后生效。
+     *
+     * <p>Whether to enable ProblemException handling; effective only when the
+     * main switch is enabled.</p>
+     */
+    private boolean problemEnabled = false;
+
+    /**
      * 是否使用 Spring MessageSource 解析标题和详情；仅在总开关开启后生效。
      *
      * <p>Whether to resolve titles and details through Spring MessageSource;
@@ -43,6 +51,14 @@ public class ExceptionHandlerProperties {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public boolean isProblemEnabled() {
+        return problemEnabled;
+    }
+
+    public void setProblemEnabled(boolean problemEnabled) {
+        this.problemEnabled = problemEnabled;
     }
 
     public boolean isI18nEnabled() {

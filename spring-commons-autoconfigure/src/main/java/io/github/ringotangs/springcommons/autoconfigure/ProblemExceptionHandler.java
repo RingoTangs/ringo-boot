@@ -1,8 +1,6 @@
 package io.github.ringotangs.springcommons.autoconfigure;
 
-import io.github.ringotangs.springcommons.core.ProblemDefinition;
 import io.github.ringotangs.springcommons.core.ProblemException;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.core.annotation.Order;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -20,7 +18,7 @@ import java.util.Objects;
 @Order(0)
 public class ProblemExceptionHandler {
 
-    private final ProblemMessageResolver messageResolver;
+    private final ProblemDetailFactory problemDetailFactory;
 
     /**
      * 使用问题消息解析器创建异常处理器。
@@ -30,9 +28,13 @@ public class ProblemExceptionHandler {
      * @param messageResolver 问题消息解析器 / the problem message resolver
      */
     public ProblemExceptionHandler(ProblemMessageResolver messageResolver) {
-        this.messageResolver = Objects.requireNonNull(
-                messageResolver,
-                "messageResolver must not be null"
+        this(new ProblemDetailFactory(messageResolver));
+    }
+
+    ProblemExceptionHandler(ProblemDetailFactory problemDetailFactory) {
+        this.problemDetailFactory = Objects.requireNonNull(
+                problemDetailFactory,
+                "problemDetailFactory must not be null"
         );
     }
 
@@ -46,14 +48,6 @@ public class ProblemExceptionHandler {
      */
     @ExceptionHandler(ProblemException.class)
     public ProblemDetail handleProblemException(ProblemException exception) {
-        ProblemDefinition definition = exception.getProblemType().getDefinition();
-        ProblemMessageResolver.ProblemMessages messages = messageResolver.resolve(exception);
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-                HttpStatusCode.valueOf(definition.httpStatus()),
-                messages.detail()
-        );
-        problem.setType(definition.type());
-        problem.setTitle(messages.title());
-        return problem;
+        return problemDetailFactory.create(exception);
     }
 }

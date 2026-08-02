@@ -2,13 +2,11 @@ package io.github.ringotangs.springcommons.autoconfigure;
 
 import io.github.ringotangs.springcommons.core.ProblemException;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.boot.autoconfigure.condition.*;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.ProblemDetail;
 
@@ -24,10 +22,21 @@ import org.springframework.http.ProblemDetail;
 @EnableConfigurationProperties(ExceptionHandlerProperties.class)
 public class ExceptionHandlerAutoConfiguration {
 
-    @Bean
-    @ConditionalOnMissingBean
-    ProblemExceptionHandler problemExceptionHandler(ProblemMessageResolver messageResolver) {
-        return new ProblemExceptionHandler(messageResolver);
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnProperty(
+            prefix = ExceptionHandlerProperties.PREFIX,
+            name = "problem-enabled",
+            havingValue = "true"
+    )
+    static class ProblemConfiguration {
+
+        @Bean
+        @ConditionalOnMissingBean
+        ProblemExceptionHandler problemExceptionHandler(
+                ProblemDetailFactory problemDetailFactory
+        ) {
+            return new ProblemExceptionHandler(problemDetailFactory);
+        }
     }
 
     @Configuration(proxyBeanMethods = false)
@@ -41,12 +50,12 @@ public class ExceptionHandlerAutoConfiguration {
         @Bean
         @ConditionalOnMissingBean
         FallbackExceptionHandler fallbackExceptionHandler(
-                ProblemExceptionHandler problemExceptionHandler,
+                ProblemDetailFactory problemDetailFactory,
                 ApplicationContext applicationContext,
                 ExceptionHandlerProperties properties
         ) {
             return new FallbackExceptionHandler(
-                    problemExceptionHandler,
+                    problemDetailFactory,
                     applicationContext,
                     properties
             );
@@ -54,33 +63,49 @@ public class ExceptionHandlerAutoConfiguration {
     }
 
     @Configuration(proxyBeanMethods = false)
-    @ConditionalOnProperty(
-            prefix = ExceptionHandlerProperties.PREFIX,
-            name = "i18n-enabled",
-            havingValue = "true"
-    )
-    static class InternationalizationConfiguration {
+    @Conditional(AnyHandlerEnabledCondition.class)
+    static class ProblemDetailsInfrastructureConfiguration {
 
         @Bean
         @ConditionalOnMissingBean
-        ProblemMessageResolver problemMessageResolver(ApplicationContext applicationContext) {
-            return new MessageSourceProblemMessageResolver(applicationContext);
+        ProblemMessageResolver problemMessageResolver(
+                ApplicationContext applicationContext,
+                ExceptionHandlerProperties properties
+        ) {
+            return properties.isI18nEnabled()
+                    ? new MessageSourceProblemMessageResolver(applicationContext)
+                    : new DefaultProblemMessageResolver();
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
+        ProblemDetailFactory problemDetailFactory(
+                ProblemMessageResolver messageResolver
+        ) {
+            return new ProblemDetailFactory(messageResolver);
         }
     }
 
-    @Configuration(proxyBeanMethods = false)
-    @ConditionalOnProperty(
-            prefix = ExceptionHandlerProperties.PREFIX,
-            name = "i18n-enabled",
-            havingValue = "false",
-            matchIfMissing = true
-    )
-    static class DefaultMessagesConfiguration {
+    static final class AnyHandlerEnabledCondition extends AnyNestedCondition {
 
-        @Bean
-        @ConditionalOnMissingBean
-        ProblemMessageResolver problemMessageResolver() {
-            return new DefaultProblemMessageResolver();
+        AnyHandlerEnabledCondition() {
+            super(ConfigurationPhase.PARSE_CONFIGURATION);
+        }
+
+        @ConditionalOnProperty(
+                prefix = ExceptionHandlerProperties.PREFIX,
+                name = "problem-enabled",
+                havingValue = "true"
+        )
+        static class ProblemEnabled {
+        }
+
+        @ConditionalOnProperty(
+                prefix = ExceptionHandlerProperties.PREFIX,
+                name = "fallback-enabled",
+                havingValue = "true"
+        )
+        static class FallbackEnabled {
         }
     }
 }

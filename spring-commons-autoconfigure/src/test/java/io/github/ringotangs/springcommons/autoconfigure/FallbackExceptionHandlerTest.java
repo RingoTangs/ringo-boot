@@ -91,7 +91,7 @@ class FallbackExceptionHandlerTest {
 
     private FallbackExceptionHandler createHandler(ProblemMessageResolver resolver) {
         return new FallbackExceptionHandler(
-                new ProblemExceptionHandler(resolver),
+                resolver,
                 messageSource,
                 properties
         );

@@ -39,7 +39,7 @@ public class FallbackExceptionHandler {
     private static final ProblemType INTERNAL_SERVER_ERROR =
             () -> INTERNAL_SERVER_ERROR_DEFINITION;
 
-    private final ProblemExceptionHandler problemExceptionHandler;
+    private final ProblemDetailFactory problemDetailFactory;
     private final MessageSource messageSource;
     private final ExceptionHandlerProperties properties;
 
@@ -49,13 +49,21 @@ public class FallbackExceptionHandler {
      * <p>Creates the global fallback exception handler.</p>
      */
     public FallbackExceptionHandler(
-            ProblemExceptionHandler problemExceptionHandler,
+            ProblemMessageResolver messageResolver,
             MessageSource messageSource,
             ExceptionHandlerProperties properties
     ) {
-        this.problemExceptionHandler = Objects.requireNonNull(
-                problemExceptionHandler,
-                "problemExceptionHandler must not be null"
+        this(new ProblemDetailFactory(messageResolver), messageSource, properties);
+    }
+
+    FallbackExceptionHandler(
+            ProblemDetailFactory problemDetailFactory,
+            MessageSource messageSource,
+            ExceptionHandlerProperties properties
+    ) {
+        this.problemDetailFactory = Objects.requireNonNull(
+                problemDetailFactory,
+                "problemDetailFactory must not be null"
         );
         this.messageSource = Objects.requireNonNull(
                 messageSource,
@@ -90,7 +98,7 @@ public class FallbackExceptionHandler {
             );
         }
 
-        ProblemDetail body = problemExceptionHandler.handleProblemException(
+        ProblemDetail body = problemDetailFactory.create(
                 ProblemException.withCause(INTERNAL_SERVER_ERROR, exception)
         );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);

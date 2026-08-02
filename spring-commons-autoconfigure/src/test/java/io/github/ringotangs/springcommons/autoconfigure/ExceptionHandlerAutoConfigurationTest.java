@@ -25,34 +25,53 @@ class ExceptionHandlerAutoConfigurationTest {
     }
 
     @Test
-    void configuresDefaultMessagesWhenExceptionHandlingIsEnabled() {
+    void masterSwitchAloneDoesNotConfigureHandlers() {
         contextRunner
                 .withPropertyValues(
                         "ringotangs.spring-commons.web.exception-handler.enabled=true"
                 )
                 .run(context -> {
-                    assertThat(context).hasSingleBean(ProblemExceptionHandler.class);
-                    assertThat(context).hasSingleBean(ProblemMessageResolver.class);
+                    assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);
+                    assertThat(context).doesNotHaveBean(ProblemMessageResolver.class);
                     assertThat(context).doesNotHaveBean(FallbackExceptionHandler.class);
-                    assertThat(context.getBean(ProblemMessageResolver.class))
-                            .isInstanceOf(DefaultProblemMessageResolver.class);
                     assertThat(context.getBean(ExceptionHandlerProperties.class)
                             .isEnabled()).isTrue();
+                    assertThat(context.getBean(ExceptionHandlerProperties.class)
+                            .isProblemEnabled()).isFalse();
                     assertThat(context.getBean(ExceptionHandlerProperties.class)
                             .isI18nEnabled()).isFalse();
                 });
     }
 
     @Test
-    void configuresFallbackHandlingWhenExplicitlyEnabled() {
+    void configuresProblemHandlingWithDefaultMessagesWhenExplicitlyEnabled() {
+        contextRunner
+                .withPropertyValues(
+                        "ringotangs.spring-commons.web.exception-handler.enabled=true",
+                        "ringotangs.spring-commons.web.exception-handler.problem-enabled=true"
+                )
+                .run(context -> {
+                    assertThat(context).hasSingleBean(ProblemExceptionHandler.class);
+                    assertThat(context).hasSingleBean(ProblemMessageResolver.class);
+                    assertThat(context.getBean(ProblemMessageResolver.class))
+                            .isInstanceOf(DefaultProblemMessageResolver.class);
+                    assertThat(context).doesNotHaveBean(FallbackExceptionHandler.class);
+                    assertThat(context.getBean(ExceptionHandlerProperties.class)
+                            .isProblemEnabled()).isTrue();
+                });
+    }
+
+    @Test
+    void configuresFallbackHandlingIndependently() {
         contextRunner
                 .withPropertyValues(
                         "ringotangs.spring-commons.web.exception-handler.enabled=true",
                         "ringotangs.spring-commons.web.exception-handler.fallback-enabled=true"
                 )
                 .run(context -> {
-                    assertThat(context).hasSingleBean(ProblemExceptionHandler.class);
+                    assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);
                     assertThat(context).hasSingleBean(FallbackExceptionHandler.class);
+                    assertThat(context).hasSingleBean(ProblemMessageResolver.class);
                     assertThat(context.getBean(ExceptionHandlerProperties.class)
                             .isFallbackEnabled()).isTrue();
                 });
@@ -71,14 +90,29 @@ class ExceptionHandlerAutoConfigurationTest {
     }
 
     @Test
-    void usesLocalizedMessagesWhenBothFeaturesAreEnabled() {
+    void problemHandlingDoesNotEnableExceptionHandling() {
+        contextRunner
+                .withPropertyValues(
+                        "ringotangs.spring-commons.web.exception-handler.problem-enabled=true"
+                )
+                .run(context -> {
+                    assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);
+                    assertThat(context).doesNotHaveBean(ProblemMessageResolver.class);
+                });
+    }
+
+    @Test
+    void configuresBothHandlersWithLocalizedMessages() {
         contextRunner
                 .withPropertyValues(
                         "ringotangs.spring-commons.web.exception-handler.enabled=true",
+                        "ringotangs.spring-commons.web.exception-handler.problem-enabled=true",
+                        "ringotangs.spring-commons.web.exception-handler.fallback-enabled=true",
                         "ringotangs.spring-commons.web.exception-handler.i18n-enabled=true"
                 )
                 .run(context -> {
                     assertThat(context).hasSingleBean(ProblemExceptionHandler.class);
+                    assertThat(context).hasSingleBean(FallbackExceptionHandler.class);
                     assertThat(context.getBean(ProblemMessageResolver.class))
                             .isInstanceOf(MessageSourceProblemMessageResolver.class);
                     assertThat(context.getBean(ExceptionHandlerProperties.class)
@@ -120,7 +154,8 @@ class ExceptionHandlerAutoConfigurationTest {
 
         contextRunner
                 .withPropertyValues(
-                        "ringotangs.spring-commons.web.exception-handler.enabled=true"
+                        "ringotangs.spring-commons.web.exception-handler.enabled=true",
+                        "ringotangs.spring-commons.web.exception-handler.problem-enabled=true"
                 )
                 .withBean(ProblemMessageResolver.class, () -> customResolver)
                 .run(context -> {
