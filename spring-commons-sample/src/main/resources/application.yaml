@@ -13,5 +13,6 @@ ringotangs:
   spring-commons:
     web:
       exception-handler:
+        enabled: true
         i18n:
           enabled: true

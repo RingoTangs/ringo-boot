@@ -19,8 +19,7 @@ import org.springframework.http.ProblemDetail;
 @ConditionalOnProperty(
         prefix = ProblemExceptionHandlerProperties.PREFIX,
         name = "enabled",
-        havingValue = "true",
-        matchIfMissing = true
+        havingValue = "true"
 )
 @EnableConfigurationProperties(ProblemExceptionHandlerProperties.class)
 public class ProblemExceptionHandlerAutoConfiguration {

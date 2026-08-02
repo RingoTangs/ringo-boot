@@ -13,8 +13,12 @@ public class ProblemExceptionHandlerProperties {
     /** 配置属性前缀。 */
     public static final String PREFIX = "ringotangs.spring-commons.web.exception-handler";
 
-    /** 是否启用 ProblemExceptionHandler。 */
-    private boolean enabled = true;
+    /**
+     * 是否启用 ProblemExceptionHandler；需要显式开启。
+     *
+     * <p>Whether to enable ProblemExceptionHandler; explicit opt-in is required.</p>
+     */
+    private boolean enabled = false;
 
     /** 国际化配置。 */
     private final Internationalization internationalization = new Internationalization();
@@ -34,7 +38,12 @@ public class ProblemExceptionHandlerProperties {
     /** Problem Details 消息国际化配置。 */
     public static class Internationalization {
 
-        /** 是否使用 Spring MessageSource 解析标题和详情。 */
+        /**
+         * 是否使用 Spring MessageSource 解析标题和详情；需要显式开启。
+         *
+         * <p>Whether to resolve titles and details through Spring MessageSource;
+         * explicit opt-in is required.</p>
+         */
         private boolean enabled = false;
 
         public boolean isEnabled() {
