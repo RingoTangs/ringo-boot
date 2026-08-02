@@ -20,8 +20,13 @@ public class ProblemExceptionHandlerProperties {
      */
     private boolean enabled = false;
 
-    /** 国际化配置。 */
-    private final Internationalization internationalization = new Internationalization();
+    /**
+     * 是否使用 Spring MessageSource 解析标题和详情；需要显式开启。
+     *
+     * <p>Whether to resolve titles and details through Spring MessageSource;
+     * explicit opt-in is required.</p>
+     */
+    private boolean i18nEnabled = false;
 
     public boolean isEnabled() {
         return enabled;
@@ -31,27 +36,11 @@ public class ProblemExceptionHandlerProperties {
         this.enabled = enabled;
     }
 
-    public Internationalization getI18n() {
-        return internationalization;
+    public boolean isI18nEnabled() {
+        return i18nEnabled;
     }
 
-    /** Problem Details 消息国际化配置。 */
-    public static class Internationalization {
-
-        /**
-         * 是否使用 Spring MessageSource 解析标题和详情；需要显式开启。
-         *
-         * <p>Whether to resolve titles and details through Spring MessageSource;
-         * explicit opt-in is required.</p>
-         */
-        private boolean enabled = false;
-
-        public boolean isEnabled() {
-            return enabled;
-        }
-
-        public void setEnabled(boolean enabled) {
-            this.enabled = enabled;
-        }
+    public void setI18nEnabled(boolean i18nEnabled) {
+        this.i18nEnabled = i18nEnabled;
     }
 }

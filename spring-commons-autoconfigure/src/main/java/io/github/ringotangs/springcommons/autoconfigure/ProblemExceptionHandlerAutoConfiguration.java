@@ -32,8 +32,8 @@ public class ProblemExceptionHandlerAutoConfiguration {
 
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnProperty(
-            prefix = ProblemExceptionHandlerProperties.PREFIX + ".i18n",
-            name = "enabled",
+            prefix = ProblemExceptionHandlerProperties.PREFIX,
+            name = "i18n-enabled",
             havingValue = "true"
     )
     static class InternationalizationConfiguration {
@@ -47,8 +47,8 @@ public class ProblemExceptionHandlerAutoConfiguration {
 
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnProperty(
-            prefix = ProblemExceptionHandlerProperties.PREFIX + ".i18n",
-            name = "enabled",
+            prefix = ProblemExceptionHandlerProperties.PREFIX,
+            name = "i18n-enabled",
             havingValue = "false",
             matchIfMissing = true
     )

@@ -37,7 +37,7 @@ class ProblemExceptionHandlerAutoConfigurationTest {
                     assertThat(context.getBean(ProblemExceptionHandlerProperties.class)
                             .isEnabled()).isTrue();
                     assertThat(context.getBean(ProblemExceptionHandlerProperties.class)
-                            .getI18n().isEnabled()).isFalse();
+                            .isI18nEnabled()).isFalse();
                 });
     }
 
@@ -46,14 +46,14 @@ class ProblemExceptionHandlerAutoConfigurationTest {
         contextRunner
                 .withPropertyValues(
                         "ringotangs.spring-commons.web.exception-handler.enabled=true",
-                        "ringotangs.spring-commons.web.exception-handler.i18n.enabled=true"
+                        "ringotangs.spring-commons.web.exception-handler.i18n-enabled=true"
                 )
                 .run(context -> {
                     assertThat(context).hasSingleBean(ProblemExceptionHandler.class);
                     assertThat(context.getBean(ProblemMessageResolver.class))
                             .isInstanceOf(MessageSourceProblemMessageResolver.class);
                     assertThat(context.getBean(ProblemExceptionHandlerProperties.class)
-                            .getI18n().isEnabled()).isTrue();
+                            .isI18nEnabled()).isTrue();
                 });
     }
 
@@ -61,7 +61,7 @@ class ProblemExceptionHandlerAutoConfigurationTest {
     void internationalizationDoesNotEnableProblemHandling() {
         contextRunner
                 .withPropertyValues(
-                        "ringotangs.spring-commons.web.exception-handler.i18n.enabled=true"
+                        "ringotangs.spring-commons.web.exception-handler.i18n-enabled=true"
                 )
                 .run(context -> {
                     assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);
