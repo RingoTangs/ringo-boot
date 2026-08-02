@@ -17,5 +17,9 @@ class UserProblemTypeTest {
                 HttpStatus.NOT_FOUND.value(),
                 UserProblemType.USER_NOT_FOUND.getHttpStatus()
         );
+        assertEquals(
+                UserProblemType.INVALID_USER_ID.getDefinition().httpStatus(),
+                UserProblemType.INVALID_USER_ID.getHttpStatus()
+        );
     }
 }

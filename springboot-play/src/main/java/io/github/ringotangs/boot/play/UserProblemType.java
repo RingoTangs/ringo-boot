@@ -1,55 +1,33 @@
 package io.github.ringotangs.boot.play;
 
+import io.github.ringotangs.commons.core.ProblemDefinition;
 import io.github.ringotangs.commons.core.ProblemType;
 import org.springframework.http.HttpStatus;
 
-import java.net.URI;
-
 public enum UserProblemType implements ProblemType {
 
-    INVALID_USER_ID(
+    INVALID_USER_ID(ProblemDefinition.of(
             "urn:problem:spring-commons:user:invalid-id",
             "Invalid user id",
             "User id must be greater than 0",
-            HttpStatus.BAD_REQUEST
-    ),
+            HttpStatus.BAD_REQUEST.value()
+    )),
 
-    USER_NOT_FOUND(
+    USER_NOT_FOUND(ProblemDefinition.of(
             "urn:problem:spring-commons:user:not-found",
             "User not found",
             "The requested user does not exist",
-            HttpStatus.NOT_FOUND
-    );
+            HttpStatus.NOT_FOUND.value()
+    ));
 
-    private final URI type;
-    private final String title;
-    private final String defaultDetail;
-    private final HttpStatus httpStatus;
+    private final ProblemDefinition definition;
 
-    UserProblemType(String type, String title, String defaultDetail, HttpStatus httpStatus) {
-        this.type = URI.create(type);
-        this.title = title;
-        this.defaultDetail = defaultDetail;
-        this.httpStatus = httpStatus;
+    UserProblemType(ProblemDefinition definition) {
+        this.definition = definition;
     }
 
     @Override
-    public URI getType() {
-        return type;
-    }
-
-    @Override
-    public String getTitle() {
-        return title;
-    }
-
-    @Override
-    public String getDefaultDetail() {
-        return defaultDetail;
-    }
-
-    @Override
-    public int getHttpStatus() {
-        return httpStatus.value();
+    public ProblemDefinition getDefinition() {
+        return definition;
     }
 }

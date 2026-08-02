@@ -106,22 +106,16 @@ public final class ProblemException extends RuntimeException {
     }
 
     /**
-     * 校验问题类型和 HTTP 错误状态，并在自定义详情缺失或为空白时返回默认详情。
+     * 校验问题类型，并在自定义详情缺失或为空白时返回默认详情。
      *
-     * <p>Validates the problem type and HTTP error status, then returns its default detail
-     * when the custom detail is absent or blank.</p>
+     * <p>Validates the problem type, then returns its default detail when the custom detail
+     * is absent or blank.</p>
      */
     private static String resolveDetail(ProblemType problemType, @Nullable String detail) {
         ProblemType requiredProblemType = Objects.requireNonNull(
                 problemType,
                 "problemType must not be null"
         );
-        int httpStatus = requiredProblemType.getHttpStatus();
-        if (httpStatus < 400 || httpStatus > 599) {
-            throw new IllegalArgumentException(
-                    "httpStatus must be between 400 and 599: " + httpStatus
-            );
-        }
         return detail == null || detail.isBlank()
                 ? requiredProblemType.getDefaultDetail()
                 : detail;

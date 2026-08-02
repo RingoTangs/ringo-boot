@@ -16,6 +16,15 @@ import java.net.URI;
 public interface ProblemType {
 
     /**
+     * 返回该问题类型的不可变定义。
+     *
+     * <p>Returns the immutable definition of this problem type.</p>
+     *
+     * @return 问题定义 / the problem definition
+     */
+    ProblemDefinition getDefinition();
+
+    /**
      * 返回供客户端识别问题类型的稳定 URI，建议使用绝对 URI 或 URN。
      *
      * <p>Returns the stable URI that clients use to identify the problem type.
@@ -23,7 +32,9 @@ public interface ProblemType {
      *
      * @return 问题类型 URI / the problem type URI
      */
-    URI getType();
+    default URI getType() {
+        return getDefinition().type();
+    }
 
     /**
      * 返回简短且人类可读的问题标题；除本地化外，同一问题类型的标题应保持不变。
@@ -33,7 +44,9 @@ public interface ProblemType {
      *
      * @return 问题标题 / the problem title
      */
-    String getTitle();
+    default String getTitle() {
+        return getDefinition().title();
+    }
 
     /**
      * 返回问题的默认详情，可由 {@link ProblemException} 中的自定义详情覆盖。
@@ -43,7 +56,9 @@ public interface ProblemType {
      *
      * @return 默认问题详情 / the default problem detail
      */
-    String getDefaultDetail();
+    default String getDefaultDetail() {
+        return getDefinition().defaultDetail();
+    }
 
     /**
      * 返回实际 HTTP 响应使用的状态码，该值必须与 Problem Details 的
@@ -54,5 +69,7 @@ public interface ProblemType {
      *
      * @return HTTP 状态码 / the HTTP status code
      */
-    int getHttpStatus();
+    default int getHttpStatus() {
+        return getDefinition().httpStatus();
+    }
 }
