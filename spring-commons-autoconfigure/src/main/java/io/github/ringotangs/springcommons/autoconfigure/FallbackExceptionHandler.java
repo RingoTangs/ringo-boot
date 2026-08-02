@@ -44,27 +44,16 @@ public class FallbackExceptionHandler {
     private final ExceptionHandlerProperties properties;
 
     /**
-     * 创建全局异常兜底处理器。
+     * 使用消息解析器创建全局异常兜底处理器。
      *
-     * <p>Creates the global fallback exception handler.</p>
+     * <p>Creates the global fallback exception handler with a message resolver.</p>
      */
     public FallbackExceptionHandler(
             ProblemMessageResolver messageResolver,
             MessageSource messageSource,
             ExceptionHandlerProperties properties
     ) {
-        this(new ProblemDetailFactory(messageResolver), messageSource, properties);
-    }
-
-    FallbackExceptionHandler(
-            ProblemDetailFactory problemDetailFactory,
-            MessageSource messageSource,
-            ExceptionHandlerProperties properties
-    ) {
-        this.problemDetailFactory = Objects.requireNonNull(
-                problemDetailFactory,
-                "problemDetailFactory must not be null"
-        );
+        this.problemDetailFactory = new ProblemDetailFactory(messageResolver);
         this.messageSource = Objects.requireNonNull(
                 messageSource,
                 "messageSource must not be null"

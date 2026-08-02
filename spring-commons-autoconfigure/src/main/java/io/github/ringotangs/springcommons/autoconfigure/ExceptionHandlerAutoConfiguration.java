@@ -57,9 +57,9 @@ public class ExceptionHandlerAutoConfiguration {
         @Bean
         @ConditionalOnMissingBean
         ProblemExceptionHandler problemExceptionHandler(
-                ProblemDetailFactory problemDetailFactory
+                ProblemMessageResolver messageResolver
         ) {
-            return new ProblemExceptionHandler(problemDetailFactory);
+            return new ProblemExceptionHandler(messageResolver);
         }
     }
 
@@ -85,12 +85,12 @@ public class ExceptionHandlerAutoConfiguration {
         @Bean
         @ConditionalOnMissingBean
         FallbackExceptionHandler fallbackExceptionHandler(
-                ProblemDetailFactory problemDetailFactory,
+                ProblemMessageResolver messageResolver,
                 ApplicationContext applicationContext,
                 ExceptionHandlerProperties properties
         ) {
             return new FallbackExceptionHandler(
-                    problemDetailFactory,
+                    messageResolver,
                     applicationContext,
                     properties
             );
@@ -98,16 +98,15 @@ public class ExceptionHandlerAutoConfiguration {
     }
 
     /**
-     * 装配两个异常处理器共享的消息解析器和 Problem Details 构建器。
-     * 只有至少一个处理器开启时才需要这些基础设施。
+     * 装配两个异常处理器共享的消息解析器。
+     * 只有至少一个处理器开启时才需要该解析器。
      *
-     * <p>Configures the message resolver and Problem Details factory shared by
-     * both handlers. This infrastructure is needed only when at least one handler
-     * is enabled.</p>
+     * <p>Configures the message resolver shared by both handlers. The resolver is
+     * needed only when at least one handler is enabled.</p>
      */
     @Configuration(proxyBeanMethods = false)
     @Conditional(AnyHandlerEnabledCondition.class)
-    static class ProblemDetailsInfrastructureConfiguration {
+    static class ProblemMessageResolverConfiguration {
 
         /**
          * 根据 i18n 开关选择国际化或默认消息解析器，并允许用户覆盖默认 Bean。
@@ -125,19 +124,6 @@ public class ExceptionHandlerAutoConfiguration {
                     ? new MessageSourceProblemMessageResolver(applicationContext)
                     : new DefaultProblemMessageResolver();
         }
-
-        /**
-         * 创建两个处理器共用的 Problem Details 构建器。
-         *
-         * <p>Creates the Problem Details factory shared by both handlers.</p>
-         */
-        @Bean
-        @ConditionalOnMissingBean
-        ProblemDetailFactory problemDetailFactory(
-                ProblemMessageResolver messageResolver
-        ) {
-            return new ProblemDetailFactory(messageResolver);
-        }
     }
 
     /**
@@ -151,7 +137,7 @@ public class ExceptionHandlerAutoConfiguration {
     static final class AnyHandlerEnabledCondition extends AnyNestedCondition {
 
         /**
-         * 在解析配置类阶段计算属性条件，决定是否注册共享基础设施配置。
+         * 在解析配置类阶段计算属性条件，决定是否注册消息解析器配置。
          *
          * <p>Evaluates the property conditions while configuration classes are
          * being parsed.</p>

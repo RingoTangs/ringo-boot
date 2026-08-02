@@ -6,8 +6,6 @@ import org.springframework.core.annotation.Order;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.util.Objects;
-
 /**
  * 将 {@link ProblemException} 转换为 RFC 9457 Problem Details 响应。
  *
@@ -28,14 +26,7 @@ public class ProblemExceptionHandler {
      * @param messageResolver 问题消息解析器 / the problem message resolver
      */
     public ProblemExceptionHandler(ProblemMessageResolver messageResolver) {
-        this(new ProblemDetailFactory(messageResolver));
-    }
-
-    ProblemExceptionHandler(ProblemDetailFactory problemDetailFactory) {
-        this.problemDetailFactory = Objects.requireNonNull(
-                problemDetailFactory,
-                "problemDetailFactory must not be null"
-        );
+        this.problemDetailFactory = new ProblemDetailFactory(messageResolver);
     }
 
     /**
