@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: springboot-play
+  mvc:
+    problemdetails:
+      enabled: true
+server:
+  port: 8080
