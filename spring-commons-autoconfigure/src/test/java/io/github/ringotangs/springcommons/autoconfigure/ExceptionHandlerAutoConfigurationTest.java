@@ -15,7 +15,7 @@ class ExceptionHandlerAutoConfigurationTest {
                     ));
 
     @Test
-    void doesNotConfigureProblemHandlingByDefault() {
+    void doesNotConfigureExceptionHandlingByDefault() {
         contextRunner.run(context -> {
             assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);
             assertThat(context).doesNotHaveBean(ProblemMessageResolver.class);
@@ -25,7 +25,7 @@ class ExceptionHandlerAutoConfigurationTest {
     }
 
     @Test
-    void configuresDefaultMessagesWhenProblemHandlingIsEnabled() {
+    void configuresDefaultMessagesWhenExceptionHandlingIsEnabled() {
         contextRunner
                 .withPropertyValues(
                         "ringotangs.spring-commons.web.exception-handler.enabled=true"
@@ -59,7 +59,7 @@ class ExceptionHandlerAutoConfigurationTest {
     }
 
     @Test
-    void fallbackDoesNotEnableProblemHandling() {
+    void fallbackDoesNotEnableExceptionHandling() {
         contextRunner
                 .withPropertyValues(
                         "ringotangs.spring-commons.web.exception-handler.fallback-enabled=true"
@@ -87,7 +87,7 @@ class ExceptionHandlerAutoConfigurationTest {
     }
 
     @Test
-    void internationalizationDoesNotEnableProblemHandling() {
+    void internationalizationDoesNotEnableExceptionHandling() {
         contextRunner
                 .withPropertyValues(
                         "ringotangs.spring-commons.web.exception-handler.i18n-enabled=true"
@@ -102,7 +102,7 @@ class ExceptionHandlerAutoConfigurationTest {
     }
 
     @Test
-    void doesNotConfigureProblemHandlingWhenExplicitlyDisabled() {
+    void doesNotConfigureExceptionHandlingWhenExplicitlyDisabled() {
         contextRunner
                 .withPropertyValues(
                         "ringotangs.spring-commons.web.exception-handler.enabled=false"
