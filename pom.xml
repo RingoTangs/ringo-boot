@@ -10,14 +10,14 @@
 
     <packaging>pom</packaging>
 
+    <name>Spring Commons</name>
+
     <modules>
-        <module>commons-core</module>
-        <module>springboot-play</module>
+        <module>spring-commons-core</module>
+        <module>spring-commons-sample</module>
     </modules>
 
-    <description>
-        RingoTangs commons lib. Maven version 3.9.16.
-    </description>
+    <description>Reusable components and examples for Spring Boot applications.</description>
 
     <properties>
         <java.version>21</java.version>
@@ -29,7 +29,7 @@
         <!-- deps version -->
         <spring.boot.version>3.5.16</spring.boot.version>
         <jspecify.version>1.0.0</jspecify.version>
-        <lombok.verion>1.18.46</lombok.verion>
+        <lombok.version>1.18.46</lombok.version>
     </properties>
 
     <dependencyManagement>
@@ -47,7 +47,7 @@
             <dependency>
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
-                <version>${lombok.verion}</version>
+                <version>${lombok.version}</version>
             </dependency>
 
             <!-- null-safety annotations -->
@@ -58,10 +58,10 @@
             </dependency>
 
             <!-- 项目模块 -->
-            <!-- commons-core -->
+            <!-- spring-commons-core -->
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>commons-core</artifactId>
+                <artifactId>spring-commons-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

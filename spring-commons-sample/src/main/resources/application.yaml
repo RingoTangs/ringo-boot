@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: spring-commons-sample
+  mvc:
+    problemdetails:
+      enabled: true
+server:
+  port: 8080
