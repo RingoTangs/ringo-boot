@@ -1,9 +1,9 @@
 package io.github.ringotangs.springcommons.sample;
 
 import io.github.ringotangs.springcommons.core.ProblemException;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 public class HelloController {
@@ -18,6 +18,15 @@ public class HelloController {
         }
 
         return User.builder().name("zs").age(18).build();
+    }
+
+    @PostMapping("/users")
+    @ResponseStatus(HttpStatus.CREATED)
+    public User createUser(@Valid @RequestBody CreateUserRequest request) {
+        return User.builder()
+                .name(request.name())
+                .age(request.age())
+                .build();
     }
 
 }

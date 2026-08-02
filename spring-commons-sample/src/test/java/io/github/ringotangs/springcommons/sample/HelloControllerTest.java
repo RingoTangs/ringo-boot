@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -27,6 +28,51 @@ class HelloControllerTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.name").value("zs"))
                 .andExpect(jsonPath("$.age").value(18));
+    }
+
+    @Test
+    void createsUserWhenRequestIsValid() throws Exception {
+        mockMvc.perform(post("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Alice",
+                                  "age": 20
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.name").value("Alice"))
+                .andExpect(jsonPath("$.age").value(20));
+    }
+
+    @Test
+    void returnsProblemWhenUserNameIsBlank() throws Exception {
+        assertValidationProblem("""
+                {
+                  "name": " ",
+                  "age": 20
+                }
+                """);
+    }
+
+    @Test
+    void returnsProblemWhenUserAgeIsMissing() throws Exception {
+        assertValidationProblem("""
+                {
+                  "name": "Alice"
+                }
+                """);
+    }
+
+    @Test
+    void returnsProblemWhenUserAgeIsOutOfRange() throws Exception {
+        assertValidationProblem("""
+                {
+                  "name": "Alice",
+                  "age": 151
+                }
+                """);
     }
 
     @Test
@@ -72,5 +118,19 @@ class HelloControllerTest {
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.detail").value("用户 2 不存在"))
                 .andExpect(jsonPath("$.instance").value("/user"));
+    }
+
+    private void assertValidationProblem(String requestBody) throws Exception {
+        mockMvc.perform(post("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header(HttpHeaders.ACCEPT_LANGUAGE, "en")
+                        .content(requestBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.type").value("about:blank"))
+                .andExpect(jsonPath("$.title").value("Bad Request"))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.detail").isNotEmpty())
+                .andExpect(jsonPath("$.instance").value("/users"));
     }
 }
