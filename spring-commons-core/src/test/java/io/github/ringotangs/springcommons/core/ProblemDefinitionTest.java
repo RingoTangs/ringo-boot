@@ -21,6 +21,16 @@ class ProblemDefinitionTest {
     }
 
     @Test
+    void uriAndStringFactoriesCreateEqualDefinitions() {
+        ProblemDefinition fromString =
+                ProblemDefinition.of("urn:problem:test", "problem.test", "Test problem", "Default detail", 400);
+        ProblemDefinition fromUri = ProblemDefinition.of(
+                URI.create("urn:problem:test"), "problem.test", "Test problem", "Default detail", 400);
+
+        assertEquals(fromString, fromUri);
+    }
+
+    @Test
     void acceptsClientAndServerErrorStatuses() {
         ProblemDefinition.of("urn:problem:test:400", "problem.test", "Test", "Detail", 400);
         ProblemDefinition.of("urn:problem:test:599", "problem.test", "Test", "Detail", 599);

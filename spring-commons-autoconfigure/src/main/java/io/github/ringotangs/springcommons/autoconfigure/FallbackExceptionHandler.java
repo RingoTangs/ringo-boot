@@ -3,6 +3,7 @@ package io.github.ringotangs.springcommons.autoconfigure;
 import io.github.ringotangs.springcommons.core.ProblemDefinition;
 import io.github.ringotangs.springcommons.core.ProblemException;
 import io.github.ringotangs.springcommons.core.ProblemType;
+import io.github.ringotangs.springcommons.core.ProblemTypeUri;
 import java.util.Objects;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -33,7 +34,7 @@ public class FallbackExceptionHandler {
     private static final Log logger = LogFactory.getLog(FallbackExceptionHandler.class);
 
     private static final ProblemDefinition INTERNAL_SERVER_ERROR_DEFINITION = ProblemDefinition.of(
-            "urn:problem:fallback:internal-server-error",
+            ProblemTypeUri.of("fallback", "internal-server-error"),
             "problem.internal-server-error",
             "Internal server error",
             "An unexpected error occurred",

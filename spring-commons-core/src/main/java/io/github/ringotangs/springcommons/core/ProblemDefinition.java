@@ -57,12 +57,22 @@ public record ProblemDefinition(URI type, String messageCode, String title, Stri
      */
     public static ProblemDefinition of(
             String type, String messageCode, String title, String defaultDetail, int httpStatus) {
-        return new ProblemDefinition(
+        return of(
                 URI.create(Objects.requireNonNull(type, "type must not be null")),
                 messageCode,
                 title,
                 defaultDetail,
                 httpStatus);
+    }
+
+    /**
+     * 使用 URI 创建问题定义。
+     *
+     * <p>Creates a problem definition from a URI.</p>
+     */
+    public static ProblemDefinition of(
+            URI type, String messageCode, String title, String defaultDetail, int httpStatus) {
+        return new ProblemDefinition(type, messageCode, title, defaultDetail, httpStatus);
     }
 
     private static boolean isErrorStatus(int httpStatus) {

@@ -1,5 +1,6 @@
 package io.github.ringotangs.springcommons.autoconfigure;
 
+import io.github.ringotangs.springcommons.core.ProblemTypeUri;
 import java.net.URI;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
@@ -37,7 +38,7 @@ enum SpringMvcProblemType {
     private final URI type;
 
     SpringMvcProblemType(String category) {
-        this.type = URI.create("urn:problem:mvc:" + category);
+        this.type = ProblemTypeUri.of("mvc", category);
     }
 
     URI getType() {
