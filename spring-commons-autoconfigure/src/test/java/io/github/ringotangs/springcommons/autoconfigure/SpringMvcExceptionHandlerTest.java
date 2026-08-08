@@ -15,9 +15,11 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.ErrorResponseException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.context.request.ServletWebRequest;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -47,9 +49,9 @@ class SpringMvcExceptionHandlerTest {
                     assertThat(problem.getType()).isEqualTo(URI.create(
                             "urn:problem:mvc:method-not-allowed"
                     ));
-                    assertThat(problem.getTitle()).isEqualTo("Method not allowed");
+                    assertThat(problem.getTitle()).isEqualTo("Method Not Allowed");
                     assertThat(problem.getDetail()).isEqualTo(
-                            "The request method is not supported for this resource"
+                            "Method 'POST' is not supported."
                     );
                 }
         );
@@ -102,6 +104,71 @@ class SpringMvcExceptionHandlerTest {
         assertThat(response).isNotNull();
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(response.getBody()).isSameAs(body);
+        assertThat(output).doesNotContain("Unhandled Spring MVC exception");
+    }
+
+    @Test
+    void usesSpringNativeMessageCodesWhenLibraryI18nIsDisabled() throws Exception {
+        HttpRequestMethodNotSupportedException exception =
+                new HttpRequestMethodNotSupportedException("POST", List.of("GET"));
+        StaticMessageSource messageSource = new StaticMessageSource();
+        messageSource.addMessage(
+                exception.getTitleMessageCode(),
+                Locale.CHINA,
+                "Spring 本地化标题"
+        );
+        messageSource.addMessage(
+                exception.getDetailMessageCode(),
+                Locale.CHINA,
+                "Spring 本地化详情"
+        );
+        ExceptionHandlerProperties properties = new ExceptionHandlerProperties();
+        properties.setI18nEnabled(false);
+        SpringMvcExceptionHandler localizedHandler = new SpringMvcExceptionHandler(
+                messageSource,
+                properties
+        );
+
+        org.springframework.context.i18n.LocaleContextHolder.setLocale(Locale.CHINA);
+        try {
+            ResponseEntity<Object> response = localizedHandler.handleException(
+                    exception,
+                    webRequest()
+            );
+
+            assertThat(response).isNotNull();
+            assertThat(response.getBody()).isInstanceOfSatisfying(
+                    ProblemDetail.class,
+                    problem -> {
+                        assertThat(problem.getType()).isEqualTo(URI.create(
+                                "urn:problem:mvc:method-not-allowed"
+                        ));
+                        assertThat(problem.getTitle()).isEqualTo("Spring 本地化标题");
+                        assertThat(problem.getDetail()).isEqualTo("Spring 本地化详情");
+                    }
+            );
+        }
+        finally {
+            org.springframework.context.i18n.LocaleContextHolder.resetLocaleContext();
+        }
+    }
+
+    @Test
+    void preservesExpectedAsyncTimeoutAndDoesNotLogIt(CapturedOutput output)
+            throws Exception {
+        ResponseEntity<Object> response = handler.handleException(
+                new AsyncRequestTimeoutException(),
+                webRequest()
+        );
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+        assertThat(response.getBody()).isInstanceOfSatisfying(
+                ProblemDetail.class,
+                problem -> assertThat(problem.getType()).isEqualTo(URI.create(
+                        "urn:problem:mvc:request-timeout"
+                ))
+        );
         assertThat(output).doesNotContain("Unhandled Spring MVC exception");
     }
 

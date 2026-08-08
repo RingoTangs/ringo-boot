@@ -1,7 +1,5 @@
 package io.github.ringotangs.springcommons.autoconfigure;
 
-import io.github.ringotangs.springcommons.core.ProblemDefinition;
-import io.github.ringotangs.springcommons.core.ProblemType;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.ConversionNotSupportedException;
 import org.springframework.beans.TypeMismatchException;
@@ -22,87 +20,31 @@ import org.springframework.web.multipart.support.MissingServletRequestPartExcept
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import java.net.URI;
 import java.util.Objects;
 
-enum SpringMvcProblemType implements ProblemType {
+enum SpringMvcProblemType {
 
-    METHOD_NOT_ALLOWED(definition(
-            "method-not-allowed",
-            "Method not allowed",
-            "The request method is not supported for this resource",
-            405
-    )),
-    UNSUPPORTED_MEDIA_TYPE(definition(
-            "unsupported-media-type",
-            "Unsupported media type",
-            "The request content type is not supported",
-            415
-    )),
-    NOT_ACCEPTABLE(definition(
-            "not-acceptable",
-            "Not acceptable",
-            "No acceptable response representation is available",
-            406
-    )),
-    MISSING_REQUEST_VALUE(definition(
-            "missing-request-value",
-            "Missing request value",
-            "A required request value is missing",
-            400
-    )),
-    INVALID_PARAMETER(definition(
-            "invalid-parameter",
-            "Invalid parameter",
-            "A request parameter has an invalid value",
-            400
-    )),
-    MALFORMED_REQUEST(definition(
-            "malformed-request",
-            "Malformed request",
-            "The request body could not be read",
-            400
-    )),
-    VALIDATION_FAILED(definition(
-            "validation-failed",
-            "Validation failed",
-            "The request validation failed",
-            400
-    )),
-    NOT_FOUND(definition(
-            "not-found",
-            "Resource not found",
-            "The requested resource was not found",
-            404
-    )),
-    PAYLOAD_TOO_LARGE(definition(
-            "payload-too-large",
-            "Payload too large",
-            "The request payload is too large",
-            413
-    )),
-    REQUEST_TIMEOUT(definition(
-            "request-timeout",
-            "Request timeout",
-            "The request could not be completed in time",
-            503
-    )),
-    INTERNAL_SERVER_ERROR(ProblemDefinition.of(
-            "urn:problem:mvc:internal-server-error",
-            "problem.internal-server-error",
-            "Internal server error",
-            "An unexpected error occurred",
-            500
-    ));
+    METHOD_NOT_ALLOWED("method-not-allowed"),
+    UNSUPPORTED_MEDIA_TYPE("unsupported-media-type"),
+    NOT_ACCEPTABLE("not-acceptable"),
+    MISSING_REQUEST_VALUE("missing-request-value"),
+    INVALID_PARAMETER("invalid-parameter"),
+    MALFORMED_REQUEST("malformed-request"),
+    VALIDATION_FAILED("validation-failed"),
+    NOT_FOUND("not-found"),
+    PAYLOAD_TOO_LARGE("payload-too-large"),
+    REQUEST_TIMEOUT("request-timeout"),
+    INTERNAL_SERVER_ERROR("internal-server-error");
 
-    private final ProblemDefinition definition;
+    private final URI type;
 
-    SpringMvcProblemType(ProblemDefinition definition) {
-        this.definition = definition;
+    SpringMvcProblemType(String category) {
+        this.type = URI.create("urn:problem:mvc:" + category);
     }
 
-    @Override
-    public ProblemDefinition getDefinition() {
-        return definition;
+    URI getType() {
+        return type;
     }
 
     static @Nullable SpringMvcProblemType resolve(Exception exception) {
@@ -154,18 +96,4 @@ enum SpringMvcProblemType implements ProblemType {
         return null;
     }
 
-    private static ProblemDefinition definition(
-            String name,
-            String title,
-            String detail,
-            int status
-    ) {
-        return ProblemDefinition.of(
-                "urn:problem:mvc:" + name,
-                "problem.spring-mvc." + name,
-                title,
-                detail,
-                status
-        );
-    }
 }

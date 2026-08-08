@@ -18,14 +18,16 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
  * <p>{@code enabled} 是整个自动配置的总开关；总开关开启后，
  * {@code problem-enabled}、{@code mvc-enabled} 和 {@code fallback-enabled} 分别控制
  * 业务问题异常、Spring MVC 内置异常与未知异常处理。{@code i18n-enabled} 不会单独
- * 启用处理器，只决定已启用的处理器是否通过 Spring {@code MessageSource} 解析错误文案。</p>
+ * 启用处理器，只决定业务问题与兜底处理器是否通过 Spring
+ * {@code MessageSource} 解析错误文案。Spring MVC 响应继续使用 Spring 原生消息解析。</p>
  *
  * <p>Auto-configures the Spring Commons Web exception-handling system.
  * {@code enabled} is the master switch. Once it is enabled,
  * {@code problem-enabled}, {@code mvc-enabled}, and {@code fallback-enabled}
  * independently control problem exceptions, built-in Spring MVC exceptions, and
  * fallback handling. {@code i18n-enabled} does not enable a handler by itself; it
- * only selects MessageSource-based message resolution for enabled handlers.</p>
+ * selects MessageSource-based message resolution for problem and fallback handlers.
+ * Spring MVC responses continue to use Spring's native message resolution.</p>
  */
 @AutoConfiguration(before = WebMvcAutoConfiguration.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)

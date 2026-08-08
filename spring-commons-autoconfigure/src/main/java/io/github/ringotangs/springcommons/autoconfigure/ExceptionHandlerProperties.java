@@ -38,10 +38,12 @@ public class ExceptionHandlerProperties {
     private boolean mvcEnabled = false;
 
     /**
-     * 是否使用 Spring MessageSource 解析标题和详情；仅在总开关开启后生效。
+     * 是否使用 Spring MessageSource 解析业务异常和兜底异常的标题与详情；
+     * Spring MVC 内置异常始终使用 Spring 原生的消息解析机制。
      *
-     * <p>Whether to resolve titles and details through Spring MessageSource;
-     * effective only when the main switch is enabled.</p>
+     * <p>Whether to resolve problem and fallback exception messages through Spring
+     * MessageSource. Built-in Spring MVC exceptions always use Spring's native
+     * message resolution.</p>
      */
     private boolean i18nEnabled = false;
 

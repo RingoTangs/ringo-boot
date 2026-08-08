@@ -96,7 +96,7 @@ class HelloControllerTest {
     }
 
     @Test
-    void returnsStableProblemForInvalidParameterType() throws Exception {
+    void returnsSpringDiagnosticForInvalidParameterType() throws Exception {
         mockMvc.perform(get("/user")
                         .param("id", "secret-invalid-value")
                         .header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
@@ -105,14 +105,14 @@ class HelloControllerTest {
                 .andExpect(jsonPath("$.type").value(
                         "urn:problem:mvc:invalid-parameter"
                 ))
-                .andExpect(jsonPath("$.title").value("Invalid parameter"))
+                .andExpect(jsonPath("$.title").value("Bad Request"))
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.detail").value(
-                        "A request parameter has an invalid value"
+                        "Failed to convert 'id' with value: 'secret-invalid-value'"
                 ))
                 .andExpect(jsonPath("$.instance").value("/user"))
-                .andExpect(content().string(org.hamcrest.Matchers.not(
-                        org.hamcrest.Matchers.containsString("secret-invalid-value")
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "secret-invalid-value"
                 )));
     }
 
@@ -126,13 +126,16 @@ class HelloControllerTest {
                 .andExpect(jsonPath("$.type").value(
                         "urn:problem:mvc:method-not-allowed"
                 ))
-                .andExpect(jsonPath("$.title").value("Method not allowed"))
+                .andExpect(jsonPath("$.title").value("Method Not Allowed"))
                 .andExpect(jsonPath("$.status").value(405))
+                .andExpect(jsonPath("$.detail").value(
+                        "Method 'POST' is not supported."
+                ))
                 .andExpect(jsonPath("$.instance").value("/user"));
     }
 
     @Test
-    void returnsLocalizedProblemForInvalidParameterType() throws Exception {
+    void usesSpringNativeProblemForChineseRequest() throws Exception {
         mockMvc.perform(get("/user")
                         .param("id", "invalid")
                         .header(HttpHeaders.ACCEPT_LANGUAGE, "zh-CN"))
@@ -140,8 +143,10 @@ class HelloControllerTest {
                 .andExpect(jsonPath("$.type").value(
                         "urn:problem:mvc:invalid-parameter"
                 ))
-                .andExpect(jsonPath("$.title").value("无效参数"))
-                .andExpect(jsonPath("$.detail").value("请求参数值无效"));
+                .andExpect(jsonPath("$.title").value("Bad Request"))
+                .andExpect(jsonPath("$.detail").value(
+                        "Failed to convert 'id' with value: 'invalid'"
+                ));
     }
 
     @Test
@@ -154,7 +159,6 @@ class HelloControllerTest {
                 .andExpect(jsonPath("$.type").value(
                         "urn:problem:mvc:malformed-request"
                 ))
-                .andExpect(jsonPath("$.detail").value("The request body could not be read"))
                 .andExpect(jsonPath("$.instance").value("/users"));
     }
 
@@ -168,9 +172,7 @@ class HelloControllerTest {
                 .andExpect(jsonPath("$.type").value(
                         "urn:problem:mvc:unsupported-media-type"
                 ))
-                .andExpect(jsonPath("$.detail").value(
-                        "The request content type is not supported"
-                ));
+                .andExpect(jsonPath("$.title").value("Unsupported Media Type"));
     }
 
     @Test
@@ -181,9 +183,7 @@ class HelloControllerTest {
                 .andExpect(jsonPath("$.type").value(
                         "urn:problem:mvc:not-found"
                 ))
-                .andExpect(jsonPath("$.detail").value(
-                        "The requested resource was not found"
-                ));
+                .andExpect(jsonPath("$.title").value("Not Found"));
     }
 
     @Test
@@ -245,9 +245,8 @@ class HelloControllerTest {
                 .andExpect(jsonPath("$.type").value(
                         "urn:problem:mvc:validation-failed"
                 ))
-                .andExpect(jsonPath("$.title").value("Validation failed"))
+                .andExpect(jsonPath("$.title").value("Bad Request"))
                 .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.detail").value("The request validation failed"))
                 .andExpect(jsonPath("$.instance").value("/users"));
     }
 

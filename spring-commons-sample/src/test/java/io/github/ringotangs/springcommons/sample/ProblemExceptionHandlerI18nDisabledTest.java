@@ -31,7 +31,7 @@ class ProblemExceptionHandlerI18nDisabledTest {
     }
 
     @Test
-    void returnsDefaultSpringMvcMessagesForChineseRequest() throws Exception {
+    void springMvcStillUsesItsNativeMessagesWhenLibraryI18nIsDisabled() throws Exception {
         mockMvc.perform(get("/user")
                         .param("id", "invalid")
                         .header(HttpHeaders.ACCEPT_LANGUAGE, "zh-CN"))
@@ -39,9 +39,9 @@ class ProblemExceptionHandlerI18nDisabledTest {
                 .andExpect(jsonPath("$.type").value(
                         "urn:problem:mvc:invalid-parameter"
                 ))
-                .andExpect(jsonPath("$.title").value("Invalid parameter"))
+                .andExpect(jsonPath("$.title").value("Bad Request"))
                 .andExpect(jsonPath("$.detail").value(
-                        "A request parameter has an invalid value"
+                        "Failed to convert 'id' with value: 'invalid'"
                 ));
     }
 }

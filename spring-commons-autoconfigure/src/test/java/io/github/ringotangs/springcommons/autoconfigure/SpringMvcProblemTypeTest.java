@@ -20,6 +20,7 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import java.net.URI;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -53,6 +54,16 @@ class SpringMvcProblemTypeTest {
     @Test
     void leavesUnknownExceptionsUnmapped() {
         assertThat(SpringMvcProblemType.resolve(new IllegalStateException())).isNull();
+    }
+
+    @Test
+    void exposesMvcSpecificProblemTypeUris() {
+        assertThat(SpringMvcProblemType.INVALID_PARAMETER.getType()).isEqualTo(
+                URI.create("urn:problem:mvc:invalid-parameter")
+        );
+        assertThat(SpringMvcProblemType.INTERNAL_SERVER_ERROR.getType()).isEqualTo(
+                URI.create("urn:problem:mvc:internal-server-error")
+        );
     }
 
     private static Stream<Arguments> exceptionMappings() {
