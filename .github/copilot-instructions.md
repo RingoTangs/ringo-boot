@@ -2,13 +2,20 @@
 
 ## Purpose
 
-Generate clear, concise, and meaningful Git commit messages based on the current code changes.
+Generate Git commit messages based on the current code changes.
 
-Commit messages should help reviewers and future maintainers understand:
+The commit message must be:
 
-- What changed
-- Why the change was made
-- The impact of the change
+- Accurate
+- Concise
+- Easy to understand
+- Written for Chinese-speaking engineering teams
+
+The commit message should explain:
+
+- 修改了什么
+- 为什么修改
+- 对系统行为有什么影响
 
 ---
 
@@ -22,6 +29,14 @@ Use Conventional Commits format:
 
 <footer>
 
+Format rules:
+
+- type 必须使用英文
+- scope 使用英文
+- subject 必须使用中文
+- body 必须使用中文
+- footer 根据需要使用英文关键字（例如 Closes、BREAKING CHANGE）
+
 Example:
 
 feat(user): 增加用户资料更新接口
@@ -32,70 +47,93 @@ Closes #123
 
 ---
 
+## Language Rules (IMPORTANT)
+
+The commit message language rules are mandatory:
+
+- Subject 必须使用中文
+- Body 必须使用中文
+- 禁止生成英文 subject
+- 禁止生成英文 body
+- 技术名称、框架名称、类名、API 名称可以保留英文
+
+Allowed examples:
+
+feat(auth): 增加 OAuth 登录支持
+
+fix(api): 修复 REST API 参数校验异常
+
+refactor(database): 优化 MySQL 查询逻辑
+
+Not allowed:
+
+feat(auth): add oauth login support
+
+fix(api): fix parameter validation issue
+
+refactor(database): improve query performance
+
+---
+
 ## Commit Type
 
-Use one of the following types:
+Allowed commit types:
 
-- feat: 新功能或新能力
+- feat: 新功能
 - fix: Bug 修复
-- refactor: 代码重构，不改变现有行为
+- refactor: 重构代码
 - perf: 性能优化
 - docs: 文档修改
-- test: 测试相关修改
-- build: 构建系统或依赖修改
-- ci: CI/CD 配置修改
-- chore: 日常维护任务
-- style: 代码格式或样式调整
-- revert: 回滚之前的提交
+- test: 测试修改
+- build: 构建相关修改
+- ci: CI/CD 修改
+- chore: 日常维护
+- style: 格式调整
+- revert: 回滚提交
 
 ---
 
 ## Subject Rules
 
-The subject line must:
+Subject 必须满足：
 
-- Be written in Chinese
-- Start with a lowercase type prefix
-- Use concise engineering language
-- Describe the main purpose of the change
-- Not end with a period
-- Be no longer than 72 characters
+- 使用中文描述
+- 简洁描述主要变更
+- 不超过 72 个字符
+- 不以句号结尾
+- 不包含无意义描述
 
-Good examples:
+推荐：
 
-feat(auth): 增加 OAuth 登录支持
+feat(user): 增加手机号登录功能
 
-fix(api): 修复空参数导致接口异常
+fix(order): 修复订单状态更新异常
 
-refactor(order): 简化订单创建流程
+refactor(cache): 优化 Redis 缓存逻辑
 
-Bad examples:
+禁止：
 
-Added login feature
+feat(user): add user login
 
-Fix bug.
+fix(order): fix bug
 
-update code
-
-修改了一些代码
+chore: update code
 
 ---
 
 ## Scope Rules
 
-The scope should represent the affected module, service, or domain.
+scope 表示受影响的模块、领域或服务。
 
-Use meaningful scopes:
+推荐：
 
-Examples:
-
-feat(auth): 增加手机号登录能力
+feat(auth): 增加 JWT 登录认证
 
 fix(payment): 修复支付状态同步问题
 
-refactor(database): 优化查询逻辑
+refactor(order): 简化订单创建流程
 
-Common scopes:
+常用 scope:
 
 - auth
 - user
@@ -107,140 +145,94 @@ Common scopes:
 - config
 - build
 
-Avoid meaningless scopes:
+避免：
 
 - update
 - change
 - modify
 - code
 
-If the change affects multiple unrelated areas, omit the scope.
-
----
-
-## Language Rules
-
-- Commit messages should be written in Chinese
-- Keep technical keywords, framework names, API names, and library names in English
-- Use concise and professional engineering language
-- Do not use emojis
-
-Examples:
-
-Good:
-
-feat(user): 增加 JWT 登录认证
-
-fix(api): 修复 REST API 参数校验问题
-
-Bad:
-
-feat(user): 增加用户相关功能
-
-fix(api): 优化代码
-
 ---
 
 ## Body Rules
 
-The body is optional.
+Body 是可选的。
 
-Only generate a body when the diff contains meaningful context.
+只有当 diff 包含重要上下文时才生成 body。
 
-When included:
+Body 应说明：
 
-- Explain why the change was made
-- Describe important implementation decisions
-- Mention behavior changes or side effects
-- Do not simply repeat the subject
-- Wrap lines at approximately 100 characters
+- 修改原因
+- 重要设计决策
+- 行为变化
+- 兼容性影响
 
-Good example:
-
-修复 Token 过期后无法自动刷新的问题。
-
-通过增加 refresh token 校验逻辑，避免用户在正常使用过程中
-被强制退出登录。
-
-Avoid generic descriptions:
+不要生成：
 
 - 优化代码质量
 - 提升系统稳定性
 - 完善功能
 - 重构代码
 
-unless these are explicitly shown in the diff.
+除非 diff 明确体现这些目的。
 
----
+示例：
 
-## Footer Rules
+修复 Token 过期后无法自动刷新的问题。
 
-Use footer when necessary.
-
-Examples:
-
-Issue reference:
-
-Closes #123
-
-Breaking change:
-
-BREAKING CHANGE:
-修改用户接口返回结构，旧版本客户端需要同步升级。
+增加 refresh token 校验逻辑，避免用户在正常使用过程中
+被强制退出登录。
 
 ---
 
 ## Breaking Changes
 
-For backward incompatible changes:
+如果存在不兼容修改：
 
-Use:
+格式：
 
 <type>(<scope>): <subject>
 
 BREAKING CHANGE:
-Describe the incompatible change.
+说明不兼容内容
 
-Example:
+示例：
 
 feat(api): 修改用户查询接口返回结构
 
 BREAKING CHANGE:
-The "name" field has been replaced by "username".
+用户接口返回字段 name 已替换为 username。
 
 ---
 
 ## Diff Analysis Rules
 
-Before generating a commit message:
+生成 commit message 前：
 
-1. Analyze the complete git diff
-2. Identify the primary purpose of the change
-3. Focus on the user's intent, not individual code changes
-4. Ignore generated files and formatting-only changes unless they are the main purpose
-5. Prefer the smallest accurate description
-6. Do not invent changes that are not present in the diff
-
----
-
-## Commit Message Quality Rules
-
-The generated commit message should:
-
-- Describe the actual change in the diff
-- Avoid vague descriptions
-- Avoid unnecessary details
-- Avoid repeating file names or implementation details
-- Prefer business impact or behavior changes over code-level changes
+1. 分析完整 git diff
+2. 判断代码修改的主要目的
+3. 优先描述业务行为变化
+4. 忽略自动生成文件和纯格式修改
+5. 不要编造 diff 中不存在的信息
+6. 不要简单复制代码文件名或方法名
 
 ---
 
-## Output Rules
+## Output Rules (IMPORTANT)
 
-When generating a commit message:
+生成 commit message 时：
 
-- Output only the commit message
-- Do not add Markdown formatting
-- Do not add explanations
-- Do not add prefixes like "Commit message:"
-- Do not include quotes
+必须：
+
+- 只输出 commit message
+- 使用中文
+- 保持 Conventional Commits 格式
+
+禁止：
+
+- 输出解释文字
+- 输出 Markdown
+- 输出代码块
+- 输出 "Commit message:"
+- 使用引号包裹内容
+- 生成英文描述
