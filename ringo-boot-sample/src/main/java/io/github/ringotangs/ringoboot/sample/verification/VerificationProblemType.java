@@ -12,12 +12,7 @@ enum VerificationProblemType implements ProblemType {
             "Please retry after {0} seconds",
             HttpStatus.TOO_MANY_REQUESTS),
     INVALID_CODE(
-            "invalid-code", "Invalid verification code", "The verification code is invalid", HttpStatus.BAD_REQUEST),
-    TEST_MESSAGE_NOT_FOUND(
-            "test-message-not-found",
-            "Test email not found",
-            "No test email was found for the requested address",
-            HttpStatus.NOT_FOUND);
+            "invalid-code", "Invalid verification code", "The verification code is invalid", HttpStatus.BAD_REQUEST);
 
     private final ProblemDefinition definition;
 

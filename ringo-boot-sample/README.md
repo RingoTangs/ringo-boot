@@ -2,7 +2,7 @@
 
 ## 邮箱验证码示例 / Email verification example
 
-示例通过验证码自动配置创建服务，并显式启用内存存储：
+示例通过验证码自动配置创建服务，并显式启用邮件控制台 Sender：
 
 ```yaml
 ringo:
@@ -13,6 +13,8 @@ ringo:
       ttl: 5m
       max-attempts: 5
       resend-interval: 60s
+      email:
+        console-enabled: true
 ```
 
 启用验证码功能后，缺少自定义实现时默认使用 `InMemoryVerificationStore`。
@@ -31,7 +33,7 @@ EmailCodeSender emailCodeSender(EmailClient emailClient) {
 }
 ```
 
-本地开发时也可以显式启用控制台 Sender：
+本地开发时可以显式启用所需渠道的控制台 Sender：
 
 ```yaml
 ringo:
@@ -39,8 +41,6 @@ ringo:
     verification:
       email:
         console-enabled: true
-      sms:
-        console-enabled: false
 ```
 
 控制台 Sender 默认关闭。启用后会在警告日志中输出明文验证码，仅能用于本地开发，
@@ -63,13 +63,7 @@ curl -i -X POST http://localhost:8080/verification/email/code \
   -d '{"email":"user@example.com"}'
 ```
 
-从内存测试邮箱读取验证码：
-
-```shell
-curl "http://localhost:8080/verification/email/test-inbox?email=user@example.com"
-```
-
-使用测试邮箱返回的六位验证码完成校验：
+从应用的 `WARN` 日志中找到包含 `DEVELOPMENT ONLY` 的记录，读取其中的六位验证码，然后完成校验：
 
 ```shell
 curl -i -X POST http://localhost:8080/verification/email/verify \
@@ -80,5 +74,5 @@ curl -i -X POST http://localhost:8080/verification/email/verify \
 成功校验返回 `204 No Content`，并立即消费验证码。相同验证码不能再次使用。
 
 > [!WARNING]
-> `/verification/email/test-inbox` 和 `InMemoryEmailCodeSender` 会暴露或保存明文验证码，
-> 仅用于本地演示和自动化测试，不能用于生产环境。生产应用应替换为真实邮件服务，且不得提供测试邮箱接口。
+> 控制台 Sender 会在日志中输出明文验证码，仅用于本地演示，不能用于生产环境。
+> 生产应用必须关闭 `console-enabled` 并提供真实的 `EmailCodeSender`。

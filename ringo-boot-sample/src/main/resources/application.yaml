@@ -25,5 +25,3 @@ ringo:
       resend-interval: 60s
       email:
         console-enabled: true
-      sms:
-        console-enabled: true

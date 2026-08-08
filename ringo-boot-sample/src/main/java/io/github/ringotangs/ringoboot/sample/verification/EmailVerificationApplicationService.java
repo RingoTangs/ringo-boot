@@ -16,12 +16,9 @@ class EmailVerificationApplicationService {
     private static final String PURPOSE = "email-verification";
 
     private final EmailVerificationService verificationService;
-    private final InMemoryEmailCodeSender testInbox;
 
-    EmailVerificationApplicationService(
-            EmailVerificationService verificationService, InMemoryEmailCodeSender testInbox) {
+    EmailVerificationApplicationService(EmailVerificationService verificationService) {
         this.verificationService = verificationService;
-        this.testInbox = testInbox;
     }
 
     Instant issue(String email) {
@@ -39,12 +36,6 @@ class EmailVerificationApplicationService {
         if (result != VerificationResult.SUCCESS) {
             throw new ProblemException(VerificationProblemType.INVALID_CODE);
         }
-    }
-
-    InMemoryEmailCodeSender.EmailCodeMessage findLatestTestMessage(String email) {
-        return testInbox
-                .findLatest(normalize(email))
-                .orElseThrow(() -> new ProblemException(VerificationProblemType.TEST_MESSAGE_NOT_FOUND));
     }
 
     private VerificationKey key(String email) {
