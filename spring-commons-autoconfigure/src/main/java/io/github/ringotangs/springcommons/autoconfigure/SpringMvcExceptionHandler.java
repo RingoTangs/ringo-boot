@@ -3,6 +3,7 @@ package io.github.ringotangs.springcommons.autoconfigure;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -28,6 +29,8 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @Order(0)
 public class SpringMvcExceptionHandler extends ResponseEntityExceptionHandler {
 
+    private final ValidationErrorExtractor validationErrorExtractor;
+
     /**
      * 使用消息源和异常处理配置创建 Spring MVC 异常处理器。
      *
@@ -36,6 +39,7 @@ public class SpringMvcExceptionHandler extends ResponseEntityExceptionHandler {
      */
     public SpringMvcExceptionHandler(MessageSource messageSource, ExceptionHandlerProperties properties) {
         setMessageSource(Objects.requireNonNull(messageSource, "messageSource must not be null"));
+        this.validationErrorExtractor = new ValidationErrorExtractor(messageSource);
         Objects.requireNonNull(properties, "properties must not be null");
     }
 
@@ -61,6 +65,12 @@ public class SpringMvcExceptionHandler extends ResponseEntityExceptionHandler {
         ResponseEntity<Object> response = super.handleExceptionInternal(exception, body, headers, statusCode, request);
         if (response != null && response.getBody() instanceof ProblemDetail problemDetail) {
             problemDetail.setType(problemType.getType());
+            if (problemType == SpringMvcProblemType.VALIDATION_FAILED) {
+                var errors = validationErrorExtractor.extract(exception, LocaleContextHolder.getLocale());
+                if (!errors.isEmpty()) {
+                    problemDetail.setProperty("errors", errors);
+                }
+            }
         }
         return response;
     }

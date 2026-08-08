@@ -2,6 +2,7 @@ package io.github.ringotangs.springcommons.sample;
 
 import io.github.ringotangs.springcommons.core.ProblemException;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,5 +25,10 @@ public class HelloController {
     @ResponseStatus(HttpStatus.CREATED)
     public User createUser(@Valid @RequestBody CreateUserRequest request) {
         return User.builder().name(request.name()).age(request.age()).build();
+    }
+
+    @GetMapping("/validated-user")
+    public User validatedUser(@RequestParam(name = "id") @Min(1) long id) {
+        return User.builder().name("zs").age(18).build();
     }
 }

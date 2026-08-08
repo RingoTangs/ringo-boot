@@ -56,7 +56,7 @@ class HelloControllerTest {
                   "name": " ",
                   "age": 20
                 }
-                """);
+                """, "name", "NotBlank");
     }
 
     @Test
@@ -65,7 +65,7 @@ class HelloControllerTest {
                 {
                   "name": "Alice"
                 }
-                """);
+                """, "age", "NotNull");
     }
 
     @Test
@@ -75,7 +75,17 @@ class HelloControllerTest {
                   "name": "Alice",
                   "age": 151
                 }
-                """);
+                """, "age", "Max");
+    }
+
+    @Test
+    void returnsProblemWithMethodParameterValidationError() throws Exception {
+        mockMvc.perform(get("/validated-user").param("id", "0").header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value("urn:problem:mvc:validation-failed"))
+                .andExpect(jsonPath("$.errors[0].field").value("id"))
+                .andExpect(jsonPath("$.errors[0].code").value("Min"))
+                .andExpect(jsonPath("$.errors[0].message").value("must be greater than or equal to 1"));
     }
 
     @Test
@@ -195,7 +205,7 @@ class HelloControllerTest {
                         .string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("sample-secret"))));
     }
 
-    private void assertValidationProblem(String requestBody) throws Exception {
+    private void assertValidationProblem(String requestBody, String field, String code) throws Exception {
         mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header(HttpHeaders.ACCEPT_LANGUAGE, "en")
@@ -205,7 +215,10 @@ class HelloControllerTest {
                 .andExpect(jsonPath("$.type").value("urn:problem:mvc:validation-failed"))
                 .andExpect(jsonPath("$.title").value("Bad Request"))
                 .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.instance").value("/users"));
+                .andExpect(jsonPath("$.instance").value("/users"))
+                .andExpect(jsonPath("$.errors[0].field").value(field))
+                .andExpect(jsonPath("$.errors[0].code").value(code))
+                .andExpect(jsonPath("$.errors[0].message").isNotEmpty());
     }
 
     @RestController
