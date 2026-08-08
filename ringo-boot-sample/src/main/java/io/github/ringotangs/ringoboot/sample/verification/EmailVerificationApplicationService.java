@@ -4,7 +4,7 @@ import io.github.ringotangs.ringoboot.problem.ProblemException;
 import io.github.ringotangs.ringoboot.verification.DeliveryResult;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationResult;
-import io.github.ringotangs.ringoboot.verification.VerificationService;
+import io.github.ringotangs.ringoboot.verification.email.EmailVerificationService;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Locale;
@@ -15,10 +15,11 @@ class EmailVerificationApplicationService {
 
     private static final String PURPOSE = "email-verification";
 
-    private final VerificationService verificationService;
+    private final EmailVerificationService verificationService;
     private final InMemoryEmailCodeSender testInbox;
 
-    EmailVerificationApplicationService(VerificationService verificationService, InMemoryEmailCodeSender testInbox) {
+    EmailVerificationApplicationService(
+            EmailVerificationService verificationService, InMemoryEmailCodeSender testInbox) {
         this.verificationService = verificationService;
         this.testInbox = testInbox;
     }

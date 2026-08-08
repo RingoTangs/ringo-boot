@@ -10,6 +10,10 @@ import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.VerificationResult;
 import io.github.ringotangs.ringoboot.verification.VerificationService;
 import io.github.ringotangs.ringoboot.verification.VerificationStore;
+import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
+import io.github.ringotangs.ringoboot.verification.email.EmailVerificationService;
+import io.github.ringotangs.ringoboot.verification.sms.SmsCodeSender;
+import io.github.ringotangs.ringoboot.verification.sms.SmsVerificationService;
 import java.time.Duration;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
@@ -87,6 +91,65 @@ class VerificationAutoConfigurationTest {
                     assertThat(context.getBeansOfType(InMemoryVerificationStore.class))
                             .isEmpty();
                     assertThat(context).doesNotHaveBean(VerificationService.class);
+                });
+    }
+
+    @Test
+    void configuresEmailServiceWhenSenderIsAvailable() {
+        EmailCodeSender sender = delivery -> {};
+
+        contextRunner
+                .withPropertyValues("ringo.boot.verification.enabled=true")
+                .withBean(EmailCodeSender.class, () -> sender)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(EmailVerificationService.class);
+                    assertThat(context).doesNotHaveBean(SmsVerificationService.class);
+                });
+    }
+
+    @Test
+    void configuresSmsServiceWhenSenderIsAvailable() {
+        SmsCodeSender sender = delivery -> {};
+
+        contextRunner
+                .withPropertyValues("ringo.boot.verification.enabled=true")
+                .withBean(SmsCodeSender.class, () -> sender)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(SmsVerificationService.class);
+                    assertThat(context).doesNotHaveBean(EmailVerificationService.class);
+                });
+    }
+
+    @Test
+    void configuresBothChannelServicesWhenBothSendersAreAvailable() {
+        contextRunner
+                .withPropertyValues("ringo.boot.verification.enabled=true")
+                .withBean(EmailCodeSender.class, () -> delivery -> {})
+                .withBean(SmsCodeSender.class, () -> delivery -> {})
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(EmailVerificationService.class);
+                    assertThat(context).hasSingleBean(SmsVerificationService.class);
+                    assertThat(context).getBeans(VerificationService.class).hasSize(2);
+                });
+    }
+
+    @Test
+    void backsOffForCustomEmailService() {
+        EmailCodeSender sender = delivery -> {};
+        EmailVerificationService service =
+                new EmailVerificationService(length -> "1".repeat(length), new TestVerificationStore(), sender);
+
+        contextRunner
+                .withPropertyValues("ringo.boot.verification.enabled=true")
+                .withBean(EmailCodeSender.class, () -> sender)
+                .withBean(EmailVerificationService.class, () -> service)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(EmailVerificationService.class);
+                    assertThat(context.getBean(EmailVerificationService.class)).isSameAs(service);
                 });
     }
 

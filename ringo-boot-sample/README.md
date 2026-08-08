@@ -20,26 +20,14 @@ ringo:
 `CodeGenerator`、`VerificationPolicy` 和 `VerificationStore` 均可通过自定义 Bean 覆盖。
 
 `VerificationService` 只定义签发和校验的业务契约。`AbstractVerificationService` 是该契约的抽象骨架实现，统一编排生成、
-存储、限流、派发、派发失败补偿和校验消费。邮件或短信渠道通过继承该抽象服务并实现
-`dispatch` 钩子完成具体派发：
+存储、限流、派发、派发失败补偿和校验消费。core 已提供 `EmailVerificationService`
+和 `SmsVerificationService`。应用只需提供对应的 Sender Bean，自动配置会创建渠道服务：
 
 ```java
-final class EmailVerificationService extends AbstractVerificationService {
-    private final EmailClient emailClient;
-
-    EmailVerificationService(
-            CodeGenerator generator,
-            VerificationStore store,
-            VerificationPolicy policy,
-            EmailClient emailClient) {
-        super(generator, store, policy);
-        this.emailClient = emailClient;
-    }
-
-    @Override
-    protected void dispatch(CodeDelivery delivery) {
-        emailClient.send(delivery.key().subject(), delivery.code(), delivery.expiresAt());
-    }
+@Bean
+EmailCodeSender emailCodeSender(EmailClient emailClient) {
+    return delivery -> emailClient.send(
+            delivery.key().subject(), delivery.code(), delivery.expiresAt());
 }
 ```
 

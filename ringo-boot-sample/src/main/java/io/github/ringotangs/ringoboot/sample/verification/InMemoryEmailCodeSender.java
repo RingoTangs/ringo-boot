@@ -1,5 +1,7 @@
 package io.github.ringotangs.ringoboot.sample.verification;
 
+import io.github.ringotangs.ringoboot.verification.CodeDelivery;
+import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,8 +23,8 @@ final class InMemoryEmailCodeSender implements EmailCodeSender {
     private final ConcurrentMap<String, EmailCodeMessage> messages = new ConcurrentHashMap<>();
 
     @Override
-    public void send(String email, String code, Instant expiresAt) {
-        messages.put(email, new EmailCodeMessage(code, expiresAt));
+    public void send(CodeDelivery delivery) {
+        messages.put(delivery.key().subject(), new EmailCodeMessage(delivery.code(), delivery.expiresAt()));
     }
 
     Optional<EmailCodeMessage> findLatest(String email) {
