@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import org.springframework.stereotype.Component;
 
 /**
  * 将最新邮件验证码保存在内存中，供示例联调使用。
@@ -14,6 +15,7 @@ import java.util.concurrent.ConcurrentMap;
  *     / This implementation retains plaintext codes and is only suitable for local
  *     samples and tests, never for production use.
  */
+@Component
 final class InMemoryEmailCodeSender implements EmailCodeSender {
 
     private final ConcurrentMap<String, EmailCodeMessage> messages = new ConcurrentHashMap<>();

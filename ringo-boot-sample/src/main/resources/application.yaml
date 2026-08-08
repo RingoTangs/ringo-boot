@@ -17,3 +17,10 @@ ringo:
       mvc-enabled: true
       i18n-enabled: true
       fallback-enabled: true
+    verification:
+      enabled: true
+      in-memory-enabled: true
+      length: 6
+      ttl: 5m
+      max-attempts: 5
+      resend-interval: 60s

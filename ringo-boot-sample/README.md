@@ -2,6 +2,23 @@
 
 ## 邮箱验证码示例 / Email verification example
 
+示例通过验证码自动配置创建服务，并显式启用内存存储：
+
+```yaml
+ringo:
+  boot:
+    verification:
+      enabled: true
+      in-memory-enabled: true
+      length: 6
+      ttl: 5m
+      max-attempts: 5
+      resend-interval: 60s
+```
+
+生产应用应提供自己的 `VerificationStore` Bean，并保持 `in-memory-enabled=false`。
+`CodeGenerator`、`VerificationPolicy`、`VerificationStore` 和 `VerificationService` 均可通过自定义 Bean 覆盖。
+
 从仓库根目录启动示例：
 
 ```shell
