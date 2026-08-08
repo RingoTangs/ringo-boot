@@ -43,4 +43,17 @@ public interface VerificationService {
      * @throws NullPointerException 当验证码键或验证码为 {@code null} 时 / if the key or code is {@code null}
      */
     VerificationResult verify(VerificationKey key, String code);
+
+    /**
+     * 当验证码键与明文验证码同时匹配时原子地使其失效。
+     *
+     * <p>Atomically invalidates a code only when both its key and plaintext value
+     * match.</p>
+     *
+     * @param key 验证码键 / the verification key
+     * @param code 待失效的明文验证码 / the plaintext code to invalidate
+     * @return 是否删除了匹配记录 / whether a matching record was removed
+     * @throws NullPointerException 当验证码键或验证码为 {@code null} 时 / if the key or code is {@code null}
+     */
+    boolean invalidate(VerificationKey key, String code);
 }

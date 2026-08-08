@@ -116,4 +116,21 @@ public final class DefaultVerificationService implements VerificationService {
         Objects.requireNonNull(code, "code must not be null");
         return store.verifyAndConsume(key, code, clock.instant());
     }
+
+    /**
+     * 请求存储层仅在验证码匹配时原子地使记录失效。
+     *
+     * <p>Asks the store to atomically invalidate the record only when the code
+     * matches.</p>
+     *
+     * @param key 验证码键 / the verification key
+     * @param code 待失效的验证码 / the code to invalidate
+     * @return 是否删除了匹配记录 / whether a matching record was removed
+     */
+    @Override
+    public boolean invalidate(VerificationKey key, String code) {
+        Objects.requireNonNull(key, "key must not be null");
+        Objects.requireNonNull(code, "code must not be null");
+        return store.invalidate(key, code);
+    }
 }

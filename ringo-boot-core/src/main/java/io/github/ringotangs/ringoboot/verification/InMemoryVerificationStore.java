@@ -10,6 +10,7 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -134,6 +135,32 @@ public final class InMemoryVerificationStore implements VerificationStore {
             return existing.withRemainingAttempts(remainingAttempts);
         });
         return result.get();
+    }
+
+    /**
+     * 通过摘要匹配原子地删除指定验证码，避免删除同一键下后来签发的新验证码。
+     *
+     * <p>Atomically removes the specified code by digest match without deleting a newer
+     * code issued under the same key.</p>
+     *
+     * @param key 验证码键 / the verification key
+     * @param code 待失效的明文验证码 / the plaintext code to invalidate
+     * @return 是否删除了匹配记录 / whether a matching record was removed
+     */
+    @Override
+    public boolean invalidate(VerificationKey key, String code) {
+        Objects.requireNonNull(key, "key must not be null");
+        Objects.requireNonNull(code, "code must not be null");
+        byte[] candidateDigest = digest(key, code);
+        AtomicBoolean invalidated = new AtomicBoolean();
+        entries.computeIfPresent(key, (ignored, existing) -> {
+            if (MessageDigest.isEqual(existing.digest(), candidateDigest)) {
+                invalidated.set(true);
+                return null;
+            }
+            return existing;
+        });
+        return invalidated.get();
     }
 
     private byte[] digest(VerificationKey key, String code) {

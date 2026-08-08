@@ -19,6 +19,18 @@ ringo:
 生产应用应提供自己的 `VerificationStore` Bean，以替换仅适用于本地开发和单实例应用的内存存储。
 `CodeGenerator`、`VerificationPolicy`、`VerificationStore` 和 `VerificationService` 均可通过自定义 Bean 覆盖。
 
+`VerificationTemplate` 统一处理签发、限流、发送失败补偿和校验。邮箱或短信业务只需要传入对应的
+`CodeSender`：
+
+```java
+DeliveryResult result = verificationTemplate.issue(
+        new VerificationKey("email-login", normalizedEmail),
+        delivery -> emailClient.send(
+                delivery.key().subject(), delivery.code(), delivery.expiresAt()));
+```
+
+切换到 Redis 时只需提供 Redis 版本的 `VerificationStore` Bean，模板和发送逻辑不需要修改。
+
 从仓库根目录启动示例：
 
 ```shell

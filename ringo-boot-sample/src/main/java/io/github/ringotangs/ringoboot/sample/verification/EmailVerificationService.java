@@ -1,10 +1,10 @@
 package io.github.ringotangs.ringoboot.sample.verification;
 
 import io.github.ringotangs.ringoboot.problem.ProblemException;
-import io.github.ringotangs.ringoboot.verification.IssueResult;
+import io.github.ringotangs.ringoboot.verification.DeliveryResult;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationResult;
-import io.github.ringotangs.ringoboot.verification.VerificationService;
+import io.github.ringotangs.ringoboot.verification.VerificationTemplate;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Locale;
@@ -15,34 +15,33 @@ class EmailVerificationService {
 
     private static final String PURPOSE = "email-verification";
 
-    private final VerificationService verificationService;
+    private final VerificationTemplate verificationTemplate;
     private final EmailCodeSender emailCodeSender;
     private final InMemoryEmailCodeSender testInbox;
 
     EmailVerificationService(
-            VerificationService verificationService,
+            VerificationTemplate verificationTemplate,
             EmailCodeSender emailCodeSender,
             InMemoryEmailCodeSender testInbox) {
-        this.verificationService = verificationService;
+        this.verificationTemplate = verificationTemplate;
         this.emailCodeSender = emailCodeSender;
         this.testInbox = testInbox;
     }
 
     Instant issue(String email) {
         String normalizedEmail = normalize(email);
-        return switch (verificationService.issue(key(normalizedEmail))) {
-            case IssueResult.Issued issued -> {
-                emailCodeSender.send(normalizedEmail, issued.code(), issued.expiresAt());
-                yield issued.expiresAt();
-            }
-            case IssueResult.Throttled throttled ->
+        return switch (verificationTemplate.issue(
+                key(normalizedEmail),
+                delivery -> emailCodeSender.send(delivery.key().subject(), delivery.code(), delivery.expiresAt()))) {
+            case DeliveryResult.Delivered delivered -> delivered.expiresAt();
+            case DeliveryResult.Throttled throttled ->
                 throw ProblemException.withArguments(
                         VerificationProblemType.THROTTLED, retryAfterSeconds(throttled.retryAfter()));
         };
     }
 
     void verify(String email, String code) {
-        VerificationResult result = verificationService.verify(key(normalize(email)), code);
+        VerificationResult result = verificationTemplate.verify(key(normalize(email)), code);
         if (result != VerificationResult.SUCCESS) {
             throw new ProblemException(VerificationProblemType.INVALID_CODE);
         }

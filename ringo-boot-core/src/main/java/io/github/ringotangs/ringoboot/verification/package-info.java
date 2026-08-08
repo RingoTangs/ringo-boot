@@ -1,10 +1,11 @@
 /**
- * 提供框架无关的验证码签发、存储与校验生命周期抽象。
- * 支持有效期、重发间隔、最大尝试次数以及成功后一次性消费等通用能力。
+ * 提供框架无关的验证码签发、发送、存储与校验生命周期抽象。
+ * 支持有效期、重发间隔、最大尝试次数、发送失败补偿以及成功后一次性消费等通用能力。
  *
- * <p>Provides framework-neutral abstractions for issuing, storing, and verifying
- * short-lived codes. The lifecycle supports expiration, resend throttling, maximum
- * attempts, and one-time consumption after successful verification.</p>
+ * <p>Provides framework-neutral abstractions for issuing, delivering, storing, and
+ * verifying short-lived codes. The lifecycle supports expiration, resend throttling,
+ * maximum attempts, delivery-failure compensation, and one-time consumption after
+ * successful verification.</p>
  */
 @NullMarked
 package io.github.ringotangs.ringoboot.verification;

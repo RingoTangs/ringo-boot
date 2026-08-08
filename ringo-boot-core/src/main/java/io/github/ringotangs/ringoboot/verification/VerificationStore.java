@@ -49,6 +49,18 @@ public interface VerificationStore {
     VerificationResult verifyAndConsume(VerificationKey key, String code, Instant verifiedAt);
 
     /**
+     * 当验证码键与明文验证码同时匹配时原子地删除记录。
+     *
+     * <p>Atomically removes a record only when both its key and plaintext code match.</p>
+     *
+     * @param key 验证码键 / the verification key
+     * @param code 待失效的明文验证码 / the plaintext code to invalidate
+     * @return 是否删除了匹配记录 / whether a matching record was removed
+     * @throws NullPointerException 当验证码键或验证码为 {@code null} 时 / if the key or code is {@code null}
+     */
+    boolean invalidate(VerificationKey key, String code);
+
+    /**
      * 表示存储层对验证码签发的处理结果。
      *
      * <p>Represents the storage decision for a verification issuance.</p>

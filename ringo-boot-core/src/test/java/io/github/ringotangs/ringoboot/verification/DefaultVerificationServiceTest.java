@@ -55,6 +55,18 @@ class DefaultVerificationServiceTest {
     }
 
     @Test
+    void invalidatingOldCodeDoesNotRemoveNewCode() {
+        AtomicInteger sequence = new AtomicInteger(111110);
+        VerificationService service = service(length -> Integer.toString(sequence.incrementAndGet()));
+        VerificationPolicy policy = new VerificationPolicy(6, Duration.ofMinutes(5), 5, Duration.ZERO);
+        IssueResult.Issued first = assertInstanceOf(IssueResult.Issued.class, service.issue(LOGIN, policy));
+        IssueResult.Issued second = assertInstanceOf(IssueResult.Issued.class, service.issue(LOGIN, policy));
+
+        assertTrue(!service.invalidate(LOGIN, first.code()));
+        assertEquals(VerificationResult.SUCCESS, service.verify(LOGIN, second.code()));
+    }
+
+    @Test
     void expiresAndRemovesCodeAtExpirationBoundary() {
         VerificationService service = service(length -> "123456");
         service.issue(LOGIN);
