@@ -7,7 +7,6 @@ import io.github.ringotangs.ringoboot.verification.NumericCodeGenerator;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.VerificationService;
 import io.github.ringotangs.ringoboot.verification.VerificationStore;
-import io.github.ringotangs.ringoboot.verification.VerificationTemplate;
 import java.time.Clock;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -82,17 +81,5 @@ public class VerificationAutoConfiguration {
                     + "Mark one store as @Primary or provide a custom VerificationService");
         }
         return new DefaultVerificationService(codeGenerator, store, policy, Clock.systemUTC());
-    }
-
-    /**
-     * 在用户未提供模板时创建验证码发送与校验模板。
-     *
-     * <p>Creates the verification delivery and validation template when the user has
-     * not supplied one.</p>
-     */
-    @Bean
-    @ConditionalOnMissingBean
-    VerificationTemplate verificationTemplate(VerificationService verificationService) {
-        return new VerificationTemplate(verificationService);
     }
 }

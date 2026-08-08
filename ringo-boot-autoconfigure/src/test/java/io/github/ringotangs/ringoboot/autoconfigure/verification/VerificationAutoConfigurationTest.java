@@ -11,7 +11,6 @@ import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.VerificationResult;
 import io.github.ringotangs.ringoboot.verification.VerificationService;
 import io.github.ringotangs.ringoboot.verification.VerificationStore;
-import io.github.ringotangs.ringoboot.verification.VerificationTemplate;
 import java.time.Duration;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
@@ -33,7 +32,6 @@ class VerificationAutoConfigurationTest {
             assertThat(context).doesNotHaveBean(VerificationPolicy.class);
             assertThat(context).doesNotHaveBean(VerificationStore.class);
             assertThat(context).doesNotHaveBean(VerificationService.class);
-            assertThat(context).doesNotHaveBean(VerificationTemplate.class);
         });
     }
 
@@ -44,7 +42,6 @@ class VerificationAutoConfigurationTest {
             assertThat(context).hasSingleBean(VerificationStore.class);
             assertThat(context.getBean(VerificationStore.class)).isInstanceOf(InMemoryVerificationStore.class);
             assertThat(context).hasSingleBean(VerificationService.class);
-            assertThat(context).hasSingleBean(VerificationTemplate.class);
         });
     }
 
@@ -64,7 +61,6 @@ class VerificationAutoConfigurationTest {
                     assertThat(context).hasSingleBean(VerificationStore.class);
                     assertThat(context.getBean(VerificationStore.class)).isInstanceOf(InMemoryVerificationStore.class);
                     assertThat(context).hasSingleBean(VerificationService.class);
-                    assertThat(context).hasSingleBean(VerificationTemplate.class);
 
                     VerificationPolicy policy = context.getBean(VerificationPolicy.class);
                     assertThat(policy.length()).isEqualTo(8);
@@ -93,7 +89,6 @@ class VerificationAutoConfigurationTest {
                     assertThat(context.getBeansOfType(InMemoryVerificationStore.class))
                             .isEmpty();
                     assertThat(context).hasSingleBean(VerificationService.class);
-                    assertThat(context).hasSingleBean(VerificationTemplate.class);
                 });
     }
 
@@ -109,21 +104,6 @@ class VerificationAutoConfigurationTest {
                     assertThat(context).hasSingleBean(VerificationService.class);
                     assertThat(context.getBean(VerificationService.class)).isSameAs(service);
                     assertThat(context).doesNotHaveBean(VerificationStore.class);
-                    assertThat(context).hasSingleBean(VerificationTemplate.class);
-                });
-    }
-
-    @Test
-    void backsOffForCustomTemplate() {
-        VerificationTemplate template = new VerificationTemplate(mock(VerificationService.class));
-
-        contextRunner
-                .withPropertyValues("ringo.boot.verification.enabled=true")
-                .withBean(VerificationTemplate.class, () -> template)
-                .run(context -> {
-                    assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(VerificationTemplate.class);
-                    assertThat(context.getBean(VerificationTemplate.class)).isSameAs(template);
                 });
     }
 

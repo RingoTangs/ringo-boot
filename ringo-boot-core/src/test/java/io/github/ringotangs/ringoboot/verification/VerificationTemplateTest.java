@@ -20,39 +20,34 @@ class VerificationTemplateTest {
     private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
 
     @Test
-    void issuesDeliversAndVerifiesWithoutExposingCodeInResult() {
-        VerificationTemplate template = template(length -> "123456", new InMemoryVerificationStore());
-        AtomicReference<CodeDelivery> captured = new AtomicReference<>();
+    void issuesDispatchesAndVerifiesThroughServiceWithoutExposingCodeInResult() {
+        CapturingTemplate template = template(length -> "123456", new InMemoryVerificationStore());
 
-        DeliveryResult.Delivered delivered =
-                assertInstanceOf(DeliveryResult.Delivered.class, template.issue(LOGIN, captured::set));
+        DeliveryResult.Delivered delivered = assertInstanceOf(DeliveryResult.Delivered.class, template.issue(LOGIN));
 
         assertEquals(NOW.plus(Duration.ofMinutes(5)), delivered.expiresAt());
-        assertEquals(LOGIN, captured.get().key());
-        assertEquals("123456", captured.get().code());
-        assertFalse(captured.get().toString().contains("123456"));
+        assertEquals(LOGIN, template.delivery().key());
+        assertEquals("123456", template.delivery().code());
+        assertFalse(template.delivery().toString().contains("123456"));
         assertFalse(delivered.toString().contains("123456"));
-        assertEquals(VerificationResult.SUCCESS, template.verify(LOGIN, "123456"));
+        assertEquals(VerificationResult.SUCCESS, template.service().verify(LOGIN, "123456"));
     }
 
     @Test
-    void doesNotInvokeSenderWhenIssuanceIsThrottled() {
-        VerificationTemplate template = template(length -> "123456", new InMemoryVerificationStore());
-        AtomicInteger deliveries = new AtomicInteger();
-        CodeSender sender = ignored -> deliveries.incrementAndGet();
+    void doesNotDispatchWhenIssuanceIsThrottled() {
+        CapturingTemplate template = template(length -> "123456", new InMemoryVerificationStore());
 
-        template.issue(LOGIN, sender);
-        DeliveryResult.Throttled throttled =
-                assertInstanceOf(DeliveryResult.Throttled.class, template.issue(LOGIN, sender));
+        template.issue(LOGIN);
+        DeliveryResult.Throttled throttled = assertInstanceOf(DeliveryResult.Throttled.class, template.issue(LOGIN));
 
-        assertEquals(1, deliveries.get());
+        assertEquals(1, template.dispatches());
         assertEquals(Duration.ofSeconds(60), throttled.retryAfter());
     }
 
     @Test
     void usesSuppliedPolicy() {
         AtomicInteger requestedLength = new AtomicInteger();
-        VerificationTemplate template = template(
+        CapturingTemplate template = template(
                 length -> {
                     requestedLength.set(length);
                     return "1234";
@@ -61,30 +56,28 @@ class VerificationTemplateTest {
         VerificationPolicy policy = new VerificationPolicy(4, Duration.ofMinutes(1), 2, Duration.ZERO);
 
         DeliveryResult.Delivered delivered =
-                assertInstanceOf(DeliveryResult.Delivered.class, template.issue(LOGIN, policy, ignored -> {}));
+                assertInstanceOf(DeliveryResult.Delivered.class, template.issue(LOGIN, policy));
 
         assertEquals(4, requestedLength.get());
         assertEquals(NOW.plus(Duration.ofMinutes(1)), delivered.expiresAt());
     }
 
     @Test
-    void invalidatesCodeWhenDeliveryFailsAndAllowsImmediateRetry() {
-        VerificationTemplate template = template(length -> "123456", new InMemoryVerificationStore());
+    void invalidatesCodeWhenDispatchFailsAndAllowsImmediateRetry() {
+        CapturingTemplate template = template(length -> "123456", new InMemoryVerificationStore());
         IllegalStateException failure = new IllegalStateException("provider unavailable");
+        template.failWith(failure);
 
-        IllegalStateException thrown = assertThrows(
-                IllegalStateException.class,
-                () -> template.issue(LOGIN, ignored -> {
-                    throw failure;
-                }));
-        DeliveryResult result = template.issue(LOGIN, ignored -> {});
+        IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> template.issue(LOGIN));
+        template.failWith(null);
+        DeliveryResult result = template.issue(LOGIN);
 
         assertSame(failure, thrown);
         assertInstanceOf(DeliveryResult.Delivered.class, result);
     }
 
     @Test
-    void preservesDeliveryFailureAndSuppressesInvalidationFailure() {
+    void preservesDispatchFailureAndSuppressesInvalidationFailure() {
         IllegalStateException invalidationFailure = new IllegalStateException("cleanup unavailable");
         VerificationService service = new StubVerificationService() {
             @Override
@@ -92,34 +85,68 @@ class VerificationTemplateTest {
                 throw invalidationFailure;
             }
         };
-        VerificationTemplate template = new VerificationTemplate(service);
-        IllegalArgumentException deliveryFailure = new IllegalArgumentException("delivery unavailable");
+        CapturingTemplate template = new CapturingTemplate(service);
+        IllegalArgumentException dispatchFailure = new IllegalArgumentException("delivery unavailable");
+        template.failWith(dispatchFailure);
 
-        IllegalArgumentException thrown = assertThrows(
-                IllegalArgumentException.class,
-                () -> template.issue(LOGIN, ignored -> {
-                    throw deliveryFailure;
-                }));
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> template.issue(LOGIN));
 
-        assertSame(deliveryFailure, thrown);
+        assertSame(dispatchFailure, thrown);
         assertEquals(1, thrown.getSuppressed().length);
         assertSame(invalidationFailure, thrown.getSuppressed()[0]);
     }
 
     @Test
     void validatesRequiredTemplateArgumentsBeforeIssuance() {
-        VerificationTemplate template = template(length -> "123456", new InMemoryVerificationStore());
+        CapturingTemplate template = template(length -> "123456", new InMemoryVerificationStore());
 
-        assertThrows(NullPointerException.class, () -> new VerificationTemplate(null));
-        assertThrows(NullPointerException.class, () -> template.issue(null, ignored -> {}));
+        assertThrows(NullPointerException.class, () -> new CapturingTemplate(null));
+        assertThrows(NullPointerException.class, () -> template.issue(null));
         assertThrows(NullPointerException.class, () -> template.issue(LOGIN, null));
-        assertThrows(NullPointerException.class, () -> template.issue(LOGIN, (VerificationPolicy) null, ignored -> {}));
     }
 
-    private VerificationTemplate template(CodeGenerator generator, VerificationStore store) {
+    private CapturingTemplate template(CodeGenerator generator, VerificationStore store) {
         VerificationService service = new DefaultVerificationService(
                 generator, store, VerificationPolicy.defaults(), Clock.fixed(NOW, ZoneOffset.UTC));
-        return new VerificationTemplate(service);
+        return new CapturingTemplate(service);
+    }
+
+    private static final class CapturingTemplate extends VerificationTemplate {
+
+        private final VerificationService service;
+        private final AtomicReference<CodeDelivery> delivery = new AtomicReference<>();
+        private final AtomicInteger dispatches = new AtomicInteger();
+        private RuntimeException failure;
+
+        private CapturingTemplate(VerificationService service) {
+            super(service);
+            this.service = service;
+        }
+
+        @Override
+        protected void dispatch(CodeDelivery delivery) {
+            dispatches.incrementAndGet();
+            if (failure != null) {
+                throw failure;
+            }
+            this.delivery.set(delivery);
+        }
+
+        private VerificationService service() {
+            return service;
+        }
+
+        private CodeDelivery delivery() {
+            return delivery.get();
+        }
+
+        private int dispatches() {
+            return dispatches.get();
+        }
+
+        private void failWith(RuntimeException failure) {
+            this.failure = failure;
+        }
     }
 
     private static class StubVerificationService implements VerificationService {
