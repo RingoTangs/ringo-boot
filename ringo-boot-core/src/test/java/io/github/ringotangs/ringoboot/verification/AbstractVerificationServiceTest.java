@@ -14,14 +14,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
-class VerificationTemplateTest {
+class AbstractVerificationServiceTest {
 
     private static final VerificationKey LOGIN = new VerificationKey("login", "user@example.com");
     private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
 
     @Test
     void issuesDispatchesAndVerifiesThroughServiceWithoutExposingCodeInResult() {
-        CapturingTemplate template = template(length -> "123456", new InMemoryVerificationStore());
+        CapturingVerificationService template = template(length -> "123456", new InMemoryVerificationStore());
 
         DeliveryResult.Delivered delivered = assertInstanceOf(DeliveryResult.Delivered.class, template.issue(LOGIN));
 
@@ -35,7 +35,7 @@ class VerificationTemplateTest {
 
     @Test
     void doesNotDispatchWhenIssuanceIsThrottled() {
-        CapturingTemplate template = template(length -> "123456", new InMemoryVerificationStore());
+        CapturingVerificationService template = template(length -> "123456", new InMemoryVerificationStore());
 
         template.issue(LOGIN);
         DeliveryResult.Throttled throttled = assertInstanceOf(DeliveryResult.Throttled.class, template.issue(LOGIN));
@@ -47,7 +47,7 @@ class VerificationTemplateTest {
     @Test
     void usesSuppliedPolicy() {
         AtomicInteger requestedLength = new AtomicInteger();
-        CapturingTemplate template = template(
+        CapturingVerificationService template = template(
                 length -> {
                     requestedLength.set(length);
                     return "1234";
@@ -64,7 +64,7 @@ class VerificationTemplateTest {
 
     @Test
     void invalidatesCodeWhenDispatchFailsAndAllowsImmediateRetry() {
-        CapturingTemplate template = template(length -> "123456", new InMemoryVerificationStore());
+        CapturingVerificationService template = template(length -> "123456", new InMemoryVerificationStore());
         IllegalStateException failure = new IllegalStateException("provider unavailable");
         template.failWith(failure);
 
@@ -85,7 +85,7 @@ class VerificationTemplateTest {
                 throw invalidationFailure;
             }
         };
-        CapturingTemplate template = template(length -> "123456", store);
+        CapturingVerificationService template = template(length -> "123456", store);
         IllegalArgumentException dispatchFailure = new IllegalArgumentException("delivery unavailable");
         template.failWith(dispatchFailure);
 
@@ -97,12 +97,12 @@ class VerificationTemplateTest {
     }
 
     @Test
-    void validatesRequiredTemplateArgumentsBeforeIssuance() {
-        CapturingTemplate template = template(length -> "123456", new InMemoryVerificationStore());
+    void validatesRequiredServiceArgumentsBeforeIssuance() {
+        CapturingVerificationService template = template(length -> "123456", new InMemoryVerificationStore());
 
         assertThrows(
                 NullPointerException.class,
-                () -> new CapturingTemplate(
+                () -> new CapturingVerificationService(
                         null,
                         new InMemoryVerificationStore(),
                         VerificationPolicy.defaults(),
@@ -111,17 +111,18 @@ class VerificationTemplateTest {
         assertThrows(NullPointerException.class, () -> template.issue(LOGIN, null));
     }
 
-    private CapturingTemplate template(CodeGenerator generator, VerificationStore store) {
-        return new CapturingTemplate(generator, store, VerificationPolicy.defaults(), Clock.fixed(NOW, ZoneOffset.UTC));
+    private CapturingVerificationService template(CodeGenerator generator, VerificationStore store) {
+        return new CapturingVerificationService(
+                generator, store, VerificationPolicy.defaults(), Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
-    private static final class CapturingTemplate extends VerificationTemplate {
+    private static final class CapturingVerificationService extends AbstractVerificationService {
 
         private final AtomicReference<CodeDelivery> delivery = new AtomicReference<>();
         private final AtomicInteger dispatches = new AtomicInteger();
         private RuntimeException failure;
 
-        private CapturingTemplate(
+        private CapturingVerificationService(
                 CodeGenerator generator, VerificationStore store, VerificationPolicy policy, Clock clock) {
             super(generator, store, policy, clock);
         }

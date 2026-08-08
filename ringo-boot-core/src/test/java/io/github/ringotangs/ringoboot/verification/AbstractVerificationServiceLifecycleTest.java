@@ -19,7 +19,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
-class VerificationTemplateLifecycleTest {
+class AbstractVerificationServiceLifecycleTest {
 
     private static final VerificationKey LOGIN = new VerificationKey("login", "user@example.com");
     private static final Instant START = Instant.parse("2026-01-01T00:00:00Z");
@@ -29,7 +29,7 @@ class VerificationTemplateLifecycleTest {
 
     @Test
     void issuesCodeWithDefaultPolicyAndRedactsToString() {
-        TestTemplate service = service(length -> "123456");
+        TestVerificationService service = service(length -> "123456");
 
         DeliveryResult.Delivered issued = assertInstanceOf(DeliveryResult.Delivered.class, service.issue(LOGIN));
 
@@ -41,7 +41,7 @@ class VerificationTemplateLifecycleTest {
     @Test
     void throttlesReissueUntilIntervalElapsesAndThenReplacesCode() {
         AtomicInteger sequence = new AtomicInteger(111110);
-        TestTemplate service = service(length -> Integer.toString(sequence.incrementAndGet()));
+        TestVerificationService service = service(length -> Integer.toString(sequence.incrementAndGet()));
 
         assertInstanceOf(DeliveryResult.Delivered.class, service.issue(LOGIN));
         String firstCode = service.lastCode();
@@ -147,15 +147,16 @@ class VerificationTemplateLifecycleTest {
         assertThrows(IllegalStateException.class, () -> service(length -> "123").issue(LOGIN));
     }
 
-    private TestTemplate service(CodeGenerator generator) {
-        return new TestTemplate(generator, store, VerificationPolicy.defaults(), clock);
+    private TestVerificationService service(CodeGenerator generator) {
+        return new TestVerificationService(generator, store, VerificationPolicy.defaults(), clock);
     }
 
-    private static final class TestTemplate extends VerificationTemplate {
+    private static final class TestVerificationService extends AbstractVerificationService {
 
         private String lastCode;
 
-        private TestTemplate(CodeGenerator generator, VerificationStore store, VerificationPolicy policy, Clock clock) {
+        private TestVerificationService(
+                CodeGenerator generator, VerificationStore store, VerificationPolicy policy, Clock clock) {
             super(generator, store, policy, clock);
         }
 

@@ -19,15 +19,15 @@ ringo:
 生产应用应提供自己的 `VerificationStore` Bean，以替换仅适用于本地开发和单实例应用的内存存储。
 `CodeGenerator`、`VerificationPolicy` 和 `VerificationStore` 均可通过自定义 Bean 覆盖。
 
-`VerificationService` 只定义签发和校验的业务契约。`VerificationTemplate` 实现该契约，统一编排生成、
-存储、限流、派发、派发失败补偿和校验消费。邮件或短信渠道通过继承模板并实现
+`VerificationService` 只定义签发和校验的业务契约。`AbstractVerificationService` 是该契约的抽象骨架实现，统一编排生成、
+存储、限流、派发、派发失败补偿和校验消费。邮件或短信渠道通过继承该抽象服务并实现
 `dispatch` 钩子完成具体派发：
 
 ```java
-final class EmailVerificationTemplate extends VerificationTemplate {
+final class EmailVerificationService extends AbstractVerificationService {
     private final EmailClient emailClient;
 
-    EmailVerificationTemplate(
+    EmailVerificationService(
             CodeGenerator generator,
             VerificationStore store,
             VerificationPolicy policy,
@@ -43,7 +43,7 @@ final class EmailVerificationTemplate extends VerificationTemplate {
 }
 ```
 
-切换到 Redis 时只需提供 Redis 版本的 `VerificationStore` Bean，模板和发送逻辑不需要修改。
+切换到 Redis 时只需提供 Redis 版本的 `VerificationStore` Bean，验证服务和发送逻辑不需要修改。
 
 从仓库根目录启动示例：
 

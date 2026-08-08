@@ -14,7 +14,7 @@ import java.util.Objects;
  *     Subclasses only implement {@link #dispatch(CodeDelivery)} for channels such as
  *     email or SMS.
  */
-public abstract class VerificationTemplate implements VerificationService {
+public abstract class AbstractVerificationService implements VerificationService {
 
     private final CodeGenerator codeGenerator;
     private final VerificationStore store;
@@ -22,23 +22,23 @@ public abstract class VerificationTemplate implements VerificationService {
     private final Clock clock;
 
     /**
-     * 使用安全默认策略和 UTC 系统时钟创建渠道模板。
+     * 使用安全默认策略和 UTC 系统时钟创建渠道服务。
      *
-     * <p>Creates a channel template with the secure default policy and UTC system
+     * <p>Creates a channel service with the secure default policy and UTC system
      * clock.</p>
      *
      * @param codeGenerator 验证码生成器 / the code generator
      * @param store 验证码状态存储 / the verification state store
      * @throws NullPointerException 当生成器或存储为 {@code null} 时 / if the generator or store is {@code null}
      */
-    protected VerificationTemplate(CodeGenerator codeGenerator, VerificationStore store) {
+    protected AbstractVerificationService(CodeGenerator codeGenerator, VerificationStore store) {
         this(codeGenerator, store, VerificationPolicy.defaults(), Clock.systemUTC());
     }
 
     /**
-     * 使用指定默认策略和 UTC 系统时钟创建渠道模板。
+     * 使用指定默认策略和 UTC 系统时钟创建渠道服务。
      *
-     * <p>Creates a channel template with the supplied default policy and UTC system
+     * <p>Creates a channel service with the supplied default policy and UTC system
      * clock.</p>
      *
      * @param codeGenerator 验证码生成器 / the code generator
@@ -46,15 +46,15 @@ public abstract class VerificationTemplate implements VerificationService {
      * @param defaultPolicy 默认验证码策略 / the default verification policy
      * @throws NullPointerException 当任一参数为 {@code null} 时 / if any argument is {@code null}
      */
-    protected VerificationTemplate(
+    protected AbstractVerificationService(
             CodeGenerator codeGenerator, VerificationStore store, VerificationPolicy defaultPolicy) {
         this(codeGenerator, store, defaultPolicy, Clock.systemUTC());
     }
 
     /**
-     * 使用指定生成器、存储、默认策略和时钟创建渠道模板。
+     * 使用指定生成器、存储、默认策略和时钟创建渠道服务。
      *
-     * <p>Creates a channel template with the supplied generator, store, default policy,
+     * <p>Creates a channel service with the supplied generator, store, default policy,
      * and clock.</p>
      *
      * @param codeGenerator 验证码生成器 / the code generator
@@ -63,7 +63,7 @@ public abstract class VerificationTemplate implements VerificationService {
      * @param clock 提供签发和校验时间的时钟 / the clock supplying issuance and verification instants
      * @throws NullPointerException 当任一参数为 {@code null} 时 / if any argument is {@code null}
      */
-    protected VerificationTemplate(
+    protected AbstractVerificationService(
             CodeGenerator codeGenerator, VerificationStore store, VerificationPolicy defaultPolicy, Clock clock) {
         this.codeGenerator = Objects.requireNonNull(codeGenerator, "codeGenerator must not be null");
         this.store = Objects.requireNonNull(store, "store must not be null");

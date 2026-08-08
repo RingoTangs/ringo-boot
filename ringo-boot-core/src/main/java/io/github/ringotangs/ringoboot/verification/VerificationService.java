@@ -7,9 +7,9 @@ package io.github.ringotangs.ringoboot.verification;
  * successful verification.</p>
  *
  * @apiNote 此接口仅定义业务能力；验证码生成、存储和渠道派发由
- *     {@link VerificationTemplate} 统一编排。 / This interface defines business capabilities
+ *     {@link AbstractVerificationService} 统一编排。 / This interface defines business capabilities
  *     only; code generation, storage, and channel dispatch are coordinated by
- *     {@link VerificationTemplate}.
+ *     {@link AbstractVerificationService}.
  */
 public interface VerificationService {
 
