@@ -15,6 +15,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingPathVariableException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
@@ -82,6 +83,10 @@ class SpringMvcProblemTypeTest {
                 ),
                 Arguments.of(
                         MissingServletRequestParameterException.class,
+                        SpringMvcProblemType.MISSING_REQUEST_VALUE
+                ),
+                Arguments.of(
+                        ServletRequestBindingException.class,
                         SpringMvcProblemType.MISSING_REQUEST_VALUE
                 ),
                 Arguments.of(TypeMismatchException.class, SpringMvcProblemType.INVALID_PARAMETER),

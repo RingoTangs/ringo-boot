@@ -10,7 +10,6 @@ import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MissingPathVariableException;
-import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
@@ -69,8 +68,7 @@ enum SpringMvcProblemType {
         if (exception instanceof HttpMediaTypeNotAcceptableException) {
             return NOT_ACCEPTABLE;
         }
-        if (exception instanceof MissingServletRequestParameterException
-                || exception instanceof MissingServletRequestPartException
+        if (exception instanceof MissingServletRequestPartException
                 || exception instanceof ServletRequestBindingException) {
             return MISSING_REQUEST_VALUE;
         }
