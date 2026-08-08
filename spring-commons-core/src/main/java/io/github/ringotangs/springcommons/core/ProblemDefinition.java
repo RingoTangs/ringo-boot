@@ -14,13 +14,7 @@ import java.util.Objects;
  * @param defaultDetail 默认问题详情 / the default problem detail
  * @param httpStatus HTTP 错误状态码 / the HTTP error status code
  */
-public record ProblemDefinition(
-        URI type,
-        String messageCode,
-        String title,
-        String defaultDetail,
-        int httpStatus
-) {
+public record ProblemDefinition(URI type, String messageCode, String title, String defaultDetail, int httpStatus) {
 
     private static final int MIN_HTTP_ERROR_STATUS = 400;
     private static final int MAX_HTTP_ERROR_STATUS = 599;
@@ -40,14 +34,12 @@ public record ProblemDefinition(
         Objects.requireNonNull(title, "title must not be null");
         Objects.requireNonNull(defaultDetail, "defaultDetail must not be null");
         if (!isErrorStatus(httpStatus)) {
-            throw new IllegalArgumentException(
-                    "httpStatus must be between "
-                            + MIN_HTTP_ERROR_STATUS
-                            + " and "
-                            + MAX_HTTP_ERROR_STATUS
-                            + ": "
-                            + httpStatus
-            );
+            throw new IllegalArgumentException("httpStatus must be between "
+                    + MIN_HTTP_ERROR_STATUS
+                    + " and "
+                    + MAX_HTTP_ERROR_STATUS
+                    + ": "
+                    + httpStatus);
         }
     }
 
@@ -64,23 +56,16 @@ public record ProblemDefinition(
      * @return 问题定义 / the problem definition
      */
     public static ProblemDefinition of(
-            String type,
-            String messageCode,
-            String title,
-            String defaultDetail,
-            int httpStatus
-    ) {
+            String type, String messageCode, String title, String defaultDetail, int httpStatus) {
         return new ProblemDefinition(
                 URI.create(Objects.requireNonNull(type, "type must not be null")),
                 messageCode,
                 title,
                 defaultDetail,
-                httpStatus
-        );
+                httpStatus);
     }
 
     private static boolean isErrorStatus(int httpStatus) {
-        return httpStatus >= MIN_HTTP_ERROR_STATUS
-                && httpStatus <= MAX_HTTP_ERROR_STATUS;
+        return httpStatus >= MIN_HTTP_ERROR_STATUS && httpStatus <= MAX_HTTP_ERROR_STATUS;
     }
 }

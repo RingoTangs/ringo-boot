@@ -1,5 +1,10 @@
 package io.github.ringotangs.springcommons.autoconfigure;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.net.URI;
+import java.util.List;
+import java.util.Locale;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.ConversionNotSupportedException;
@@ -17,69 +22,42 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 
-import java.net.URI;
-import java.util.List;
-import java.util.Locale;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
 @ExtendWith(OutputCaptureExtension.class)
 class SpringMvcExceptionHandlerTest {
 
-    private final SpringMvcExceptionHandler handler = new SpringMvcExceptionHandler(
-            new StaticMessageSource(),
-            new ExceptionHandlerProperties()
-    );
+    private final SpringMvcExceptionHandler handler =
+            new SpringMvcExceptionHandler(new StaticMessageSource(), new ExceptionHandlerProperties());
 
     @Test
-    void returnsStableProblemAndPreservesHeadersForMethodNotAllowed(
-            CapturedOutput output
-    ) throws Exception {
+    void returnsStableProblemAndPreservesHeadersForMethodNotAllowed(CapturedOutput output) throws Exception {
         ResponseEntity<Object> response = handler.handleException(
-                new HttpRequestMethodNotSupportedException("POST", List.of("GET")),
-                webRequest()
-        );
+                new HttpRequestMethodNotSupportedException("POST", List.of("GET")), webRequest());
 
         assertThat(response).isNotNull();
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.METHOD_NOT_ALLOWED);
         assertThat(response.getHeaders().getAllow()).containsExactly(HttpMethod.GET);
-        assertThat(response.getBody()).isInstanceOfSatisfying(
-                ProblemDetail.class,
-                problem -> {
-                    assertThat(problem.getType()).isEqualTo(URI.create(
-                            "urn:problem:mvc:method-not-allowed"
-                    ));
-                    assertThat(problem.getTitle()).isEqualTo("Method Not Allowed");
-                    assertThat(problem.getDetail()).isEqualTo(
-                            "Method 'POST' is not supported."
-                    );
-                }
-        );
+        assertThat(response.getBody()).isInstanceOfSatisfying(ProblemDetail.class, problem -> {
+            assertThat(problem.getType()).isEqualTo(URI.create("urn:problem:mvc:method-not-allowed"));
+            assertThat(problem.getTitle()).isEqualTo("Method Not Allowed");
+            assertThat(problem.getDetail()).isEqualTo("Method 'POST' is not supported.");
+        });
         assertThat(output).doesNotContain("Unhandled Spring MVC exception");
     }
 
     @Test
     void logsAndHidesInternalSpringMvcException(CapturedOutput output) throws Exception {
         ConversionNotSupportedException exception = new ConversionNotSupportedException(
-                "secret-value",
-                Integer.class,
-                new IllegalStateException("internal-secret")
-        );
+                "secret-value", Integer.class, new IllegalStateException("internal-secret"));
 
         ResponseEntity<Object> response = handler.handleException(exception, webRequest());
 
         assertThat(response).isNotNull();
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
-        assertThat(response.getBody()).isInstanceOfSatisfying(
-                ProblemDetail.class,
-                problem -> {
-                    assertThat(problem.getType()).isEqualTo(URI.create(
-                            "urn:problem:mvc:internal-server-error"
-                    ));
-                    assertThat(problem.getDetail()).isEqualTo("An unexpected error occurred");
-                    assertThat(problem.getDetail()).doesNotContain("secret");
-                }
-        );
+        assertThat(response.getBody()).isInstanceOfSatisfying(ProblemDetail.class, problem -> {
+            assertThat(problem.getType()).isEqualTo(URI.create("urn:problem:mvc:internal-server-error"));
+            assertThat(problem.getDetail()).isEqualTo("An unexpected error occurred");
+            assertThat(problem.getDetail()).doesNotContain("secret");
+        });
         assertThat(output)
                 .contains("ERROR")
                 .contains("Unhandled Spring MVC exception")
@@ -88,16 +66,9 @@ class SpringMvcExceptionHandlerTest {
 
     @Test
     void preservesUnmappedErrorResponseProblemType(CapturedOutput output) throws Exception {
-        ProblemDetail body = ProblemDetail.forStatusAndDetail(
-                HttpStatus.CONFLICT,
-                "Custom conflict"
-        );
+        ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "Custom conflict");
         body.setType(URI.create("urn:problem:application:custom-conflict"));
-        ErrorResponseException exception = new ErrorResponseException(
-                HttpStatus.CONFLICT,
-                body,
-                null
-        );
+        ErrorResponseException exception = new ErrorResponseException(HttpStatus.CONFLICT, body, null);
 
         ResponseEntity<Object> response = handler.handleException(exception, webRequest());
 
@@ -112,70 +83,42 @@ class SpringMvcExceptionHandlerTest {
         HttpRequestMethodNotSupportedException exception =
                 new HttpRequestMethodNotSupportedException("POST", List.of("GET"));
         StaticMessageSource messageSource = new StaticMessageSource();
-        messageSource.addMessage(
-                exception.getTitleMessageCode(),
-                Locale.CHINA,
-                "Spring 本地化标题"
-        );
-        messageSource.addMessage(
-                exception.getDetailMessageCode(),
-                Locale.CHINA,
-                "Spring 本地化详情"
-        );
+        messageSource.addMessage(exception.getTitleMessageCode(), Locale.CHINA, "Spring 本地化标题");
+        messageSource.addMessage(exception.getDetailMessageCode(), Locale.CHINA, "Spring 本地化详情");
         ExceptionHandlerProperties properties = new ExceptionHandlerProperties();
         properties.setI18nEnabled(false);
-        SpringMvcExceptionHandler localizedHandler = new SpringMvcExceptionHandler(
-                messageSource,
-                properties
-        );
+        SpringMvcExceptionHandler localizedHandler = new SpringMvcExceptionHandler(messageSource, properties);
 
         org.springframework.context.i18n.LocaleContextHolder.setLocale(Locale.CHINA);
         try {
-            ResponseEntity<Object> response = localizedHandler.handleException(
-                    exception,
-                    webRequest()
-            );
+            ResponseEntity<Object> response = localizedHandler.handleException(exception, webRequest());
 
             assertThat(response).isNotNull();
-            assertThat(response.getBody()).isInstanceOfSatisfying(
-                    ProblemDetail.class,
-                    problem -> {
-                        assertThat(problem.getType()).isEqualTo(URI.create(
-                                "urn:problem:mvc:method-not-allowed"
-                        ));
-                        assertThat(problem.getTitle()).isEqualTo("Spring 本地化标题");
-                        assertThat(problem.getDetail()).isEqualTo("Spring 本地化详情");
-                    }
-            );
-        }
-        finally {
+            assertThat(response.getBody()).isInstanceOfSatisfying(ProblemDetail.class, problem -> {
+                assertThat(problem.getType()).isEqualTo(URI.create("urn:problem:mvc:method-not-allowed"));
+                assertThat(problem.getTitle()).isEqualTo("Spring 本地化标题");
+                assertThat(problem.getDetail()).isEqualTo("Spring 本地化详情");
+            });
+        } finally {
             org.springframework.context.i18n.LocaleContextHolder.resetLocaleContext();
         }
     }
 
     @Test
-    void preservesExpectedAsyncTimeoutAndDoesNotLogIt(CapturedOutput output)
-            throws Exception {
-        ResponseEntity<Object> response = handler.handleException(
-                new AsyncRequestTimeoutException(),
-                webRequest()
-        );
+    void preservesExpectedAsyncTimeoutAndDoesNotLogIt(CapturedOutput output) throws Exception {
+        ResponseEntity<Object> response = handler.handleException(new AsyncRequestTimeoutException(), webRequest());
 
         assertThat(response).isNotNull();
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
-        assertThat(response.getBody()).isInstanceOfSatisfying(
-                ProblemDetail.class,
-                problem -> assertThat(problem.getType()).isEqualTo(URI.create(
-                        "urn:problem:mvc:request-timeout"
-                ))
-        );
+        assertThat(response.getBody())
+                .isInstanceOfSatisfying(
+                        ProblemDetail.class,
+                        problem ->
+                                assertThat(problem.getType()).isEqualTo(URI.create("urn:problem:mvc:request-timeout")));
         assertThat(output).doesNotContain("Unhandled Spring MVC exception");
     }
 
     private ServletWebRequest webRequest() {
-        return new ServletWebRequest(
-                new MockHttpServletRequest(),
-                new MockHttpServletResponse()
-        );
+        return new ServletWebRequest(new MockHttpServletRequest(), new MockHttpServletResponse());
     }
 }

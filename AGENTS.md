@@ -15,6 +15,8 @@ Keep production code in each module's `src/main/java` tree. Add tests in the mat
 Run commands from the repository root with Maven 3.9.x:
 
 - `mvn clean verify`: clean and compile every module, then run all tests and verification steps.
+- `mvn spotless:apply`: format all Java production and test sources.
+- `mvn spotless:check`: verify Java formatting without modifying source files.
 - `mvn test`: run the full reactor test suite without packaging.
 - `mvn -pl spring-commons-core -am test`: test the core module and required reactor dependencies.
 - `mvn -pl spring-commons-autoconfigure -am test`: test the reusable Spring Boot auto-configuration.
@@ -23,7 +25,7 @@ Run commands from the repository root with Maven 3.9.x:
 
 ## Coding Style & Naming Conventions
 
-Use four-space indentation, UTF-8, one public top-level type per file, and the existing `io.github.ringotangs` package hierarchy. Name classes and records in `PascalCase`, methods and fields in `camelCase`, and constants in `UPPER_SNAKE_CASE`. Keep controllers thin and place generally reusable behavior in `spring-commons-core`. Lombok is available, but use it only where it improves readability. No formatter or lint plugin is configured; follow the surrounding source style and organize imports before committing.
+Use four-space indentation, UTF-8, one public top-level type per file, and the existing `io.github.ringotangs` package hierarchy. Name classes and records in `PascalCase`, methods and fields in `camelCase`, and constants in `UPPER_SNAKE_CASE`. Keep controllers thin and place generally reusable behavior in `spring-commons-core`. Lombok is available, but use it only where it improves readability. Java formatting is enforced by Spotless with Palantir Java Format; run `mvn spotless:apply` before committing.
 
 ## Testing Guidelines
 

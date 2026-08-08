@@ -1,11 +1,10 @@
 package io.github.ringotangs.springcommons.core;
 
-import org.jspecify.annotations.Nullable;
-
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 表示可预期的问题，并携带用于构建 RFC 9457 Problem Details 响应的问题类型。
@@ -46,11 +45,7 @@ public final class ProblemException extends RuntimeException {
         this(problemType, null, List.of());
     }
 
-    private ProblemException(
-            ProblemType problemType,
-            @Nullable Throwable cause,
-            List<Object> detailArguments
-    ) {
+    private ProblemException(ProblemType problemType, @Nullable Throwable cause, List<Object> detailArguments) {
         super(formatDefaultDetail(problemType, detailArguments), cause);
         this.problemType = problemType;
         this.detailArguments = List.copyOf(detailArguments);
@@ -69,11 +64,7 @@ public final class ProblemException extends RuntimeException {
      *                              if the problem type or cause is {@code null}
      */
     public static ProblemException withCause(ProblemType problemType, Throwable cause) {
-        return new ProblemException(
-                problemType,
-                Objects.requireNonNull(cause, "cause must not be null"),
-                List.of()
-        );
+        return new ProblemException(problemType, Objects.requireNonNull(cause, "cause must not be null"), List.of());
     }
 
     /**
@@ -85,15 +76,8 @@ public final class ProblemException extends RuntimeException {
      * @param detailArguments 非空详情消息参数 / the non-null detail message arguments
      * @return 问题异常 / the problem exception
      */
-    public static ProblemException withArguments(
-            ProblemType problemType,
-            Object... detailArguments
-    ) {
-        return new ProblemException(
-                problemType,
-                null,
-                copyArguments(detailArguments)
-        );
+    public static ProblemException withArguments(ProblemType problemType, Object... detailArguments) {
+        return new ProblemException(problemType, null, copyArguments(detailArguments));
     }
 
     /**
@@ -108,15 +92,9 @@ public final class ProblemException extends RuntimeException {
      * @return 问题异常 / the problem exception
      */
     public static ProblemException withArgumentsAndCause(
-            ProblemType problemType,
-            Throwable cause,
-            Object... detailArguments
-    ) {
+            ProblemType problemType, Throwable cause, Object... detailArguments) {
         return new ProblemException(
-                problemType,
-                Objects.requireNonNull(cause, "cause must not be null"),
-                copyArguments(detailArguments)
-        );
+                problemType, Objects.requireNonNull(cause, "cause must not be null"), copyArguments(detailArguments));
     }
 
     /**
@@ -146,19 +124,12 @@ public final class ProblemException extends RuntimeException {
      *
      * <p>Validates the problem type and formats its default detail with message arguments.</p>
      */
-    private static String formatDefaultDetail(
-            ProblemType problemType,
-            List<Object> detailArguments
-    ) {
-        ProblemType requiredProblemType = Objects.requireNonNull(
-                problemType,
-                "problemType must not be null"
-        );
+    private static String formatDefaultDetail(ProblemType problemType, List<Object> detailArguments) {
+        ProblemType requiredProblemType = Objects.requireNonNull(problemType, "problemType must not be null");
         String defaultDetail = requiredProblemType.getDefaultDetail();
         return detailArguments.isEmpty()
                 ? defaultDetail
-                : new MessageFormat(defaultDetail, Locale.ROOT)
-                .format(detailArguments.toArray());
+                : new MessageFormat(defaultDetail, Locale.ROOT).format(detailArguments.toArray());
     }
 
     private static List<Object> copyArguments(Object[] detailArguments) {

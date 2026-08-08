@@ -1,5 +1,12 @@
 package io.github.ringotangs.springcommons.autoconfigure;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import java.net.URI;
+import java.util.Locale;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,20 +21,11 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.ErrorResponse;
 
-import java.net.URI;
-import java.util.Locale;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.assertj.core.api.Assertions.assertThat;
-
 @ExtendWith(OutputCaptureExtension.class)
 class FallbackExceptionHandlerTest {
 
     private final StaticMessageSource messageSource = new StaticMessageSource();
-    private final ExceptionHandlerProperties properties =
-            new ExceptionHandlerProperties();
+    private final ExceptionHandlerProperties properties = new ExceptionHandlerProperties();
 
     @AfterEach
     void resetLocale() {
@@ -38,17 +36,13 @@ class FallbackExceptionHandlerTest {
     void returnsSafeInternalServerErrorForUnexpectedException(CapturedOutput output) {
         FallbackExceptionHandler handler = createHandler(new DefaultProblemMessageResolver());
 
-        ResponseEntity<ProblemDetail> response = handler.handleException(
-                new IllegalStateException("password=secret; SQL select * from users")
-        );
+        ResponseEntity<ProblemDetail> response =
+                handler.handleException(new IllegalStateException("password=secret; SQL select * from users"));
         ProblemDetail body = response.getBody();
         assertNotNull(body);
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertEquals(
-                URI.create("urn:problem:fallback:internal-server-error"),
-                body.getType()
-        );
+        assertEquals(URI.create("urn:problem:fallback:internal-server-error"), body.getType());
         assertEquals("Internal server error", body.getTitle());
         assertEquals("An unexpected error occurred", body.getDetail());
         assertFalse(body.getDetail().contains("secret"));
@@ -74,25 +68,14 @@ class FallbackExceptionHandlerTest {
 
     @Test
     void localizesUnexpectedExceptionWhenInternationalizationIsEnabled() {
-        messageSource.addMessage(
-                "problem.internal-server-error.title",
-                Locale.SIMPLIFIED_CHINESE,
-                "服务器内部错误"
-        );
-        messageSource.addMessage(
-                "problem.internal-server-error.detail",
-                Locale.SIMPLIFIED_CHINESE,
-                "发生了意外错误"
-        );
+        messageSource.addMessage("problem.internal-server-error.title", Locale.SIMPLIFIED_CHINESE, "服务器内部错误");
+        messageSource.addMessage("problem.internal-server-error.detail", Locale.SIMPLIFIED_CHINESE, "发生了意外错误");
         properties.setI18nEnabled(true);
         LocaleContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
-        FallbackExceptionHandler handler = createHandler(
-                new MessageSourceProblemMessageResolver(messageSource)
-        );
+        FallbackExceptionHandler handler = createHandler(new MessageSourceProblemMessageResolver(messageSource));
 
-        ProblemDetail body = handler.handleException(
-                new IllegalStateException("internal")
-        ).getBody();
+        ProblemDetail body =
+                handler.handleException(new IllegalStateException("internal")).getBody();
         assertNotNull(body);
 
         assertEquals("服务器内部错误", body.getTitle());
@@ -100,20 +83,13 @@ class FallbackExceptionHandlerTest {
     }
 
     private FallbackExceptionHandler createHandler(ProblemMessageResolver resolver) {
-        return new FallbackExceptionHandler(
-                resolver,
-                messageSource,
-                properties
-        );
+        return new FallbackExceptionHandler(resolver, messageSource, properties);
     }
 
-    private static final class FrameworkException extends RuntimeException
-            implements ErrorResponse {
+    private static final class FrameworkException extends RuntimeException implements ErrorResponse {
 
-        private final ProblemDetail body = ProblemDetail.forStatusAndDetail(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many requests"
-        );
+        private final ProblemDetail body =
+                ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, "Too many requests");
 
         private final HttpHeaders headers = new HttpHeaders();
 

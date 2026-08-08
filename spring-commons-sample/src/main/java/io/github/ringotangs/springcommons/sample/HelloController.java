@@ -23,10 +23,6 @@ public class HelloController {
     @PostMapping("/users")
     @ResponseStatus(HttpStatus.CREATED)
     public User createUser(@Valid @RequestBody CreateUserRequest request) {
-        return User.builder()
-                .name(request.name())
-                .age(request.age())
-                .build();
+        return User.builder().name(request.name()).age(request.age()).build();
     }
-
 }

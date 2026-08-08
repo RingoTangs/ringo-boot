@@ -1,5 +1,6 @@
 package io.github.ringotangs.springcommons.autoconfigure;
 
+import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 import org.springframework.context.MessageSource;
 import org.springframework.core.annotation.Order;
@@ -11,8 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
-
-import java.util.Objects;
 
 /**
  * 为 Spring MVC 内置异常补充稳定的 Problem Details {@code type}。
@@ -35,18 +34,9 @@ public class SpringMvcExceptionHandler extends ResponseEntityExceptionHandler {
      * <p>Creates the Spring MVC exception handler with a message source and exception
      * handling properties.</p>
      */
-    public SpringMvcExceptionHandler(
-            MessageSource messageSource,
-            ExceptionHandlerProperties properties
-    ) {
-        setMessageSource(Objects.requireNonNull(
-                messageSource,
-                "messageSource must not be null"
-        ));
-        Objects.requireNonNull(
-                properties,
-                "properties must not be null"
-        );
+    public SpringMvcExceptionHandler(MessageSource messageSource, ExceptionHandlerProperties properties) {
+        setMessageSource(Objects.requireNonNull(messageSource, "messageSource must not be null"));
+        Objects.requireNonNull(properties, "properties must not be null");
     }
 
     @Nullable
@@ -56,37 +46,19 @@ public class SpringMvcExceptionHandler extends ResponseEntityExceptionHandler {
             @Nullable Object body,
             HttpHeaders headers,
             HttpStatusCode statusCode,
-            WebRequest request
-    ) {
+            WebRequest request) {
         SpringMvcProblemType problemType = SpringMvcProblemType.resolve(exception);
         if (problemType == null) {
-            return super.handleExceptionInternal(
-                    exception,
-                    body,
-                    headers,
-                    statusCode,
-                    request
-            );
+            return super.handleExceptionInternal(exception, body, headers, statusCode, request);
         }
 
         if (problemType == SpringMvcProblemType.INTERNAL_SERVER_ERROR) {
             logger.error("Unhandled Spring MVC exception", exception);
             return super.handleExceptionInternal(
-                    exception,
-                    createSafeInternalServerError(),
-                    headers,
-                    statusCode,
-                    request
-            );
+                    exception, createSafeInternalServerError(), headers, statusCode, request);
         }
 
-        ResponseEntity<Object> response = super.handleExceptionInternal(
-                exception,
-                body,
-                headers,
-                statusCode,
-                request
-        );
+        ResponseEntity<Object> response = super.handleExceptionInternal(exception, body, headers, statusCode, request);
         if (response != null && response.getBody() instanceof ProblemDetail problemDetail) {
             problemDetail.setType(problemType.getType());
         }
@@ -94,10 +66,8 @@ public class SpringMvcExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     private ProblemDetail createSafeInternalServerError() {
-        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                "An unexpected error occurred"
-        );
+        ProblemDetail problemDetail =
+                ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
         problemDetail.setType(SpringMvcProblemType.INTERNAL_SERVER_ERROR.getType());
         problemDetail.setTitle("Internal server error");
         return problemDetail;

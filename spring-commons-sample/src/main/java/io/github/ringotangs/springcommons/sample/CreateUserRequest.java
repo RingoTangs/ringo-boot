@@ -9,6 +9,4 @@ import jakarta.validation.constraints.Size;
 /** 创建用户请求。 / Request for creating a user. */
 public record CreateUserRequest(
         @NotBlank @Size(max = 50) String name,
-        @NotNull @Min(1) @Max(150) Integer age
-) {
-}
+        @NotNull @Min(1) @Max(150) Integer age) {}

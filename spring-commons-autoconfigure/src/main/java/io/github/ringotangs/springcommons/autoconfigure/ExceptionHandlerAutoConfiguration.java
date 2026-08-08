@@ -32,31 +32,21 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @AutoConfiguration(before = WebMvcAutoConfiguration.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass({ProblemDetail.class, ProblemException.class})
-@ConditionalOnProperty(
-        prefix = ExceptionHandlerProperties.PREFIX,
-        name = "enabled",
-        havingValue = "true"
-)
+@ConditionalOnProperty(prefix = ExceptionHandlerProperties.PREFIX, name = "enabled", havingValue = "true")
 @EnableConfigurationProperties(ExceptionHandlerProperties.class)
 public class ExceptionHandlerAutoConfiguration {
 
     /** 配置 Spring MVC 内置异常的稳定 Problem Details 映射。 */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(ResponseEntityExceptionHandler.class)
-    @ConditionalOnProperty(
-            prefix = ExceptionHandlerProperties.PREFIX,
-            name = "mvc-enabled",
-            havingValue = "true"
-    )
+    @ConditionalOnProperty(prefix = ExceptionHandlerProperties.PREFIX, name = "mvc-enabled", havingValue = "true")
     static class SpringMvcConfiguration {
 
         /** 用户提供 ResponseEntityExceptionHandler 时不创建默认 MVC 处理器。 */
         @Bean
         @ConditionalOnMissingBean(ResponseEntityExceptionHandler.class)
         SpringMvcExceptionHandler springMvcExceptionHandler(
-                ApplicationContext applicationContext,
-                ExceptionHandlerProperties properties
-        ) {
+                ApplicationContext applicationContext, ExceptionHandlerProperties properties) {
             return new SpringMvcExceptionHandler(applicationContext, properties);
         }
     }
@@ -67,11 +57,7 @@ public class ExceptionHandlerAutoConfiguration {
      * <p>Configures ProblemExceptionHandler when problem handling is enabled.</p>
      */
     @Configuration(proxyBeanMethods = false)
-    @ConditionalOnProperty(
-            prefix = ExceptionHandlerProperties.PREFIX,
-            name = "problem-enabled",
-            havingValue = "true"
-    )
+    @ConditionalOnProperty(prefix = ExceptionHandlerProperties.PREFIX, name = "problem-enabled", havingValue = "true")
     static class ProblemConfiguration {
 
         /**
@@ -81,9 +67,7 @@ public class ExceptionHandlerAutoConfiguration {
          */
         @Bean
         @ConditionalOnMissingBean
-        ProblemExceptionHandler problemExceptionHandler(
-                ProblemMessageResolver messageResolver
-        ) {
+        ProblemExceptionHandler problemExceptionHandler(ProblemMessageResolver messageResolver) {
             return new ProblemExceptionHandler(messageResolver);
         }
     }
@@ -95,11 +79,7 @@ public class ExceptionHandlerAutoConfiguration {
      * is enabled.</p>
      */
     @Configuration(proxyBeanMethods = false)
-    @ConditionalOnProperty(
-            prefix = ExceptionHandlerProperties.PREFIX,
-            name = "fallback-enabled",
-            havingValue = "true"
-    )
+    @ConditionalOnProperty(prefix = ExceptionHandlerProperties.PREFIX, name = "fallback-enabled", havingValue = "true")
     static class FallbackConfiguration {
 
         /**
@@ -112,13 +92,8 @@ public class ExceptionHandlerAutoConfiguration {
         FallbackExceptionHandler fallbackExceptionHandler(
                 ProblemMessageResolver messageResolver,
                 ApplicationContext applicationContext,
-                ExceptionHandlerProperties properties
-        ) {
-            return new FallbackExceptionHandler(
-                    messageResolver,
-                    applicationContext,
-                    properties
-            );
+                ExceptionHandlerProperties properties) {
+            return new FallbackExceptionHandler(messageResolver, applicationContext, properties);
         }
     }
 
@@ -142,9 +117,7 @@ public class ExceptionHandlerAutoConfiguration {
         @Bean
         @ConditionalOnMissingBean
         ProblemMessageResolver problemMessageResolver(
-                ApplicationContext applicationContext,
-                ExceptionHandlerProperties properties
-        ) {
+                ApplicationContext applicationContext, ExceptionHandlerProperties properties) {
             return properties.isI18nEnabled()
                     ? new MessageSourceProblemMessageResolver(applicationContext)
                     : new DefaultProblemMessageResolver();
@@ -179,10 +152,8 @@ public class ExceptionHandlerAutoConfiguration {
         @ConditionalOnProperty(
                 prefix = ExceptionHandlerProperties.PREFIX,
                 name = "problem-enabled",
-                havingValue = "true"
-        )
-        static class ProblemEnabled {
-        }
+                havingValue = "true")
+        static class ProblemEnabled {}
 
         /**
          * 仅描述 Fallback 功能开关条件，不会注册 Bean。
@@ -192,9 +163,7 @@ public class ExceptionHandlerAutoConfiguration {
         @ConditionalOnProperty(
                 prefix = ExceptionHandlerProperties.PREFIX,
                 name = "fallback-enabled",
-                havingValue = "true"
-        )
-        static class FallbackEnabled {
-        }
+                havingValue = "true")
+        static class FallbackEnabled {}
     }
 }

@@ -1,5 +1,11 @@
 package io.github.ringotangs.springcommons.autoconfigure;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.net.URI;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -21,35 +27,22 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
-import java.net.URI;
-import java.util.stream.Stream;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 class SpringMvcProblemTypeTest {
 
     @ParameterizedTest
     @MethodSource("exceptionMappings")
     void mapsSpringMvcExceptionsByClientSemantics(
-            Class<? extends Exception> exceptionType,
-            SpringMvcProblemType expected
-    ) {
+            Class<? extends Exception> exceptionType, SpringMvcProblemType expected) {
         assertThat(SpringMvcProblemType.resolve(mock(exceptionType))).isEqualTo(expected);
     }
 
     @Test
     void mapsRequestAndReturnValueValidationDifferently() {
-        HandlerMethodValidationException exception = mock(
-                HandlerMethodValidationException.class
-        );
+        HandlerMethodValidationException exception = mock(HandlerMethodValidationException.class);
         when(exception.isForReturnValue()).thenReturn(false, true);
 
-        assertThat(SpringMvcProblemType.resolve(exception))
-                .isEqualTo(SpringMvcProblemType.VALIDATION_FAILED);
-        assertThat(SpringMvcProblemType.resolve(exception))
-                .isEqualTo(SpringMvcProblemType.INTERNAL_SERVER_ERROR);
+        assertThat(SpringMvcProblemType.resolve(exception)).isEqualTo(SpringMvcProblemType.VALIDATION_FAILED);
+        assertThat(SpringMvcProblemType.resolve(exception)).isEqualTo(SpringMvcProblemType.INTERNAL_SERVER_ERROR);
     }
 
     @Test
@@ -59,70 +52,28 @@ class SpringMvcProblemTypeTest {
 
     @Test
     void exposesMvcSpecificProblemTypeUris() {
-        assertThat(SpringMvcProblemType.INVALID_PARAMETER.getType()).isEqualTo(
-                URI.create("urn:problem:mvc:invalid-parameter")
-        );
-        assertThat(SpringMvcProblemType.INTERNAL_SERVER_ERROR.getType()).isEqualTo(
-                URI.create("urn:problem:mvc:internal-server-error")
-        );
+        assertThat(SpringMvcProblemType.INVALID_PARAMETER.getType())
+                .isEqualTo(URI.create("urn:problem:mvc:invalid-parameter"));
+        assertThat(SpringMvcProblemType.INTERNAL_SERVER_ERROR.getType())
+                .isEqualTo(URI.create("urn:problem:mvc:internal-server-error"));
     }
 
     private static Stream<Arguments> exceptionMappings() {
         return Stream.of(
-                Arguments.of(
-                        HttpRequestMethodNotSupportedException.class,
-                        SpringMvcProblemType.METHOD_NOT_ALLOWED
-                ),
-                Arguments.of(
-                        HttpMediaTypeNotSupportedException.class,
-                        SpringMvcProblemType.UNSUPPORTED_MEDIA_TYPE
-                ),
-                Arguments.of(
-                        HttpMediaTypeNotAcceptableException.class,
-                        SpringMvcProblemType.NOT_ACCEPTABLE
-                ),
-                Arguments.of(
-                        MissingServletRequestParameterException.class,
-                        SpringMvcProblemType.MISSING_REQUEST_VALUE
-                ),
-                Arguments.of(
-                        ServletRequestBindingException.class,
-                        SpringMvcProblemType.MISSING_REQUEST_VALUE
-                ),
+                Arguments.of(HttpRequestMethodNotSupportedException.class, SpringMvcProblemType.METHOD_NOT_ALLOWED),
+                Arguments.of(HttpMediaTypeNotSupportedException.class, SpringMvcProblemType.UNSUPPORTED_MEDIA_TYPE),
+                Arguments.of(HttpMediaTypeNotAcceptableException.class, SpringMvcProblemType.NOT_ACCEPTABLE),
+                Arguments.of(MissingServletRequestParameterException.class, SpringMvcProblemType.MISSING_REQUEST_VALUE),
+                Arguments.of(ServletRequestBindingException.class, SpringMvcProblemType.MISSING_REQUEST_VALUE),
                 Arguments.of(TypeMismatchException.class, SpringMvcProblemType.INVALID_PARAMETER),
-                Arguments.of(
-                        HttpMessageNotReadableException.class,
-                        SpringMvcProblemType.MALFORMED_REQUEST
-                ),
-                Arguments.of(
-                        MethodArgumentNotValidException.class,
-                        SpringMvcProblemType.VALIDATION_FAILED
-                ),
+                Arguments.of(HttpMessageNotReadableException.class, SpringMvcProblemType.MALFORMED_REQUEST),
+                Arguments.of(MethodArgumentNotValidException.class, SpringMvcProblemType.VALIDATION_FAILED),
                 Arguments.of(NoResourceFoundException.class, SpringMvcProblemType.NOT_FOUND),
-                Arguments.of(
-                        MaxUploadSizeExceededException.class,
-                        SpringMvcProblemType.PAYLOAD_TOO_LARGE
-                ),
-                Arguments.of(
-                        AsyncRequestTimeoutException.class,
-                        SpringMvcProblemType.REQUEST_TIMEOUT
-                ),
-                Arguments.of(
-                        MissingPathVariableException.class,
-                        SpringMvcProblemType.INTERNAL_SERVER_ERROR
-                ),
-                Arguments.of(
-                        ConversionNotSupportedException.class,
-                        SpringMvcProblemType.INTERNAL_SERVER_ERROR
-                ),
-                Arguments.of(
-                        HttpMessageNotWritableException.class,
-                        SpringMvcProblemType.INTERNAL_SERVER_ERROR
-                ),
-                Arguments.of(
-                        MethodValidationException.class,
-                        SpringMvcProblemType.INTERNAL_SERVER_ERROR
-                )
-        );
+                Arguments.of(MaxUploadSizeExceededException.class, SpringMvcProblemType.PAYLOAD_TOO_LARGE),
+                Arguments.of(AsyncRequestTimeoutException.class, SpringMvcProblemType.REQUEST_TIMEOUT),
+                Arguments.of(MissingPathVariableException.class, SpringMvcProblemType.INTERNAL_SERVER_ERROR),
+                Arguments.of(ConversionNotSupportedException.class, SpringMvcProblemType.INTERNAL_SERVER_ERROR),
+                Arguments.of(HttpMessageNotWritableException.class, SpringMvcProblemType.INTERNAL_SERVER_ERROR),
+                Arguments.of(MethodValidationException.class, SpringMvcProblemType.INTERNAL_SERVER_ERROR));
     }
 }

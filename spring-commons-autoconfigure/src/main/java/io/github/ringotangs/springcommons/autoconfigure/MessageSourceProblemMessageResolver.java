@@ -2,11 +2,10 @@ package io.github.ringotangs.springcommons.autoconfigure;
 
 import io.github.ringotangs.springcommons.core.ProblemDefinition;
 import io.github.ringotangs.springcommons.core.ProblemException;
-import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
-
 import java.util.Locale;
 import java.util.Objects;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 
 final class MessageSourceProblemMessageResolver implements ProblemMessageResolver {
 
@@ -16,31 +15,20 @@ final class MessageSourceProblemMessageResolver implements ProblemMessageResolve
     private final MessageSource messageSource;
 
     MessageSourceProblemMessageResolver(MessageSource messageSource) {
-        this.messageSource = Objects.requireNonNull(
-                messageSource,
-                "messageSource must not be null"
-        );
+        this.messageSource = Objects.requireNonNull(messageSource, "messageSource must not be null");
     }
 
     @Override
     public ProblemMessages resolve(ProblemException exception) {
         ProblemDefinition definition = exception.getProblemType().getDefinition();
         Locale locale = LocaleContextHolder.getLocale();
-        String title = messageSource.getMessage(
-                definition.messageCode() + TITLE_SUFFIX,
-                null,
-                definition.title(),
-                locale
-        );
+        String title =
+                messageSource.getMessage(definition.messageCode() + TITLE_SUFFIX, null, definition.title(), locale);
         String detail = messageSource.getMessage(
                 definition.messageCode() + DETAIL_SUFFIX,
                 exception.getDetailArguments().toArray(),
                 definition.defaultDetail(),
-                locale
-        );
-        return new ProblemMessages(
-                Objects.requireNonNull(title),
-                Objects.requireNonNull(detail)
-        );
+                locale);
+        return new ProblemMessages(Objects.requireNonNull(title), Objects.requireNonNull(detail));
     }
 }

@@ -1,7 +1,6 @@
 package io.github.ringotangs.springcommons.autoconfigure;
 
 import io.github.ringotangs.springcommons.core.ProblemException;
-
 import java.util.Objects;
 
 /**

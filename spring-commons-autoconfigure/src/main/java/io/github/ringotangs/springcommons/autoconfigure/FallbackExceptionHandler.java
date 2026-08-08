@@ -3,6 +3,7 @@ package io.github.ringotangs.springcommons.autoconfigure;
 import io.github.ringotangs.springcommons.core.ProblemDefinition;
 import io.github.ringotangs.springcommons.core.ProblemException;
 import io.github.ringotangs.springcommons.core.ProblemType;
+import java.util.Objects;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.context.MessageSource;
@@ -15,8 +16,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
-import java.util.Objects;
 
 /**
  * 将未被专用处理器处理的异常转换为安全的 Problem Details 响应。
@@ -33,17 +32,14 @@ public class FallbackExceptionHandler {
 
     private static final Log logger = LogFactory.getLog(FallbackExceptionHandler.class);
 
-    private static final ProblemDefinition INTERNAL_SERVER_ERROR_DEFINITION =
-            ProblemDefinition.of(
-                    "urn:problem:fallback:internal-server-error",
-                    "problem.internal-server-error",
-                    "Internal server error",
-                    "An unexpected error occurred",
-                    HttpStatus.INTERNAL_SERVER_ERROR.value()
-            );
+    private static final ProblemDefinition INTERNAL_SERVER_ERROR_DEFINITION = ProblemDefinition.of(
+            "urn:problem:fallback:internal-server-error",
+            "problem.internal-server-error",
+            "Internal server error",
+            "An unexpected error occurred",
+            HttpStatus.INTERNAL_SERVER_ERROR.value());
 
-    private static final ProblemType INTERNAL_SERVER_ERROR =
-            () -> INTERNAL_SERVER_ERROR_DEFINITION;
+    private static final ProblemType INTERNAL_SERVER_ERROR = () -> INTERNAL_SERVER_ERROR_DEFINITION;
 
     private final ProblemDetailFactory problemDetailFactory;
     private final MessageSource messageSource;
@@ -57,17 +53,10 @@ public class FallbackExceptionHandler {
     public FallbackExceptionHandler(
             ProblemMessageResolver messageResolver,
             MessageSource messageSource,
-            ExceptionHandlerProperties properties
-    ) {
+            ExceptionHandlerProperties properties) {
         this.problemDetailFactory = new ProblemDetailFactory(messageResolver);
-        this.messageSource = Objects.requireNonNull(
-                messageSource,
-                "messageSource must not be null"
-        );
-        this.properties = Objects.requireNonNull(
-                properties,
-                "properties must not be null"
-        );
+        this.messageSource = Objects.requireNonNull(messageSource, "messageSource must not be null");
+        this.properties = Objects.requireNonNull(properties, "properties must not be null");
     }
 
     /**
@@ -81,22 +70,13 @@ public class FallbackExceptionHandler {
         Objects.requireNonNull(exception, "exception must not be null");
         if (exception instanceof ErrorResponse errorResponse) {
             ProblemDetail body = properties.isI18nEnabled()
-                    ? errorResponse.updateAndGetBody(
-                            messageSource,
-                            LocaleContextHolder.getLocale()
-                    )
+                    ? errorResponse.updateAndGetBody(messageSource, LocaleContextHolder.getLocale())
                     : errorResponse.getBody();
-            return new ResponseEntity<>(
-                    body,
-                    errorResponse.getHeaders(),
-                    errorResponse.getStatusCode()
-            );
+            return new ResponseEntity<>(body, errorResponse.getHeaders(), errorResponse.getStatusCode());
         }
 
         logger.error("Unhandled exception", exception);
-        ProblemDetail body = problemDetailFactory.create(
-                ProblemException.withCause(INTERNAL_SERVER_ERROR, exception)
-        );
+        ProblemDetail body = problemDetailFactory.create(ProblemException.withCause(INTERNAL_SERVER_ERROR, exception));
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 }

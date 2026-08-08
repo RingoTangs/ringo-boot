@@ -1,5 +1,7 @@
 package io.github.ringotangs.springcommons.autoconfigure;
 
+import java.net.URI;
+import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.ConversionNotSupportedException;
 import org.springframework.beans.TypeMismatchException;
@@ -9,9 +11,9 @@ import org.springframework.validation.method.MethodValidationException;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingPathVariableException;
 import org.springframework.web.bind.ServletRequestBindingException;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
@@ -19,11 +21,7 @@ import org.springframework.web.multipart.support.MissingServletRequestPartExcept
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
-import java.net.URI;
-import java.util.Objects;
-
 enum SpringMvcProblemType {
-
     METHOD_NOT_ALLOWED("method-not-allowed"),
     UNSUPPORTED_MEDIA_TYPE("unsupported-media-type"),
     NOT_ACCEPTABLE("not-acceptable"),
@@ -55,9 +53,7 @@ enum SpringMvcProblemType {
             return INTERNAL_SERVER_ERROR;
         }
         if (exception instanceof HandlerMethodValidationException validationException) {
-            return validationException.isForReturnValue()
-                    ? INTERNAL_SERVER_ERROR
-                    : VALIDATION_FAILED;
+            return validationException.isForReturnValue() ? INTERNAL_SERVER_ERROR : VALIDATION_FAILED;
         }
         if (exception instanceof HttpRequestMethodNotSupportedException) {
             return METHOD_NOT_ALLOWED;
@@ -81,8 +77,7 @@ enum SpringMvcProblemType {
         if (exception instanceof MethodArgumentNotValidException) {
             return VALIDATION_FAILED;
         }
-        if (exception instanceof NoHandlerFoundException
-                || exception instanceof NoResourceFoundException) {
+        if (exception instanceof NoHandlerFoundException || exception instanceof NoResourceFoundException) {
             return NOT_FOUND;
         }
         if (exception instanceof MaxUploadSizeExceededException) {
@@ -93,5 +88,4 @@ enum SpringMvcProblemType {
         }
         return null;
     }
-
 }

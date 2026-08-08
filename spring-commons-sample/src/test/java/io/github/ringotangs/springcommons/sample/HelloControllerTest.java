@@ -1,5 +1,12 @@
 package io.github.ringotangs.springcommons.sample;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -10,13 +17,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -37,9 +37,7 @@ class HelloControllerTest {
 
     @Test
     void createsUserWhenRequestIsValid() throws Exception {
-        mockMvc.perform(post("/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+        mockMvc.perform(post("/users").contentType(MediaType.APPLICATION_JSON).content("""
                                 {
                                   "name": "Alice",
                                   "age": 20
@@ -82,9 +80,7 @@ class HelloControllerTest {
 
     @Test
     void returnsBadRequestProblemForInvalidUserId() throws Exception {
-        mockMvc.perform(get("/user")
-                        .param("id", "0")
-                        .header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
+        mockMvc.perform(get("/user").param("id", "0").header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.type").value("urn:problem:business:user:invalid-id"))
@@ -97,56 +93,37 @@ class HelloControllerTest {
 
     @Test
     void returnsSpringDiagnosticForInvalidParameterType() throws Exception {
-        mockMvc.perform(get("/user")
-                        .param("id", "secret-invalid-value")
-                        .header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
+        mockMvc.perform(get("/user").param("id", "secret-invalid-value").header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andExpect(jsonPath("$.type").value(
-                        "urn:problem:mvc:invalid-parameter"
-                ))
+                .andExpect(jsonPath("$.type").value("urn:problem:mvc:invalid-parameter"))
                 .andExpect(jsonPath("$.title").value("Bad Request"))
                 .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.detail").value(
-                        "Failed to convert 'id' with value: 'secret-invalid-value'"
-                ))
+                .andExpect(jsonPath("$.detail").value("Failed to convert 'id' with value: 'secret-invalid-value'"))
                 .andExpect(jsonPath("$.instance").value("/user"))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString(
-                        "secret-invalid-value"
-                )));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("secret-invalid-value")));
     }
 
     @Test
     void returnsStableProblemAndAllowHeaderForUnsupportedMethod() throws Exception {
-        mockMvc.perform(post("/user")
-                        .header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
+        mockMvc.perform(post("/user").header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
                 .andExpect(status().isMethodNotAllowed())
                 .andExpect(header().string(HttpHeaders.ALLOW, "GET"))
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andExpect(jsonPath("$.type").value(
-                        "urn:problem:mvc:method-not-allowed"
-                ))
+                .andExpect(jsonPath("$.type").value("urn:problem:mvc:method-not-allowed"))
                 .andExpect(jsonPath("$.title").value("Method Not Allowed"))
                 .andExpect(jsonPath("$.status").value(405))
-                .andExpect(jsonPath("$.detail").value(
-                        "Method 'POST' is not supported."
-                ))
+                .andExpect(jsonPath("$.detail").value("Method 'POST' is not supported."))
                 .andExpect(jsonPath("$.instance").value("/user"));
     }
 
     @Test
     void usesSpringNativeProblemForChineseRequest() throws Exception {
-        mockMvc.perform(get("/user")
-                        .param("id", "invalid")
-                        .header(HttpHeaders.ACCEPT_LANGUAGE, "zh-CN"))
+        mockMvc.perform(get("/user").param("id", "invalid").header(HttpHeaders.ACCEPT_LANGUAGE, "zh-CN"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.type").value(
-                        "urn:problem:mvc:invalid-parameter"
-                ))
+                .andExpect(jsonPath("$.type").value("urn:problem:mvc:invalid-parameter"))
                 .andExpect(jsonPath("$.title").value("Bad Request"))
-                .andExpect(jsonPath("$.detail").value(
-                        "Failed to convert 'id' with value: 'invalid'"
-                ));
+                .andExpect(jsonPath("$.detail").value("Failed to convert 'id' with value: 'invalid'"));
     }
 
     @Test
@@ -156,9 +133,7 @@ class HelloControllerTest {
                         .header(HttpHeaders.ACCEPT_LANGUAGE, "en")
                         .content("{"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.type").value(
-                        "urn:problem:mvc:malformed-request"
-                ))
+                .andExpect(jsonPath("$.type").value("urn:problem:mvc:malformed-request"))
                 .andExpect(jsonPath("$.instance").value("/users"));
     }
 
@@ -169,28 +144,21 @@ class HelloControllerTest {
                         .header(HttpHeaders.ACCEPT_LANGUAGE, "en")
                         .content("name=Alice"))
                 .andExpect(status().isUnsupportedMediaType())
-                .andExpect(jsonPath("$.type").value(
-                        "urn:problem:mvc:unsupported-media-type"
-                ))
+                .andExpect(jsonPath("$.type").value("urn:problem:mvc:unsupported-media-type"))
                 .andExpect(jsonPath("$.title").value("Unsupported Media Type"));
     }
 
     @Test
     void returnsStableProblemWhenResourceDoesNotExist() throws Exception {
-        mockMvc.perform(get("/does-not-exist")
-                        .header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
+        mockMvc.perform(get("/does-not-exist").header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.type").value(
-                        "urn:problem:mvc:not-found"
-                ))
+                .andExpect(jsonPath("$.type").value("urn:problem:mvc:not-found"))
                 .andExpect(jsonPath("$.title").value("Not Found"));
     }
 
     @Test
     void returnsNotFoundProblemWhenUserDoesNotExist() throws Exception {
-        mockMvc.perform(get("/user")
-                        .param("id", "2")
-                        .header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
+        mockMvc.perform(get("/user").param("id", "2").header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.type").value("urn:problem:business:user:not-found"))
@@ -203,13 +171,10 @@ class HelloControllerTest {
 
     @Test
     void returnsLocalizedProblemForChineseRequest() throws Exception {
-        mockMvc.perform(get("/user")
-                        .param("id", "2")
-                        .header(HttpHeaders.ACCEPT_LANGUAGE, "zh-CN"))
+        mockMvc.perform(get("/user").param("id", "2").header(HttpHeaders.ACCEPT_LANGUAGE, "zh-CN"))
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andExpect(jsonPath("$.type")
-                        .value("urn:problem:business:user:not-found"))
+                .andExpect(jsonPath("$.type").value("urn:problem:business:user:not-found"))
                 .andExpect(jsonPath("$.title").value("未找到用户"))
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.detail").value("用户 2 不存在"))
@@ -220,19 +185,14 @@ class HelloControllerTest {
     void returnsSafeProblemForUnexpectedException() throws Exception {
         mockMvc.perform(get("/test/failure"))
                 .andExpect(status().isInternalServerError())
-                .andExpect(content().contentTypeCompatibleWith(
-                        MediaType.APPLICATION_PROBLEM_JSON
-                ))
-                .andExpect(jsonPath("$.type").value(
-                        "urn:problem:fallback:internal-server-error"
-                ))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.type").value("urn:problem:fallback:internal-server-error"))
                 .andExpect(jsonPath("$.title").value("Internal server error"))
                 .andExpect(jsonPath("$.status").value(500))
                 .andExpect(jsonPath("$.detail").value("An unexpected error occurred"))
                 .andExpect(jsonPath("$.instance").value("/test/failure"))
-                .andExpect(content().string(org.hamcrest.Matchers.not(
-                        org.hamcrest.Matchers.containsString("sample-secret")
-                )));
+                .andExpect(content()
+                        .string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("sample-secret"))));
     }
 
     private void assertValidationProblem(String requestBody) throws Exception {
@@ -242,9 +202,7 @@ class HelloControllerTest {
                         .content(requestBody))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andExpect(jsonPath("$.type").value(
-                        "urn:problem:mvc:validation-failed"
-                ))
+                .andExpect(jsonPath("$.type").value("urn:problem:mvc:validation-failed"))
                 .andExpect(jsonPath("$.title").value("Bad Request"))
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.instance").value("/users"));
