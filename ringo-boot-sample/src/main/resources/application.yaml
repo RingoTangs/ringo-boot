@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: ringo-boot-sample
+  messages:
+    encoding: UTF-8
+    fallback-to-system-locale: false
+  mvc:
+    problemdetails:
+      enabled: true
+server:
+  port: 8080
+ringo:
+  boot:
+    problem:
+      enabled: true
+      application-enabled: true
+      mvc-enabled: true
+      i18n-enabled: true
+      fallback-enabled: true

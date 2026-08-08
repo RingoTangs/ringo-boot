@@ -5,17 +5,17 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.github.ringotangs</groupId>
-    <artifactId>spring-commons</artifactId>
+    <artifactId>ringo-boot-parent</artifactId>
     <version>1.0.0</version>
 
     <packaging>pom</packaging>
 
-    <name>Spring Commons</name>
+    <name>Ringo Boot Parent</name>
 
     <modules>
-        <module>spring-commons-core</module>
-        <module>spring-commons-autoconfigure</module>
-        <module>spring-commons-sample</module>
+        <module>ringo-boot-core</module>
+        <module>ringo-boot-autoconfigure</module>
+        <module>ringo-boot-sample</module>
     </modules>
 
     <description>Reusable components and examples for Spring Boot applications.</description>
@@ -61,17 +61,17 @@
             </dependency>
 
             <!-- 项目模块 -->
-            <!-- spring-commons-core -->
+            <!-- ringo-boot-core -->
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>spring-commons-core</artifactId>
+                <artifactId>ringo-boot-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
-            <!-- spring-commons-autoconfigure -->
+            <!-- ringo-boot-autoconfigure -->
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>spring-commons-autoconfigure</artifactId>
+                <artifactId>ringo-boot-autoconfigure</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>
