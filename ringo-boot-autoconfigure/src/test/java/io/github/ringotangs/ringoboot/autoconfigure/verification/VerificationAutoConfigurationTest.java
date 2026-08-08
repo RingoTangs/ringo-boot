@@ -5,6 +5,7 @@ import static org.mockito.Mockito.mock;
 
 import io.github.ringotangs.ringoboot.verification.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.InMemoryVerificationStore;
+import io.github.ringotangs.ringoboot.verification.StoreResult;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.VerificationResult;

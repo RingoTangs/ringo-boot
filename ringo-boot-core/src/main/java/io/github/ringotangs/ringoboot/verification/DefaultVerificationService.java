@@ -94,8 +94,8 @@ public final class DefaultVerificationService implements VerificationService {
         }
         Instant issuedAt = clock.instant();
         return switch (store.store(key, code, policy, issuedAt)) {
-            case VerificationStore.StoreResult.Stored stored -> new IssueResult.Issued(code, stored.expiresAt());
-            case VerificationStore.StoreResult.Throttled throttled -> new IssueResult.Throttled(throttled.retryAfter());
+            case StoreResult.Stored stored -> new IssueResult.Issued(code, stored.expiresAt());
+            case StoreResult.Throttled throttled -> new IssueResult.Throttled(throttled.retryAfter());
         };
     }
 
