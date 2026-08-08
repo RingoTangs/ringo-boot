@@ -35,13 +35,12 @@ class VerificationAutoConfigurationTest {
     }
 
     @Test
-    void failsWhenEnabledWithoutStore() {
+    void configuresInMemoryStoreWhenEnabled() {
         contextRunner.withPropertyValues("ringo.boot.verification.enabled=true").run(context -> {
-            assertThat(context).hasFailed();
-            assertThat(context.getStartupFailure())
-                    .hasRootCauseMessage("Verification is enabled but no VerificationStore bean is available. "
-                            + "Provide a VerificationStore bean or set "
-                            + "ringo.boot.verification.in-memory-enabled=true");
+            assertThat(context).hasNotFailed();
+            assertThat(context).hasSingleBean(VerificationStore.class);
+            assertThat(context.getBean(VerificationStore.class)).isInstanceOf(InMemoryVerificationStore.class);
+            assertThat(context).hasSingleBean(VerificationService.class);
         });
     }
 
@@ -50,7 +49,6 @@ class VerificationAutoConfigurationTest {
         contextRunner
                 .withPropertyValues(
                         "ringo.boot.verification.enabled=true",
-                        "ringo.boot.verification.in-memory-enabled=true",
                         "ringo.boot.verification.length=8",
                         "ringo.boot.verification.ttl=10m",
                         "ringo.boot.verification.max-attempts=3",
@@ -87,6 +85,8 @@ class VerificationAutoConfigurationTest {
                     assertThat(context.getBean(CodeGenerator.class)).isSameAs(generator);
                     assertThat(context.getBean(VerificationPolicy.class)).isSameAs(policy);
                     assertThat(context.getBean(VerificationStore.class)).isSameAs(store);
+                    assertThat(context.getBeansOfType(InMemoryVerificationStore.class))
+                            .isEmpty();
                     assertThat(context).hasSingleBean(VerificationService.class);
                 });
     }
@@ -130,10 +130,7 @@ class VerificationAutoConfigurationTest {
             })
     void failsForInvalidPolicy(String property) {
         contextRunner
-                .withPropertyValues(
-                        "ringo.boot.verification.enabled=true",
-                        "ringo.boot.verification.in-memory-enabled=true",
-                        property)
+                .withPropertyValues("ringo.boot.verification.enabled=true", property)
                 .run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(context.getStartupFailure()).hasRootCauseInstanceOf(IllegalArgumentException.class);

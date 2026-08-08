@@ -9,14 +9,14 @@ ringo:
   boot:
     verification:
       enabled: true
-      in-memory-enabled: true
       length: 6
       ttl: 5m
       max-attempts: 5
       resend-interval: 60s
 ```
 
-生产应用应提供自己的 `VerificationStore` Bean，并保持 `in-memory-enabled=false`。
+启用验证码功能后，缺少自定义实现时默认使用 `InMemoryVerificationStore`。
+生产应用应提供自己的 `VerificationStore` Bean，以替换仅适用于本地开发和单实例应用的内存存储。
 `CodeGenerator`、`VerificationPolicy`、`VerificationStore` 和 `VerificationService` 均可通过自定义 Bean 覆盖。
 
 从仓库根目录启动示例：

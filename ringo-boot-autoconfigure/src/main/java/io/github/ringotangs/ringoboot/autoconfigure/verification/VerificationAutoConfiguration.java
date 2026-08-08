@@ -54,14 +54,13 @@ public class VerificationAutoConfiguration {
     }
 
     /**
-     * 显式启用内存存储且用户未提供存储时创建内存实现。
+     * 在用户未提供存储或自定义服务时创建内存实现。
      *
-     * <p>Creates the in-memory store when explicitly enabled and no user store is
+     * <p>Creates the in-memory store when neither a user store nor a custom service is
      * available.</p>
      */
     @Bean
-    @ConditionalOnMissingBean
-    @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "in-memory-enabled", havingValue = "true")
+    @ConditionalOnMissingBean({VerificationStore.class, VerificationService.class})
     VerificationStore inMemoryVerificationStore() {
         return new InMemoryVerificationStore();
     }
@@ -78,11 +77,6 @@ public class VerificationAutoConfiguration {
             CodeGenerator codeGenerator, ObjectProvider<VerificationStore> storeProvider, VerificationPolicy policy) {
         VerificationStore store = storeProvider.getIfUnique();
         if (store == null) {
-            long storeCount = storeProvider.stream().count();
-            if (storeCount == 0) {
-                throw new IllegalStateException("Verification is enabled but no VerificationStore bean is available. "
-                        + "Provide a VerificationStore bean or set ringo.boot.verification.in-memory-enabled=true");
-            }
             throw new IllegalStateException("Verification requires a unique VerificationStore bean. "
                     + "Mark one store as @Primary or provide a custom VerificationService");
         }

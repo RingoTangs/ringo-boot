@@ -17,9 +17,6 @@ public class VerificationProperties {
     /** 是否启用验证码自动配置。 / Whether verification auto-configuration is enabled. */
     private boolean enabled;
 
-    /** 是否注册仅适用于本地和单实例应用的内存存储。 / Whether to register the local, single-instance store. */
-    private boolean inMemoryEnabled;
-
     /** 默认验证码长度。 / Default verification code length. */
     private int length = 6;
 
@@ -38,14 +35,6 @@ public class VerificationProperties {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
-    }
-
-    public boolean isInMemoryEnabled() {
-        return inMemoryEnabled;
-    }
-
-    public void setInMemoryEnabled(boolean inMemoryEnabled) {
-        this.inMemoryEnabled = inMemoryEnabled;
     }
 
     public int getLength() {

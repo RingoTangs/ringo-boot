@@ -19,7 +19,6 @@ ringo:
       fallback-enabled: true
     verification:
       enabled: true
-      in-memory-enabled: true
       length: 6
       ttl: 5m
       max-attempts: 5
