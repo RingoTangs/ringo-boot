@@ -31,6 +31,22 @@ EmailCodeSender emailCodeSender(EmailClient emailClient) {
 }
 ```
 
+本地开发时也可以显式启用控制台 Sender：
+
+```yaml
+ringo:
+  boot:
+    verification:
+      email:
+        console-enabled: true
+      sms:
+        console-enabled: false
+```
+
+控制台 Sender 默认关闭。启用后会在警告日志中输出明文验证码，仅能用于本地开发，
+不得在生产环境启用。应用提供真实的 `EmailCodeSender` 或 `SmsCodeSender` Bean 时，
+对应的控制台实现会自动回退。
+
 切换到 Redis 时只需提供 Redis 版本的 `VerificationStore` Bean，验证服务和发送逻辑不需要修改。
 
 从仓库根目录启动示例：

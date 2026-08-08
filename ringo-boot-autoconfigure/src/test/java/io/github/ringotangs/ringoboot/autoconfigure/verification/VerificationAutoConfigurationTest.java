@@ -25,7 +25,10 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 class VerificationAutoConfigurationTest {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withConfiguration(AutoConfigurations.of(VerificationAutoConfiguration.class));
+            .withConfiguration(AutoConfigurations.of(
+                    VerificationAutoConfiguration.class,
+                    VerificationConsoleSenderAutoConfiguration.class,
+                    VerificationChannelAutoConfiguration.class));
 
     @Test
     void doesNotConfigureVerificationByDefault() {
@@ -34,6 +37,8 @@ class VerificationAutoConfigurationTest {
             assertThat(context).doesNotHaveBean(CodeGenerator.class);
             assertThat(context).doesNotHaveBean(VerificationPolicy.class);
             assertThat(context).doesNotHaveBean(VerificationStore.class);
+            assertThat(context).doesNotHaveBean(EmailCodeSender.class);
+            assertThat(context).doesNotHaveBean(SmsCodeSender.class);
         });
     }
 
@@ -69,6 +74,14 @@ class VerificationAutoConfigurationTest {
                     assertThat(policy.ttl()).isEqualTo(Duration.ofMinutes(10));
                     assertThat(policy.maxAttempts()).isEqualTo(3);
                     assertThat(policy.resendInterval()).isEqualTo(Duration.ofSeconds(30));
+                    assertThat(context.getBean(VerificationProperties.class)
+                                    .getEmail()
+                                    .isConsoleEnabled())
+                            .isFalse();
+                    assertThat(context.getBean(VerificationProperties.class)
+                                    .getSms()
+                                    .isConsoleEnabled())
+                            .isFalse();
                 });
     }
 
@@ -150,6 +163,76 @@ class VerificationAutoConfigurationTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(EmailVerificationService.class);
                     assertThat(context.getBean(EmailVerificationService.class)).isSameAs(service);
+                });
+    }
+
+    @Test
+    void configuresConsoleEmailSenderOnlyWhenExplicitlyEnabled() {
+        contextRunner
+                .withPropertyValues(
+                        "ringo.boot.verification.enabled=true", "ringo.boot.verification.email.console-enabled=true")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(EmailCodeSender.class);
+                    assertThat(context.getBean(EmailCodeSender.class)).isInstanceOf(ConsoleEmailCodeSender.class);
+                    assertThat(context).hasSingleBean(EmailVerificationService.class);
+                    assertThat(context).doesNotHaveBean(SmsCodeSender.class);
+                });
+    }
+
+    @Test
+    void configuresConsoleSmsSenderOnlyWhenExplicitlyEnabled() {
+        contextRunner
+                .withPropertyValues(
+                        "ringo.boot.verification.enabled=true", "ringo.boot.verification.sms.console-enabled=true")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(SmsCodeSender.class);
+                    assertThat(context.getBean(SmsCodeSender.class)).isInstanceOf(ConsoleSmsCodeSender.class);
+                    assertThat(context).hasSingleBean(SmsVerificationService.class);
+                    assertThat(context).doesNotHaveBean(EmailCodeSender.class);
+                });
+    }
+
+    @Test
+    void configuresBothConsoleSendersWhenExplicitlyEnabled() {
+        contextRunner
+                .withPropertyValues(
+                        "ringo.boot.verification.enabled=true",
+                        "ringo.boot.verification.email.console-enabled=true",
+                        "ringo.boot.verification.sms.console-enabled=true")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(EmailVerificationService.class);
+                    assertThat(context).hasSingleBean(SmsVerificationService.class);
+                });
+    }
+
+    @Test
+    void customSenderTakesPrecedenceOverConsoleSender() {
+        EmailCodeSender sender = delivery -> {};
+
+        contextRunner
+                .withPropertyValues(
+                        "ringo.boot.verification.enabled=true", "ringo.boot.verification.email.console-enabled=true")
+                .withBean(EmailCodeSender.class, () -> sender)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(EmailCodeSender.class);
+                    assertThat(context.getBean(EmailCodeSender.class)).isSameAs(sender);
+                });
+    }
+
+    @Test
+    void ignoresConsoleSettingsWhenVerificationIsDisabled() {
+        contextRunner
+                .withPropertyValues(
+                        "ringo.boot.verification.email.console-enabled=true",
+                        "ringo.boot.verification.sms.console-enabled=true")
+                .run(context -> {
+                    assertThat(context).doesNotHaveBean(EmailCodeSender.class);
+                    assertThat(context).doesNotHaveBean(SmsCodeSender.class);
+                    assertThat(context).doesNotHaveBean(VerificationService.class);
                 });
     }
 
