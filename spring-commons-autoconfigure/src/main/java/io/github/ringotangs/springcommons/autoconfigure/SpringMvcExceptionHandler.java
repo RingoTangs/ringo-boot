@@ -49,6 +49,7 @@ public class SpringMvcExceptionHandler extends ResponseEntityExceptionHandler {
         setMessageSource(messageSource);
     }
 
+    @Nullable
     @Override
     protected ResponseEntity<Object> handleExceptionInternal(
             Exception exception,
