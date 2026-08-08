@@ -4,7 +4,7 @@
 
 This is a Java 21 multi-module Maven project. The root `pom.xml` manages shared versions and builds three modules:
 
-- `ringo-boot-core/`: framework-neutral Problem Details abstractions under `src/main/java/io/github/ringotangs/ringoboot/problem`.
+- `ringo-boot-core/`: framework-neutral Problem Details and verification abstractions under `src/main/java/io/github/ringotangs/ringoboot`.
 - `ringo-boot-autoconfigure/`: Spring Boot configuration, Web exception handling, and optional localization live under `io.github.ringotangs.ringoboot.autoconfigure.problem`.
 - `ringo-boot-sample/`: a Spring Boot example under `src/main/java/io/github/ringotangs/ringoboot/sample`; runtime settings live in `src/main/resources/application.yaml`.
 
