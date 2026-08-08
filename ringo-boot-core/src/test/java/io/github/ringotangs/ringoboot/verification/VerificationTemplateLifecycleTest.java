@@ -19,7 +19,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
-class DefaultVerificationServiceTest {
+class VerificationTemplateLifecycleTest {
 
     private static final VerificationKey LOGIN = new VerificationKey("login", "user@example.com");
     private static final Instant START = Instant.parse("2026-01-01T00:00:00Z");
@@ -29,41 +29,31 @@ class DefaultVerificationServiceTest {
 
     @Test
     void issuesCodeWithDefaultPolicyAndRedactsToString() {
-        VerificationService service = service(length -> "123456");
+        TestTemplate service = service(length -> "123456");
 
-        IssueResult.Issued issued = assertInstanceOf(IssueResult.Issued.class, service.issue(LOGIN));
+        DeliveryResult.Delivered issued = assertInstanceOf(DeliveryResult.Delivered.class, service.issue(LOGIN));
 
-        assertEquals("123456", issued.code());
         assertEquals(START.plus(Duration.ofMinutes(5)), issued.expiresAt());
-        assertTrue(!issued.toString().contains("123456"));
+        assertEquals("123456", service.lastCode());
+        assertTrue(!issued.toString().contains(service.lastCode()));
     }
 
     @Test
     void throttlesReissueUntilIntervalElapsesAndThenReplacesCode() {
         AtomicInteger sequence = new AtomicInteger(111110);
-        VerificationService service = service(length -> Integer.toString(sequence.incrementAndGet()));
+        TestTemplate service = service(length -> Integer.toString(sequence.incrementAndGet()));
 
-        IssueResult.Issued first = assertInstanceOf(IssueResult.Issued.class, service.issue(LOGIN));
-        IssueResult.Throttled throttled = assertInstanceOf(IssueResult.Throttled.class, service.issue(LOGIN));
+        assertInstanceOf(DeliveryResult.Delivered.class, service.issue(LOGIN));
+        String firstCode = service.lastCode();
+        DeliveryResult.Throttled throttled = assertInstanceOf(DeliveryResult.Throttled.class, service.issue(LOGIN));
         assertEquals(Duration.ofSeconds(60), throttled.retryAfter());
 
         clock.advance(Duration.ofSeconds(60));
-        IssueResult.Issued second = assertInstanceOf(IssueResult.Issued.class, service.issue(LOGIN));
+        assertInstanceOf(DeliveryResult.Delivered.class, service.issue(LOGIN));
+        String secondCode = service.lastCode();
 
-        assertEquals(VerificationResult.MISMATCH, service.verify(LOGIN, first.code()));
-        assertEquals(VerificationResult.SUCCESS, service.verify(LOGIN, second.code()));
-    }
-
-    @Test
-    void invalidatingOldCodeDoesNotRemoveNewCode() {
-        AtomicInteger sequence = new AtomicInteger(111110);
-        VerificationService service = service(length -> Integer.toString(sequence.incrementAndGet()));
-        VerificationPolicy policy = new VerificationPolicy(6, Duration.ofMinutes(5), 5, Duration.ZERO);
-        IssueResult.Issued first = assertInstanceOf(IssueResult.Issued.class, service.issue(LOGIN, policy));
-        IssueResult.Issued second = assertInstanceOf(IssueResult.Issued.class, service.issue(LOGIN, policy));
-
-        assertTrue(!service.invalidate(LOGIN, first.code()));
-        assertEquals(VerificationResult.SUCCESS, service.verify(LOGIN, second.code()));
+        assertEquals(VerificationResult.MISMATCH, service.verify(LOGIN, firstCode));
+        assertEquals(VerificationResult.SUCCESS, service.verify(LOGIN, secondCode));
     }
 
     @Test
@@ -157,8 +147,26 @@ class DefaultVerificationServiceTest {
         assertThrows(IllegalStateException.class, () -> service(length -> "123").issue(LOGIN));
     }
 
-    private VerificationService service(CodeGenerator generator) {
-        return new DefaultVerificationService(generator, store, VerificationPolicy.defaults(), clock);
+    private TestTemplate service(CodeGenerator generator) {
+        return new TestTemplate(generator, store, VerificationPolicy.defaults(), clock);
+    }
+
+    private static final class TestTemplate extends VerificationTemplate {
+
+        private String lastCode;
+
+        private TestTemplate(CodeGenerator generator, VerificationStore store, VerificationPolicy policy, Clock clock) {
+            super(generator, store, policy, clock);
+        }
+
+        @Override
+        protected void dispatch(CodeDelivery delivery) {
+            lastCode = delivery.code();
+        }
+
+        private String lastCode() {
+            return lastCode;
+        }
     }
 
     private static final class MutableClock extends Clock {

@@ -17,18 +17,22 @@ ringo:
 
 启用验证码功能后，缺少自定义实现时默认使用 `InMemoryVerificationStore`。
 生产应用应提供自己的 `VerificationStore` Bean，以替换仅适用于本地开发和单实例应用的内存存储。
-`CodeGenerator`、`VerificationPolicy`、`VerificationStore` 和 `VerificationService` 均可通过自定义 Bean 覆盖。
+`CodeGenerator`、`VerificationPolicy` 和 `VerificationStore` 均可通过自定义 Bean 覆盖。
 
-`VerificationService` 负责生成、存储、校验和消费验证码。`VerificationTemplate` 是渠道流程的
-抽象模板，统一处理签发、限流、派发和派发失败补偿。邮件或短信渠道通过继承模板并实现
+`VerificationService` 只定义签发和校验的业务契约。`VerificationTemplate` 实现该契约，统一编排生成、
+存储、限流、派发、派发失败补偿和校验消费。邮件或短信渠道通过继承模板并实现
 `dispatch` 钩子完成具体派发：
 
 ```java
 final class EmailVerificationTemplate extends VerificationTemplate {
     private final EmailClient emailClient;
 
-    EmailVerificationTemplate(VerificationService service, EmailClient emailClient) {
-        super(service);
+    EmailVerificationTemplate(
+            CodeGenerator generator,
+            VerificationStore store,
+            VerificationPolicy policy,
+            EmailClient emailClient) {
+        super(generator, store, policy);
         this.emailClient = emailClient;
     }
 

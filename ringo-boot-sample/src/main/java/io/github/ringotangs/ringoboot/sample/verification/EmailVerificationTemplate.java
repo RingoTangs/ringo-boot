@@ -1,7 +1,9 @@
 package io.github.ringotangs.ringoboot.sample.verification;
 
 import io.github.ringotangs.ringoboot.verification.CodeDelivery;
-import io.github.ringotangs.ringoboot.verification.VerificationService;
+import io.github.ringotangs.ringoboot.verification.CodeGenerator;
+import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
+import io.github.ringotangs.ringoboot.verification.VerificationStore;
 import io.github.ringotangs.ringoboot.verification.VerificationTemplate;
 import org.springframework.stereotype.Component;
 
@@ -17,15 +19,21 @@ final class EmailVerificationTemplate extends VerificationTemplate {
     private final EmailCodeSender emailCodeSender;
 
     /**
-     * 使用验证码服务和邮件发送器创建模板。
+     * 使用验证码基础组件和邮件发送器创建模板。
      *
-     * <p>Creates the template with the verification service and email sender.</p>
+     * <p>Creates the template with the verification infrastructure and email sender.</p>
      *
-     * @param verificationService 验证码生命周期服务 / the verification lifecycle service
+     * @param codeGenerator 验证码生成器 / the code generator
+     * @param store 验证码状态存储 / the verification state store
+     * @param policy 默认验证码策略 / the default verification policy
      * @param emailCodeSender 邮件验证码发送器 / the email verification code sender
      */
-    EmailVerificationTemplate(VerificationService verificationService, EmailCodeSender emailCodeSender) {
-        super(verificationService);
+    EmailVerificationTemplate(
+            CodeGenerator codeGenerator,
+            VerificationStore store,
+            VerificationPolicy policy,
+            EmailCodeSender emailCodeSender) {
+        super(codeGenerator, store, policy);
         this.emailCodeSender = emailCodeSender;
     }
 

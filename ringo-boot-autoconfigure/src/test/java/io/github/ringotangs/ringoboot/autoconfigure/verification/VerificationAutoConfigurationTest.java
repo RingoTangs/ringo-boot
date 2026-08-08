@@ -1,7 +1,6 @@
 package io.github.ringotangs.ringoboot.autoconfigure.verification;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
 import io.github.ringotangs.ringoboot.verification.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.InMemoryVerificationStore;
@@ -31,7 +30,6 @@ class VerificationAutoConfigurationTest {
             assertThat(context).doesNotHaveBean(CodeGenerator.class);
             assertThat(context).doesNotHaveBean(VerificationPolicy.class);
             assertThat(context).doesNotHaveBean(VerificationStore.class);
-            assertThat(context).doesNotHaveBean(VerificationService.class);
         });
     }
 
@@ -41,7 +39,7 @@ class VerificationAutoConfigurationTest {
             assertThat(context).hasNotFailed();
             assertThat(context).hasSingleBean(VerificationStore.class);
             assertThat(context.getBean(VerificationStore.class)).isInstanceOf(InMemoryVerificationStore.class);
-            assertThat(context).hasSingleBean(VerificationService.class);
+            assertThat(context).doesNotHaveBean(VerificationService.class);
         });
     }
 
@@ -60,7 +58,7 @@ class VerificationAutoConfigurationTest {
                     assertThat(context).hasSingleBean(VerificationPolicy.class);
                     assertThat(context).hasSingleBean(VerificationStore.class);
                     assertThat(context.getBean(VerificationStore.class)).isInstanceOf(InMemoryVerificationStore.class);
-                    assertThat(context).hasSingleBean(VerificationService.class);
+                    assertThat(context).doesNotHaveBean(VerificationService.class);
 
                     VerificationPolicy policy = context.getBean(VerificationPolicy.class);
                     assertThat(policy.length()).isEqualTo(8);
@@ -88,36 +86,21 @@ class VerificationAutoConfigurationTest {
                     assertThat(context.getBean(VerificationStore.class)).isSameAs(store);
                     assertThat(context.getBeansOfType(InMemoryVerificationStore.class))
                             .isEmpty();
-                    assertThat(context).hasSingleBean(VerificationService.class);
+                    assertThat(context).doesNotHaveBean(VerificationService.class);
                 });
     }
 
     @Test
-    void backsOffForCustomServiceWithoutRequiringStore() {
-        VerificationService service = mock(VerificationService.class);
-
-        contextRunner
-                .withPropertyValues("ringo.boot.verification.enabled=true")
-                .withBean(VerificationService.class, () -> service)
-                .run(context -> {
-                    assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(VerificationService.class);
-                    assertThat(context.getBean(VerificationService.class)).isSameAs(service);
-                    assertThat(context).doesNotHaveBean(VerificationStore.class);
-                });
-    }
-
-    @Test
-    void failsWhenMultipleStoresHaveNoUniqueCandidate() {
+    void allowsMultipleCustomStoresWithoutSelectingOne() {
         contextRunner
                 .withPropertyValues("ringo.boot.verification.enabled=true")
                 .withBean("firstStore", VerificationStore.class, TestVerificationStore::new)
                 .withBean("secondStore", VerificationStore.class, TestVerificationStore::new)
                 .run(context -> {
-                    assertThat(context).hasFailed();
-                    assertThat(context.getStartupFailure())
-                            .hasRootCauseMessage("Verification requires a unique VerificationStore bean. "
-                                    + "Mark one store as @Primary or provide a custom VerificationService");
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).getBeans(VerificationStore.class).hasSize(2);
+                    assertThat(context.getBeansOfType(InMemoryVerificationStore.class))
+                            .isEmpty();
                 });
     }
 

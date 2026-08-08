@@ -15,22 +15,17 @@ class EmailVerificationService {
 
     private static final String PURPOSE = "email-verification";
 
-    private final EmailVerificationTemplate verificationTemplate;
     private final VerificationService verificationService;
     private final InMemoryEmailCodeSender testInbox;
 
-    EmailVerificationService(
-            EmailVerificationTemplate verificationTemplate,
-            VerificationService verificationService,
-            InMemoryEmailCodeSender testInbox) {
-        this.verificationTemplate = verificationTemplate;
+    EmailVerificationService(VerificationService verificationService, InMemoryEmailCodeSender testInbox) {
         this.verificationService = verificationService;
         this.testInbox = testInbox;
     }
 
     Instant issue(String email) {
         String normalizedEmail = normalize(email);
-        return switch (verificationTemplate.issue(key(normalizedEmail))) {
+        return switch (verificationService.issue(key(normalizedEmail))) {
             case DeliveryResult.Delivered delivered -> delivered.expiresAt();
             case DeliveryResult.Throttled throttled ->
                 throw ProblemException.withArguments(

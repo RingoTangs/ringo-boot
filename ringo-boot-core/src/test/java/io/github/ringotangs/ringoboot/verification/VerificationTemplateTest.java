@@ -30,7 +30,7 @@ class VerificationTemplateTest {
         assertEquals("123456", template.delivery().code());
         assertFalse(template.delivery().toString().contains("123456"));
         assertFalse(delivered.toString().contains("123456"));
-        assertEquals(VerificationResult.SUCCESS, template.service().verify(LOGIN, "123456"));
+        assertEquals(VerificationResult.SUCCESS, template.verify(LOGIN, "123456"));
     }
 
     @Test
@@ -79,13 +79,13 @@ class VerificationTemplateTest {
     @Test
     void preservesDispatchFailureAndSuppressesInvalidationFailure() {
         IllegalStateException invalidationFailure = new IllegalStateException("cleanup unavailable");
-        VerificationService service = new StubVerificationService() {
+        VerificationStore store = new StubVerificationStore() {
             @Override
             public boolean invalidate(VerificationKey key, String code) {
                 throw invalidationFailure;
             }
         };
-        CapturingTemplate template = new CapturingTemplate(service);
+        CapturingTemplate template = template(length -> "123456", store);
         IllegalArgumentException dispatchFailure = new IllegalArgumentException("delivery unavailable");
         template.failWith(dispatchFailure);
 
@@ -100,27 +100,30 @@ class VerificationTemplateTest {
     void validatesRequiredTemplateArgumentsBeforeIssuance() {
         CapturingTemplate template = template(length -> "123456", new InMemoryVerificationStore());
 
-        assertThrows(NullPointerException.class, () -> new CapturingTemplate(null));
+        assertThrows(
+                NullPointerException.class,
+                () -> new CapturingTemplate(
+                        null,
+                        new InMemoryVerificationStore(),
+                        VerificationPolicy.defaults(),
+                        Clock.fixed(NOW, ZoneOffset.UTC)));
         assertThrows(NullPointerException.class, () -> template.issue(null));
         assertThrows(NullPointerException.class, () -> template.issue(LOGIN, null));
     }
 
     private CapturingTemplate template(CodeGenerator generator, VerificationStore store) {
-        VerificationService service = new DefaultVerificationService(
-                generator, store, VerificationPolicy.defaults(), Clock.fixed(NOW, ZoneOffset.UTC));
-        return new CapturingTemplate(service);
+        return new CapturingTemplate(generator, store, VerificationPolicy.defaults(), Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     private static final class CapturingTemplate extends VerificationTemplate {
 
-        private final VerificationService service;
         private final AtomicReference<CodeDelivery> delivery = new AtomicReference<>();
         private final AtomicInteger dispatches = new AtomicInteger();
         private RuntimeException failure;
 
-        private CapturingTemplate(VerificationService service) {
-            super(service);
-            this.service = service;
+        private CapturingTemplate(
+                CodeGenerator generator, VerificationStore store, VerificationPolicy policy, Clock clock) {
+            super(generator, store, policy, clock);
         }
 
         @Override
@@ -130,10 +133,6 @@ class VerificationTemplateTest {
                 throw failure;
             }
             this.delivery.set(delivery);
-        }
-
-        private VerificationService service() {
-            return service;
         }
 
         private CodeDelivery delivery() {
@@ -149,20 +148,15 @@ class VerificationTemplateTest {
         }
     }
 
-    private static class StubVerificationService implements VerificationService {
+    private static class StubVerificationStore implements VerificationStore {
 
         @Override
-        public IssueResult issue(VerificationKey key) {
-            return new IssueResult.Issued("123456", NOW.plusSeconds(60));
+        public StoreResult store(VerificationKey key, String code, VerificationPolicy policy, Instant issuedAt) {
+            return new StoreResult.Stored(NOW.plusSeconds(60));
         }
 
         @Override
-        public IssueResult issue(VerificationKey key, VerificationPolicy policy) {
-            return issue(key);
-        }
-
-        @Override
-        public VerificationResult verify(VerificationKey key, String code) {
+        public VerificationResult verifyAndConsume(VerificationKey key, String code, Instant verifiedAt) {
             return VerificationResult.NOT_FOUND;
         }
 
