@@ -7,12 +7,26 @@ import org.springframework.http.HttpStatus;
 
 /** 验证码技术异常使用的稳定 Problem Type。 / Stable Problem Types for verification technical failures. */
 enum VerificationProblemType implements ProblemType {
+    THROTTLED(
+            ProblemTypeUri.of("business", "verification", "throttled"),
+            "throttled",
+            "Too many verification code requests",
+            "Please retry after {0} seconds",
+            HttpStatus.TOO_MANY_REQUESTS),
+    INVALID_CODE(
+            ProblemTypeUri.of("business", "verification", "invalid-code"),
+            "invalid-code",
+            "Invalid verification code",
+            "The verification code is invalid",
+            HttpStatus.BAD_REQUEST),
     GENERATION_FAILED(
+            ProblemTypeUri.of("verification", "generation-failed"),
             "generation-failed",
             "Verification code generation failed",
             "The verification service encountered an internal error",
             HttpStatus.INTERNAL_SERVER_ERROR),
     SERVICE_UNAVAILABLE(
+            ProblemTypeUri.of("verification", "service-unavailable"),
             "service-unavailable",
             "Verification service unavailable",
             "The verification service is temporarily unavailable",
@@ -20,13 +34,9 @@ enum VerificationProblemType implements ProblemType {
 
     private final ProblemDefinition definition;
 
-    VerificationProblemType(String category, String title, String defaultDetail, HttpStatus status) {
-        this.definition = ProblemDefinition.of(
-                ProblemTypeUri.of("verification", category),
-                "problem.verification." + category,
-                title,
-                defaultDetail,
-                status.value());
+    VerificationProblemType(java.net.URI type, String category, String title, String defaultDetail, HttpStatus status) {
+        this.definition =
+                ProblemDefinition.of(type, "problem.verification." + category, title, defaultDetail, status.value());
     }
 
     /** {@inheritDoc} */

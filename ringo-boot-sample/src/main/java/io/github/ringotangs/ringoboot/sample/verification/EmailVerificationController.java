@@ -46,6 +46,11 @@ public class EmailVerificationController {
      *
      * <p>Verifies and consumes an email verification code.</p>
      *
+     * @apiNote 此端点只用于演示验证码机制。生产应用应在登录、绑定或找回密码等业务用例中校验验证码，并在
+     *     成功后立即完成目标操作。 / This endpoint demonstrates the verification mechanism only.
+     *     Production applications should verify the code inside a login, binding, or recovery use
+     *     case and immediately complete the target operation after success.
+     *
      * @param request 校验请求 / the verification request
      */
     @PostMapping("/verify")

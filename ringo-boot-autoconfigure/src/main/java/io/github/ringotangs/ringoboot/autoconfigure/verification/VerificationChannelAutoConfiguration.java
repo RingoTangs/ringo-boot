@@ -1,9 +1,11 @@
 package io.github.ringotangs.ringoboot.autoconfigure.verification;
 
 import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
+import io.github.ringotangs.ringoboot.verification.email.EmailVerificationFacade;
 import io.github.ringotangs.ringoboot.verification.email.EmailVerificationService;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.sms.SmsCodeSender;
+import io.github.ringotangs.ringoboot.verification.sms.SmsVerificationFacade;
 import io.github.ringotangs.ringoboot.verification.sms.SmsVerificationService;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -52,6 +54,21 @@ public class VerificationChannelAutoConfiguration {
     }
 
     /**
+     * 在邮件验证服务可用时创建应用层 Facade。
+     *
+     * <p>Creates the application-level facade when the email verification service is available.</p>
+     *
+     * @param verificationService 邮件验证码服务 / the email verification service
+     * @return 邮件验证码 Facade / the email verification facade
+     */
+    @Bean
+    @ConditionalOnBean(EmailVerificationService.class)
+    @ConditionalOnMissingBean(EmailVerificationFacade.class)
+    EmailVerificationFacade emailVerificationFacade(EmailVerificationService verificationService) {
+        return new EmailVerificationFacade(verificationService);
+    }
+
+    /**
      * 在短信发送器可用时创建短信验证服务。
      *
      * <p>Creates the SMS verification service when an SMS sender is available.</p>
@@ -71,5 +88,20 @@ public class VerificationChannelAutoConfiguration {
             VerificationProperties properties,
             SmsCodeSender sender) {
         return new SmsVerificationService(codeGenerator, store, properties.toPolicy(), sender);
+    }
+
+    /**
+     * 在短信验证服务可用时创建应用层 Facade。
+     *
+     * <p>Creates the application-level facade when the SMS verification service is available.</p>
+     *
+     * @param verificationService 短信验证码服务 / the SMS verification service
+     * @return 短信验证码 Facade / the SMS verification facade
+     */
+    @Bean
+    @ConditionalOnBean(SmsVerificationService.class)
+    @ConditionalOnMissingBean(SmsVerificationFacade.class)
+    SmsVerificationFacade smsVerificationFacade(SmsVerificationService verificationService) {
+        return new SmsVerificationFacade(verificationService);
     }
 }

@@ -11,11 +11,13 @@ import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.VerificationResult;
 import io.github.ringotangs.ringoboot.verification.VerificationService;
 import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
+import io.github.ringotangs.ringoboot.verification.email.EmailVerificationFacade;
 import io.github.ringotangs.ringoboot.verification.email.EmailVerificationService;
 import io.github.ringotangs.ringoboot.verification.email.StdoutEmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSender;
 import io.github.ringotangs.ringoboot.verification.sms.SmsCodeSender;
+import io.github.ringotangs.ringoboot.verification.sms.SmsVerificationFacade;
 import io.github.ringotangs.ringoboot.verification.sms.SmsVerificationService;
 import io.github.ringotangs.ringoboot.verification.sms.StdoutSmsCodeSender;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
@@ -113,7 +115,23 @@ class VerificationAutoConfigurationTest {
             assertThat(context).getBeans(CodeSender.class).hasSize(2);
             assertThat(context).hasSingleBean(EmailVerificationService.class);
             assertThat(context).hasSingleBean(SmsVerificationService.class);
+            assertThat(context).hasSingleBean(EmailVerificationFacade.class);
+            assertThat(context).hasSingleBean(SmsVerificationFacade.class);
         });
+    }
+
+    @Test
+    void customEmailVerificationFacadeOverridesDefault() {
+        EmailVerificationFacade facade = mock(EmailVerificationFacade.class);
+
+        contextRunner
+                .withPropertyValues("ringo.boot.verification.enabled=true")
+                .withBean(EmailVerificationFacade.class, () -> facade)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context.getBean(EmailVerificationFacade.class)).isSameAs(facade);
+                    assertThat(context).hasSingleBean(SmsVerificationFacade.class);
+                });
     }
 
     @Test

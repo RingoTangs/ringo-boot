@@ -3,10 +3,13 @@ package io.github.ringotangs.ringoboot.autoconfigure.problem;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
+import io.github.ringotangs.ringoboot.verification.VerificationThrottledException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
 import java.net.URI;
+import java.time.Duration;
 import java.util.Locale;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -100,6 +103,45 @@ class VerificationExceptionHandlerTest {
 
         assertEquals("自定义验证码生成失败", problem.getTitle());
         assertEquals("验证码服务发生内部错误", problem.getDetail());
+    }
+
+    @Test
+    void mapsExpectedBusinessFailuresWithoutErrorLogging(CapturedOutput output) {
+        VerificationExceptionHandler handler = createDefaultHandler();
+
+        ProblemDetail throttled =
+                handler.handleVerificationThrottled(new VerificationThrottledException(Duration.ofMillis(1201)));
+        ProblemDetail invalid = handler.handleInvalidVerificationCode(new InvalidVerificationCodeException());
+
+        assertProblem(
+                throttled,
+                429,
+                "urn:problem:business:verification:throttled",
+                "Too many verification code requests",
+                "Please retry after 2 seconds");
+        assertProblem(
+                invalid,
+                400,
+                "urn:problem:business:verification:invalid-code",
+                "Invalid verification code",
+                "The verification code is invalid");
+        assertThat(output).doesNotContain("Verification operation failed");
+    }
+
+    @Test
+    void localizesExpectedBusinessFailures() {
+        LocaleContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
+        VerificationExceptionHandler handler =
+                new VerificationExceptionHandler(new MessageSourceProblemMessageResolver(new StaticMessageSource()));
+
+        ProblemDetail throttled =
+                handler.handleVerificationThrottled(new VerificationThrottledException(Duration.ofSeconds(3)));
+        ProblemDetail invalid = handler.handleInvalidVerificationCode(new InvalidVerificationCodeException());
+
+        assertEquals("验证码请求过于频繁", throttled.getTitle());
+        assertEquals("请在 3 秒后重试", throttled.getDetail());
+        assertEquals("验证码无效", invalid.getTitle());
+        assertEquals("验证码无效", invalid.getDetail());
     }
 
     private VerificationExceptionHandler createDefaultHandler() {
