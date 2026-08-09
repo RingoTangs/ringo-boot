@@ -1,6 +1,6 @@
 package io.github.ringotangs.ringoboot.verification.sms;
 
-import io.github.ringotangs.ringoboot.verification.CodeDelivery;
+import io.github.ringotangs.ringoboot.verification.CodeSender;
 
 /**
  * 通过短信渠道派发验证码。
@@ -11,15 +11,4 @@ import io.github.ringotangs.ringoboot.verification.CodeDelivery;
  *     retain plaintext codes beyond delivery.
  */
 @FunctionalInterface
-public interface SmsCodeSender {
-
-    /**
-     * 将验证码派发到交付键中指定的手机号。
-     *
-     * <p>Dispatches a verification code to the phone number identified by the delivery
-     * key.</p>
-     *
-     * @param delivery 验证码交付内容 / the verification code delivery
-     */
-    void send(CodeDelivery delivery);
-}
+public interface SmsCodeSender extends CodeSender {}

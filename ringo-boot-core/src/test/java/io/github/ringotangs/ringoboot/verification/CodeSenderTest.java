@@ -1,0 +1,30 @@
+package io.github.ringotangs.ringoboot.verification;
+
+import static org.junit.jupiter.api.Assertions.assertSame;
+
+import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
+import io.github.ringotangs.ringoboot.verification.sms.SmsCodeSender;
+import java.time.Instant;
+import java.util.concurrent.atomic.AtomicReference;
+import org.junit.jupiter.api.Test;
+
+class CodeSenderTest {
+
+    @Test
+    void channelSendersAreUsableThroughCommonContract() {
+        AtomicReference<CodeDelivery> emailDelivery = new AtomicReference<>();
+        AtomicReference<CodeDelivery> smsDelivery = new AtomicReference<>();
+        EmailCodeSender emailSender = emailDelivery::set;
+        SmsCodeSender smsSender = smsDelivery::set;
+        CodeDelivery delivery = new CodeDelivery(
+                new VerificationKey("login", "user@example.com"), "123456", Instant.parse("2026-01-01T00:05:00Z"));
+
+        CodeSender commonEmailSender = emailSender;
+        CodeSender commonSmsSender = smsSender;
+        commonEmailSender.send(delivery);
+        commonSmsSender.send(delivery);
+
+        assertSame(delivery, emailDelivery.get());
+        assertSame(delivery, smsDelivery.get());
+    }
+}

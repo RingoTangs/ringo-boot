@@ -1,6 +1,6 @@
 package io.github.ringotangs.ringoboot.verification.email;
 
-import io.github.ringotangs.ringoboot.verification.CodeDelivery;
+import io.github.ringotangs.ringoboot.verification.CodeSender;
 
 /**
  * 通过邮件渠道派发验证码。
@@ -11,15 +11,4 @@ import io.github.ringotangs.ringoboot.verification.CodeDelivery;
  *     retain plaintext codes beyond delivery.
  */
 @FunctionalInterface
-public interface EmailCodeSender {
-
-    /**
-     * 将验证码派发到交付键中指定的邮箱。
-     *
-     * <p>Dispatches a verification code to the email address identified by the
-     * delivery key.</p>
-     *
-     * @param delivery 验证码交付内容 / the verification code delivery
-     */
-    void send(CodeDelivery delivery);
-}
+public interface EmailCodeSender extends CodeSender {}

@@ -3,6 +3,7 @@ package io.github.ringotangs.ringoboot.autoconfigure.verification;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.ringotangs.ringoboot.verification.CodeGenerator;
+import io.github.ringotangs.ringoboot.verification.CodeSender;
 import io.github.ringotangs.ringoboot.verification.InMemoryVerificationStore;
 import io.github.ringotangs.ringoboot.verification.StoreResult;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
@@ -50,6 +51,7 @@ class VerificationAutoConfigurationTest {
             assertThat(context.getBean(VerificationStore.class)).isInstanceOf(InMemoryVerificationStore.class);
             assertThat(context.getBean(EmailCodeSender.class)).isInstanceOf(StdoutEmailCodeSender.class);
             assertThat(context.getBean(SmsCodeSender.class)).isInstanceOf(StdoutSmsCodeSender.class);
+            assertThat(context).getBeans(CodeSender.class).hasSize(2);
             assertThat(context).hasSingleBean(EmailVerificationService.class);
             assertThat(context).hasSingleBean(SmsVerificationService.class);
         });
