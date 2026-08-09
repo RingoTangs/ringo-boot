@@ -38,6 +38,14 @@ public class ProblemProperties {
     private boolean mvcEnabled = false;
 
     /**
+     * 是否启用验证码技术异常处理；仅在总开关和验证码功能均开启后生效。
+     *
+     * <p>Whether to enable verification technical exception handling; effective only
+     * when both the main switch and verification feature are enabled.</p>
+     */
+    private boolean verificationEnabled = false;
+
+    /**
      * 是否使用 Spring MessageSource 解析业务异常和兜底异常的标题与详情；
      * Spring MVC 内置异常始终使用 Spring 原生的消息解析机制。
      *
@@ -77,6 +85,14 @@ public class ProblemProperties {
 
     public void setMvcEnabled(boolean mvcEnabled) {
         this.mvcEnabled = mvcEnabled;
+    }
+
+    public boolean isVerificationEnabled() {
+        return verificationEnabled;
+    }
+
+    public void setVerificationEnabled(boolean verificationEnabled) {
+        this.verificationEnabled = verificationEnabled;
     }
 
     public boolean isI18nEnabled() {

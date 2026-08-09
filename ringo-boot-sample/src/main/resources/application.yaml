@@ -15,6 +15,7 @@ ringo:
       enabled: true
       application-enabled: true
       mvc-enabled: true
+      verification-enabled: true
       i18n-enabled: true
       fallback-enabled: true
     verification:

@@ -18,16 +18,17 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
  * 自动配置 Ringo Boot Problem Details 异常处理体系。
  *
  * <p>{@code enabled} 是整个自动配置的总开关；总开关开启后，
- * {@code application-enabled}、{@code mvc-enabled} 和 {@code fallback-enabled} 分别控制
- * 业务问题异常、Spring MVC 内置异常与未知异常处理。{@code i18n-enabled} 不会单独
+ * {@code application-enabled}、{@code mvc-enabled}、{@code verification-enabled} 和
+ * {@code fallback-enabled} 分别控制业务问题异常、Spring MVC 内置异常、验证码技术异常与未知异常处理。{@code i18n-enabled} 不会单独
  * 启用处理器，只决定业务问题与兜底处理器是否通过 Spring
  * {@code MessageSource} 解析错误文案。Spring MVC 响应继续使用 Spring 原生消息解析。</p>
  *
  * <p>Auto-configures the Ringo Boot Problem Details exception-handling system.
  * {@code enabled} is the master switch. Once it is enabled,
- * {@code application-enabled}, {@code mvc-enabled}, and {@code fallback-enabled}
- * independently control problem exceptions, built-in Spring MVC exceptions, and
- * fallback handling. {@code i18n-enabled} does not enable a handler by itself; it
+ * {@code application-enabled}, {@code mvc-enabled}, {@code verification-enabled}, and
+ * {@code fallback-enabled} independently control problem exceptions, built-in Spring
+ * MVC exceptions, verification technical exceptions, and fallback handling.
+ * {@code i18n-enabled} does not enable a handler by itself; it
  * selects MessageSource-based message resolution for problem and fallback handlers.
  * Spring MVC responses continue to use Spring's native message resolution.</p>
  */
@@ -100,14 +101,14 @@ public class ProblemAutoConfiguration {
     }
 
     /**
-     * 在验证码功能和应用或兜底异常处理开启时装配验证码技术异常处理器。
+     * 在验证码功能和验证码异常处理开关均开启时装配验证码技术异常处理器。
      *
-     * <p>Configures verification technical exception handling when verification and either
-     * application or fallback exception handling are enabled.</p>
+     * <p>Configures verification technical exception handling when both verification and
+     * verification exception handling are enabled.</p>
      */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(VerificationException.class)
-    @Conditional(AnyHandlerEnabledCondition.class)
+    @ConditionalOnProperty(prefix = ProblemProperties.PREFIX, name = "verification-enabled", havingValue = "true")
     @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "enabled", havingValue = "true")
     static class VerificationConfiguration {
 
@@ -128,7 +129,7 @@ public class ProblemAutoConfiguration {
      * 只有至少一个处理器开启时才需要该解析器。
      *
      * <p>Configures the message resolver shared by application, verification, and fallback handlers.
-     * The resolver is needed only when application or fallback handling is enabled.</p>
+     * The resolver is needed only when application, verification, or fallback handling is enabled.</p>
      */
     @Configuration(proxyBeanMethods = false)
     @Conditional(AnyHandlerEnabledCondition.class)
@@ -151,12 +152,12 @@ public class ProblemAutoConfiguration {
     }
 
     /**
-     * 当 Application 或 Fallback 任意一个功能开启时匹配。
+     * 当 Application、Verification 或 Fallback 任意一个功能开启时匹配。
      *
      * <p>该条件表达的是逻辑 OR：</p>
-     * <pre>{@code application-enabled || fallback-enabled}</pre>
+     * <pre>{@code application-enabled || verification-enabled || fallback-enabled}</pre>
      *
-     * <p>Matches when either application problem handling or fallback handling is enabled.</p>
+     * <p>Matches when application, verification, or fallback handling is enabled.</p>
      */
     static final class AnyHandlerEnabledCondition extends AnyNestedCondition {
 
@@ -177,6 +178,14 @@ public class ProblemAutoConfiguration {
          */
         @ConditionalOnProperty(prefix = ProblemProperties.PREFIX, name = "application-enabled", havingValue = "true")
         static class ApplicationEnabled {}
+
+        /**
+         * 仅描述 Verification 功能开关条件，不会注册 Bean。
+         *
+         * <p>Describes the verification exception-handler condition without registering a bean.</p>
+         */
+        @ConditionalOnProperty(prefix = ProblemProperties.PREFIX, name = "verification-enabled", havingValue = "true")
+        static class VerificationEnabled {}
 
         /**
          * 仅描述 Fallback 功能开关条件，不会注册 Bean。
