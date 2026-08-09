@@ -1,13 +1,13 @@
 package io.github.ringotangs.ringoboot.verification.sender;
 
-import java.util.Objects;
+import io.github.ringotangs.ringoboot.verification.VerificationException;
 
 /**
  * 表示验证码渠道派发操作失败。
  *
  * <p>Indicates a verification code channel delivery failure.</p>
  */
-public class CodeSenderException extends RuntimeException {
+public class CodeSenderException extends VerificationException {
 
     /**
      * 使用非空诊断消息创建异常。
@@ -18,7 +18,7 @@ public class CodeSenderException extends RuntimeException {
      * @throws NullPointerException 当消息为 {@code null} 时 / if the message is {@code null}
      */
     public CodeSenderException(String message) {
-        super(Objects.requireNonNull(message, "message must not be null"));
+        super(message);
     }
 
     /**
@@ -31,8 +31,6 @@ public class CodeSenderException extends RuntimeException {
      * @throws NullPointerException 当消息或原始异常为 {@code null} 时 / if the message or cause is {@code null}
      */
     public CodeSenderException(String message, Throwable cause) {
-        super(
-                Objects.requireNonNull(message, "message must not be null"),
-                Objects.requireNonNull(cause, "cause must not be null"));
+        super(message, cause);
     }
 }

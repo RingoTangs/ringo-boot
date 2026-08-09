@@ -1,9 +1,11 @@
 package io.github.ringotangs.ringoboot.verification.generator;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import io.github.ringotangs.ringoboot.verification.VerificationException;
 import org.junit.jupiter.api.Test;
 
 class CodeGenerationExceptionTest {
@@ -17,6 +19,8 @@ class CodeGenerationExceptionTest {
 
         assertEquals("generation unavailable", withMessage.getMessage());
         assertEquals("generation unavailable", withCause.getMessage());
+        assertInstanceOf(VerificationException.class, withMessage);
+        assertInstanceOf(VerificationException.class, withCause);
         assertSame(cause, withCause.getCause());
     }
 

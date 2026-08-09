@@ -1,9 +1,11 @@
 package io.github.ringotangs.ringoboot.verification.sender;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import io.github.ringotangs.ringoboot.verification.VerificationException;
 import org.junit.jupiter.api.Test;
 
 class CodeSenderExceptionTest {
@@ -17,6 +19,8 @@ class CodeSenderExceptionTest {
 
         assertEquals("delivery unavailable", withMessage.getMessage());
         assertEquals("delivery unavailable", withCause.getMessage());
+        assertInstanceOf(VerificationException.class, withMessage);
+        assertInstanceOf(VerificationException.class, withCause);
         assertSame(cause, withCause.getCause());
     }
 
