@@ -1,6 +1,7 @@
 package io.github.ringotangs.ringoboot.verification;
 
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.sms.SmsCodeSender;
@@ -26,5 +27,19 @@ class CodeSenderTest {
 
         assertSame(delivery, emailDelivery.get());
         assertSame(delivery, smsDelivery.get());
+    }
+
+    @Test
+    void propagatesSenderFailureThroughCommonContract() {
+        CodeSenderException failure = new CodeSenderException("delivery unavailable");
+        CodeSender sender = delivery -> {
+            throw failure;
+        };
+        CodeDelivery delivery = new CodeDelivery(
+                new VerificationKey("login", "user@example.com"), "123456", Instant.parse("2026-01-01T00:05:00Z"));
+
+        CodeSenderException thrown = assertThrows(CodeSenderException.class, () -> sender.send(delivery));
+
+        assertSame(failure, thrown);
     }
 }

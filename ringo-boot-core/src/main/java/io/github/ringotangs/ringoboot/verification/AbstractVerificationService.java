@@ -73,14 +73,14 @@ public abstract class AbstractVerificationService implements VerificationService
 
     /** {@inheritDoc} */
     @Override
-    public final DeliveryResult issue(VerificationKey key) throws VerificationStoreException {
+    public final DeliveryResult issue(VerificationKey key) throws CodeSenderException, VerificationStoreException {
         return issue(key, defaultPolicy);
     }
 
     /** {@inheritDoc} */
     @Override
     public final DeliveryResult issue(VerificationKey key, VerificationPolicy policy)
-            throws VerificationStoreException {
+            throws CodeSenderException, VerificationStoreException {
         Objects.requireNonNull(key, "key must not be null");
         Objects.requireNonNull(policy, "policy must not be null");
         String code =
@@ -110,8 +110,9 @@ public abstract class AbstractVerificationService implements VerificationService
      * channel.</p>
      *
      * @param delivery 验证码交付内容 / the verification code delivery
+     * @throws CodeSenderException 当渠道派发操作失败时 / if the channel delivery operation fails
      */
-    protected abstract void dispatch(CodeDelivery delivery);
+    protected abstract void dispatch(CodeDelivery delivery) throws CodeSenderException;
 
     private DeliveryResult dispatchStored(VerificationKey key, String code, Instant expiresAt) {
         try {

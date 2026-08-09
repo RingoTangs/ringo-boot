@@ -3,6 +3,7 @@ package io.github.ringotangs.ringoboot.verification.sms;
 import io.github.ringotangs.ringoboot.verification.AbstractVerificationService;
 import io.github.ringotangs.ringoboot.verification.CodeDelivery;
 import io.github.ringotangs.ringoboot.verification.CodeGenerator;
+import io.github.ringotangs.ringoboot.verification.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.VerificationStore;
 import java.time.Clock;
@@ -77,9 +78,10 @@ public final class SmsVerificationService extends AbstractVerificationService {
      * <p>Delegates the verification code delivery to the SMS sender.</p>
      *
      * @param delivery 验证码交付内容 / the verification code delivery
+     * @throws CodeSenderException 当短信派发失败时 / if SMS delivery fails
      */
     @Override
-    protected void dispatch(CodeDelivery delivery) {
+    protected void dispatch(CodeDelivery delivery) throws CodeSenderException {
         sender.send(delivery);
     }
 }

@@ -65,10 +65,10 @@ class AbstractVerificationServiceTest {
     @Test
     void invalidatesCodeWhenDispatchFailsAndAllowsImmediateRetry() {
         CapturingVerificationService template = template(length -> "123456", new InMemoryVerificationStore());
-        IllegalStateException failure = new IllegalStateException("provider unavailable");
+        CodeSenderException failure = new CodeSenderException("provider unavailable");
         template.failWith(failure);
 
-        IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> template.issue(LOGIN));
+        CodeSenderException thrown = assertThrows(CodeSenderException.class, () -> template.issue(LOGIN));
         template.failWith(null);
         DeliveryResult result = template.issue(LOGIN);
 
@@ -86,10 +86,10 @@ class AbstractVerificationServiceTest {
             }
         };
         CapturingVerificationService template = template(length -> "123456", store);
-        IllegalArgumentException dispatchFailure = new IllegalArgumentException("delivery unavailable");
+        CodeSenderException dispatchFailure = new CodeSenderException("delivery unavailable");
         template.failWith(dispatchFailure);
 
-        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> template.issue(LOGIN));
+        CodeSenderException thrown = assertThrows(CodeSenderException.class, () -> template.issue(LOGIN));
 
         assertSame(dispatchFailure, thrown);
         assertEquals(1, thrown.getSuppressed().length);
