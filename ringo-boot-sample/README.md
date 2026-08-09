@@ -33,6 +33,24 @@ EmailCodeSender emailCodeSender(EmailClient emailClient) {
 }
 ```
 
+## Redis 验证码存储 / Redis verification storage
+
+生产环境可以在应用中引入 `spring-boot-starter-data-redis`，并显式选择 Redis Store：
+
+```yaml
+ringo:
+  boot:
+    verification:
+      enabled: true
+      store: redis
+      redis:
+        secret: ${VERIFICATION_HMAC_SECRET}
+        expired-retention: 1m
+```
+
+`VERIFICATION_HMAC_SECRET` 必须是 Base64 编码且解码后至少 32 字节的共享密钥，所有应用实例必须使用相同值。
+Redis 中只保存验证码及验证键的 HMAC 摘要，不保存验证码、邮箱或手机号明文。
+
 Stdout Sender 会输出明文验证码，仅能用于本地开发。应用提供真实的 `EmailCodeSender`
 或 `SmsCodeSender` Bean 时，对应的默认实现会自动回退。
 

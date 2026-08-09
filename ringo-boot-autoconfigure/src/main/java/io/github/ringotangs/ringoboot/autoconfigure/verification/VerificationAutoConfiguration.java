@@ -44,8 +44,27 @@ public class VerificationAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean(VerificationStore.class)
+    @ConditionalOnProperty(
+            prefix = VerificationProperties.PREFIX,
+            name = "store",
+            havingValue = "memory",
+            matchIfMissing = true)
     VerificationStore inMemoryVerificationStore() {
         return new InMemoryVerificationStore();
+    }
+
+    /**
+     * 当显式选择 Redis 但没有可用实现时快速失败。
+     *
+     * <p>Fails fast when Redis is explicitly selected but no usable implementation is
+     * available.</p>
+     */
+    @Bean
+    @ConditionalOnMissingBean(VerificationStore.class)
+    @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "store", havingValue = "redis")
+    VerificationStore missingRedisVerificationStore() {
+        throw new IllegalStateException(
+                "Redis verification storage requires Spring Data Redis, a StringRedisTemplate, and a valid secret");
     }
 
     /**

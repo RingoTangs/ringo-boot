@@ -1,0 +1,90 @@
+package io.github.ringotangs.ringoboot.autoconfigure.verification.redis;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import io.github.ringotangs.ringoboot.verification.VerificationKey;
+import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
+import io.github.ringotangs.ringoboot.verification.VerificationResult;
+import io.github.ringotangs.ringoboot.verification.store.StoreResult;
+import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.RedisScript;
+
+class RedisVerificationStoreTest {
+
+    private static final VerificationKey KEY = new VerificationKey("account", "email-verification", "user@example.com");
+    private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
+
+    @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    void mapsStoreAndVerificationScriptResults() {
+        StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
+        when(redisTemplate.execute(any(RedisScript.class), anyList(), any(Object[].class)))
+                .thenReturn(List.of(0L, NOW.plusSeconds(300).toEpochMilli()), 2L);
+        RedisVerificationStore store = store(redisTemplate);
+
+        StoreResult.Stored stored = (StoreResult.Stored) store.store(KEY, "123456", VerificationPolicy.defaults(), NOW);
+
+        assertThat(stored.expiresAt()).isEqualTo(NOW.plusSeconds(300));
+        assertThat(store.verifyAndConsume(KEY, "123456", NOW.plusSeconds(1))).isEqualTo(VerificationResult.SUCCESS);
+    }
+
+    @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    void wrapsSpringDataFailureWithoutSensitiveValues() {
+        StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
+        when(redisTemplate.execute(any(RedisScript.class), anyList(), any(Object[].class)))
+                .thenThrow(new DataAccessResourceFailureException("provider leaked user@example.com"));
+        RedisVerificationStore store = store(redisTemplate);
+
+        assertThatThrownBy(() -> store.verifyAndConsume(KEY, "123456", NOW))
+                .isInstanceOf(VerificationStoreException.class)
+                .hasMessage("Redis verification operation failed")
+                .message()
+                .doesNotContain(KEY.subject(), "123456");
+    }
+
+    @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    void doesNotSendPlaintextSubjectOrCodeToRedis() {
+        StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
+        when(redisTemplate.execute(any(RedisScript.class), anyList(), any(Object[].class)))
+                .thenReturn(List.of(0L, NOW.plusSeconds(300).toEpochMilli()));
+        RedisVerificationStore store = store(redisTemplate);
+
+        store.store(KEY, "123456", VerificationPolicy.defaults(), NOW);
+
+        ArgumentCaptor<List<String>> keys = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<Object[]> arguments = ArgumentCaptor.forClass(Object[].class);
+        verify(redisTemplate).execute(any(RedisScript.class), keys.capture(), arguments.capture());
+        assertThat(keys.getValue().getFirst()).doesNotContain(KEY.subject());
+        assertThat(arguments.getValue())
+                .allSatisfy(argument -> assertThat(argument.toString()).doesNotContain(KEY.subject(), "123456"));
+    }
+
+    @Test
+    void validatesConstructionArguments() {
+        StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
+
+        assertThatThrownBy(() -> new RedisVerificationStore(redisTemplate, new byte[31], Duration.ofMinutes(1)))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new RedisVerificationStore(redisTemplate, new byte[32], Duration.ZERO))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    private RedisVerificationStore store(StringRedisTemplate redisTemplate) {
+        return new RedisVerificationStore(redisTemplate, new byte[32], Duration.ofMinutes(1));
+    }
+}

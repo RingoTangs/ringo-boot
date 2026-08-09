@@ -1,7 +1,10 @@
 package io.github.ringotangs.ringoboot.autoconfigure.verification;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
+import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationAutoConfiguration;
+import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationStore;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.VerificationResult;
@@ -23,13 +26,19 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 class VerificationAutoConfigurationTest {
 
+    private static final String SECRET = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(
-                    VerificationAutoConfiguration.class, VerificationChannelAutoConfiguration.class));
+                    RedisVerificationAutoConfiguration.class,
+                    VerificationAutoConfiguration.class,
+                    VerificationChannelAutoConfiguration.class));
 
     @Test
     void doesNotConfigureVerificationByDefault() {
@@ -55,6 +64,125 @@ class VerificationAutoConfigurationTest {
             assertThat(context).hasSingleBean(EmailVerificationService.class);
             assertThat(context).hasSingleBean(SmsVerificationService.class);
         });
+    }
+
+    @Test
+    void configuresRedisStoreWhenExplicitlySelected() {
+        StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
+
+        contextRunner
+                .withPropertyValues(
+                        "ringo.boot.verification.enabled=true",
+                        "ringo.boot.verification.store=redis",
+                        "ringo.boot.verification.redis.secret=" + SECRET)
+                .withBean(StringRedisTemplate.class, () -> redisTemplate)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(VerificationStore.class);
+                    assertThat(context.getBean(VerificationStore.class)).isInstanceOf(RedisVerificationStore.class);
+                    assertThat(context.getBeansOfType(InMemoryVerificationStore.class))
+                            .isEmpty();
+                });
+    }
+
+    @Test
+    void failsWhenRedisIsSelectedWithoutTemplate() {
+        contextRunner
+                .withPropertyValues(
+                        "ringo.boot.verification.enabled=true",
+                        "ringo.boot.verification.store=redis",
+                        "ringo.boot.verification.redis.secret=" + SECRET)
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure())
+                            .hasRootCauseMessage(
+                                    "Redis verification storage requires Spring Data Redis, a StringRedisTemplate, and a valid secret");
+                });
+    }
+
+    @Test
+    void failsWhenRedisIsSelectedWithoutSpringDataRedis() {
+        contextRunner
+                .withClassLoader(new FilteredClassLoader(StringRedisTemplate.class))
+                .withPropertyValues(
+                        "ringo.boot.verification.enabled=true",
+                        "ringo.boot.verification.store=redis",
+                        "ringo.boot.verification.redis.secret=" + SECRET)
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure()).hasRootCauseInstanceOf(IllegalStateException.class);
+                });
+    }
+
+    @Test
+    void failsWhenRedisSecretIsMissing() {
+        contextRunner
+                .withPropertyValues("ringo.boot.verification.enabled=true", "ringo.boot.verification.store=redis")
+                .withBean(StringRedisTemplate.class, () -> mock(StringRedisTemplate.class))
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure())
+                            .hasRootCauseMessage("ringo.boot.verification.redis.secret must be configured");
+                });
+    }
+
+    @Test
+    void failsWhenRedisSecretIsTooShort() {
+        contextRunner
+                .withPropertyValues(
+                        "ringo.boot.verification.enabled=true",
+                        "ringo.boot.verification.store=redis",
+                        "ringo.boot.verification.redis.secret=AA==")
+                .withBean(StringRedisTemplate.class, () -> mock(StringRedisTemplate.class))
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure())
+                            .hasRootCauseMessage("secret must contain at least 32 bytes");
+                });
+    }
+
+    @Test
+    void failsWhenRedisSecretIsNotBase64() {
+        contextRunner
+                .withPropertyValues(
+                        "ringo.boot.verification.enabled=true",
+                        "ringo.boot.verification.store=redis",
+                        "ringo.boot.verification.redis.secret=not-base64!")
+                .withBean(StringRedisTemplate.class, () -> mock(StringRedisTemplate.class))
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure())
+                            .hasStackTraceContaining("ringo.boot.verification.redis.secret must be valid Base64");
+                });
+    }
+
+    @Test
+    void failsWhenRedisExpiredRetentionIsNotPositive() {
+        contextRunner
+                .withPropertyValues(
+                        "ringo.boot.verification.enabled=true",
+                        "ringo.boot.verification.store=redis",
+                        "ringo.boot.verification.redis.secret=" + SECRET,
+                        "ringo.boot.verification.redis.expired-retention=0s")
+                .withBean(StringRedisTemplate.class, () -> mock(StringRedisTemplate.class))
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure())
+                            .hasRootCauseMessage("expiredRetention must be positive: PT0S");
+                });
+    }
+
+    @Test
+    void customStoreOverridesExplicitRedisSelection() {
+        VerificationStore store = new TestVerificationStore();
+
+        contextRunner
+                .withPropertyValues("ringo.boot.verification.enabled=true", "ringo.boot.verification.store=redis")
+                .withBean(VerificationStore.class, () -> store)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context.getBean(VerificationStore.class)).isSameAs(store);
+                });
     }
 
     @Test
