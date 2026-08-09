@@ -23,7 +23,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest
+@SpringBootTest(properties = "ringo.boot.verification.store=memory")
 @AutoConfigureMockMvc
 @Import(EmailVerificationControllerTest.SenderTestConfiguration.class)
 class EmailVerificationControllerTest {

@@ -15,7 +15,7 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest
+@SpringBootTest(properties = "ringo.boot.verification.store=memory")
 @AutoConfigureMockMvc
 @ExtendWith(OutputCaptureExtension.class)
 class EmailVerificationStdoutSampleTest {

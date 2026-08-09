@@ -18,7 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@SpringBootTest
+@SpringBootTest(properties = "ringo.boot.verification.store=memory")
 @AutoConfigureMockMvc
 @Import(HelloControllerTest.FailingController.class)
 class HelloControllerTest {

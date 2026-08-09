@@ -7,6 +7,9 @@ spring:
   mvc:
     problemdetails:
       enabled: true
+  data:
+    redis:
+      url: ${REDIS_URL:redis://localhost:6379}
 server:
   port: 8080
 ringo:
@@ -20,7 +23,11 @@ ringo:
       fallback-enabled: true
     verification:
       enabled: true
+      store: redis
       length: 6
       ttl: 5m
       max-attempts: 5
       resend-interval: 60s
+      redis:
+        secret: ${VERIFICATION_HMAC_SECRET}
+        expired-retention: 1m
