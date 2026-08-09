@@ -13,6 +13,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.Environment;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 /**
@@ -40,16 +41,33 @@ public class RedisVerificationAutoConfiguration {
      *
      * @param redisTemplate Redis 字符串操作模板 / the Redis string operations template
      * @param properties Redis 验证码存储配置 / the Redis verification storage configuration
+     * @param environment Spring 环境，用于读取后备应用名称 / Spring environment used to read
+     *     the fallback application name
      * @return Redis 验证码状态存储 / the Redis verification state store
-     * @throws IllegalStateException 当共享密钥缺失或不是有效 Base64 时 / if the shared secret is
-     *     missing or is not valid Base64
+     * @throws IllegalStateException 当共享密钥或应用名称缺失，或密钥不是有效 Base64 时 / if the
+     *     shared secret or application name is missing, or the secret is not valid Base64
      */
     @Bean
     @ConditionalOnMissingBean(VerificationStore.class)
     VerificationStore redisVerificationStore(
-            StringRedisTemplate redisTemplate, RedisVerificationProperties properties) {
+            StringRedisTemplate redisTemplate, RedisVerificationProperties properties, Environment environment) {
         return new RedisVerificationStore(
-                redisTemplate, decodeSecret(properties.getSecret()), properties.getExpiredRetention());
+                redisTemplate,
+                decodeSecret(properties.getSecret()),
+                properties.getExpiredRetention(),
+                applicationName(properties, environment));
+    }
+
+    private String applicationName(RedisVerificationProperties properties, Environment environment) {
+        String applicationName = properties.getApplicationName();
+        if (applicationName == null || applicationName.isBlank()) {
+            applicationName = environment.getProperty("spring.application.name");
+        }
+        if (applicationName == null || applicationName.isBlank()) {
+            throw new IllegalStateException(
+                    "ringo.boot.verification.redis.application-name or spring.application.name must be configured");
+        }
+        return applicationName;
     }
 
     private byte[] decodeSecret(@Nullable String secret) {

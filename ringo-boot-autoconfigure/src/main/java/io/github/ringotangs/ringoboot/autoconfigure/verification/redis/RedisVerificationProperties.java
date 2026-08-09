@@ -17,6 +17,22 @@ public class RedisVerificationProperties {
     public static final String PREFIX = VerificationProperties.PREFIX + ".redis";
 
     /**
+     * Redis key 使用的应用名称，用于隔离共享 Redis 实例中的不同应用。未配置时使用
+     * {@code spring.application.name}。
+     *
+     * <p>Application name included in Redis keys to isolate applications sharing a Redis instance.
+     * Falls back to {@code spring.application.name} when not configured.</p>
+     *
+     * <p>名称必须以字母或数字开头，并且只能包含字母、数字、点、下划线和连字符。修改名称会使旧名称下
+     * 尚未过期的验证码不可访问。</p>
+     *
+     * <p>The name must start with a letter or digit and contain only letters, digits, dots,
+     * underscores, and hyphens. Changing it makes unexpired codes under the old name
+     * inaccessible.</p>
+     */
+    private @Nullable String applicationName;
+
+    /**
      * Base64 编码的共享 HMAC 密钥，用于生成 Redis 验证键和验证码的 HMAC-SHA256 摘要，避免在
      * Redis 中保存邮箱、手机号和验证码明文，并降低低熵验证码摘要被离线枚举的风险。
      *
@@ -52,6 +68,29 @@ public class RedisVerificationProperties {
      * Must be positive and defaults to one minute.</p>
      */
     private Duration expiredRetention = Duration.ofMinutes(1);
+
+    /**
+     * 返回 Redis key 使用的应用名称覆盖值。
+     *
+     * <p>Returns the application-name override used in Redis keys.</p>
+     *
+     * @return 应用名称覆盖值，未配置时为 {@code null} / application-name override, or
+     *     {@code null} when absent
+     */
+    public @Nullable String getApplicationName() {
+        return applicationName;
+    }
+
+    /**
+     * 设置 Redis key 使用的应用名称覆盖值。
+     *
+     * <p>Sets the application-name override used in Redis keys.</p>
+     *
+     * @param applicationName 应用名称覆盖值 / application-name override
+     */
+    public void setApplicationName(@Nullable String applicationName) {
+        this.applicationName = applicationName;
+    }
 
     /**
      * 返回 Base64 编码的共享 HMAC 密钥。

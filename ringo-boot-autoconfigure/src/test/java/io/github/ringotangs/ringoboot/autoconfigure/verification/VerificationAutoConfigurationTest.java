@@ -41,7 +41,52 @@ class VerificationAutoConfigurationTest {
             .withConfiguration(AutoConfigurations.of(
                     RedisVerificationAutoConfiguration.class,
                     VerificationAutoConfiguration.class,
-                    VerificationChannelAutoConfiguration.class));
+                    VerificationChannelAutoConfiguration.class))
+            .withPropertyValues("spring.application.name=test-application");
+
+    @Test
+    void failsWhenRedisApplicationNameIsMissing() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(RedisVerificationAutoConfiguration.class))
+                .withPropertyValues(
+                        "ringo.boot.verification.enabled=true",
+                        "ringo.boot.verification.store=redis",
+                        "ringo.boot.verification.redis.secret=" + SECRET)
+                .withBean(StringRedisTemplate.class, () -> mock(StringRedisTemplate.class))
+                .run(
+                        context -> assertThat(context.getStartupFailure())
+                                .hasRootCauseMessage(
+                                        "ringo.boot.verification.redis.application-name or spring.application.name must be configured"));
+    }
+
+    @Test
+    void redisApplicationNameOverrideIsBound() {
+        contextRunner
+                .withPropertyValues(
+                        "ringo.boot.verification.enabled=true",
+                        "ringo.boot.verification.store=redis",
+                        "ringo.boot.verification.redis.secret=" + SECRET,
+                        "ringo.boot.verification.redis.application-name=verification-owner")
+                .withBean(StringRedisTemplate.class, () -> mock(StringRedisTemplate.class))
+                .run(context -> assertThat(context.getBean(RedisVerificationProperties.class)
+                                .getApplicationName())
+                        .isEqualTo("verification-owner"));
+    }
+
+    @Test
+    void failsWhenRedisApplicationNameIsInvalid() {
+        contextRunner
+                .withPropertyValues(
+                        "ringo.boot.verification.enabled=true",
+                        "ringo.boot.verification.store=redis",
+                        "ringo.boot.verification.redis.secret=" + SECRET,
+                        "ringo.boot.verification.redis.application-name=invalid application")
+                .withBean(StringRedisTemplate.class, () -> mock(StringRedisTemplate.class))
+                .run(
+                        context -> assertThat(context.getStartupFailure())
+                                .hasRootCauseMessage(
+                                        "applicationName must start with an alphanumeric character and contain only letters, digits, '.', '_', or '-': invalid application"));
+    }
 
     @Test
     void doesNotConfigureVerificationByDefault() {
@@ -116,6 +161,7 @@ class VerificationAutoConfigurationTest {
                         VerificationChannelAutoConfiguration.class,
                         RedisAutoConfiguration.class))
                 .withPropertyValues(
+                        "spring.application.name=test-application",
                         "ringo.boot.verification.enabled=true",
                         "ringo.boot.verification.store=redis",
                         "ringo.boot.verification.redis.secret=" + SECRET)

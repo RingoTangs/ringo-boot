@@ -84,7 +84,9 @@ class RedisVerificationStoreTest {
         ArgumentCaptor<List<String>> keys = ArgumentCaptor.forClass(List.class);
         ArgumentCaptor<Object[]> arguments = ArgumentCaptor.forClass(Object[].class);
         verify(redisTemplate).execute(any(RedisScript.class), keys.capture(), arguments.capture());
-        assertThat(keys.getValue().getFirst()).doesNotContain(KEY.subject());
+        assertThat(keys.getValue().getFirst())
+                .startsWith("ringo:verification:v1:test-application:account:email-verification:")
+                .doesNotContain(KEY.subject());
         assertThat(arguments.getValue())
                 .allSatisfy(argument -> assertThat(argument.toString()).doesNotContain(KEY.subject(), "123456"));
     }
@@ -97,9 +99,51 @@ class RedisVerificationStoreTest {
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new RedisVerificationStore(redisTemplate, new byte[32], Duration.ZERO))
                 .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new RedisVerificationStore(
+                        redisTemplate, new byte[32], Duration.ofMinutes(1), "invalid application"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("applicationName");
+    }
+
+    @Test
+    @SuppressWarnings({"rawtypes", "unchecked", "deprecation"})
+    void keepsLegacyKeyFormatForDeprecatedConstructor() {
+        StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
+        when(redisTemplate.execute(any(RedisScript.class), anyList(), any(Object[].class)))
+                .thenReturn(List.of(0L, NOW.plusSeconds(300).toEpochMilli()));
+        RedisVerificationStore store = new RedisVerificationStore(redisTemplate, new byte[32], Duration.ofMinutes(1));
+
+        store.store(KEY, "123456", VerificationPolicy.defaults(), NOW);
+
+        ArgumentCaptor<List<String>> keys = ArgumentCaptor.forClass(List.class);
+        verify(redisTemplate).execute(any(RedisScript.class), keys.capture(), any(Object[].class));
+        assertThat(keys.getValue().getFirst())
+                .startsWith("ringo:verification:v1:account:email-verification:")
+                .doesNotContain("test-application");
+    }
+
+    @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    void isolatesApplicationsInKeysAndDigests() {
+        StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
+        when(redisTemplate.execute(any(RedisScript.class), anyList(), any(Object[].class)))
+                .thenReturn(List.of(0L, NOW.plusSeconds(300).toEpochMilli()));
+
+        new RedisVerificationStore(redisTemplate, new byte[32], Duration.ofMinutes(1), "application-one")
+                .store(KEY, "123456", VerificationPolicy.defaults(), NOW);
+        new RedisVerificationStore(redisTemplate, new byte[32], Duration.ofMinutes(1), "application-two")
+                .store(KEY, "123456", VerificationPolicy.defaults(), NOW);
+
+        ArgumentCaptor<List<String>> keys = ArgumentCaptor.forClass(List.class);
+        verify(redisTemplate, org.mockito.Mockito.times(2))
+                .execute(any(RedisScript.class), keys.capture(), any(Object[].class));
+        assertThat(keys.getAllValues().get(0).getFirst())
+                .startsWith("ringo:verification:v1:application-one:")
+                .isNotEqualTo(keys.getAllValues().get(1).getFirst());
+        assertThat(keys.getAllValues().get(1).getFirst()).startsWith("ringo:verification:v1:application-two:");
     }
 
     private RedisVerificationStore store(StringRedisTemplate redisTemplate) {
-        return new RedisVerificationStore(redisTemplate, new byte[32], Duration.ofMinutes(1));
+        return new RedisVerificationStore(redisTemplate, new byte[32], Duration.ofMinutes(1), "test-application");
     }
 }

@@ -14,6 +14,7 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Pattern;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.jspecify.annotations.Nullable;
@@ -27,7 +28,7 @@ import org.springframework.data.redis.core.script.RedisScript;
  * <p>Redis key 的格式如下：</p>
  *
  * <pre>{@code
- * ringo:verification:v1:{namespace}:{purpose}:{keyDigest}
+ * ringo:verification:v1:{applicationName}:{namespace}:{purpose}:{keyDigest}
  * }</pre>
  *
  * <p>{@code namespace} 和 {@code purpose} 以明文保留，便于按业务分类；邮箱、手机号等 {@code subject}
@@ -35,7 +36,7 @@ import org.springframework.data.redis.core.script.RedisScript;
  *
  * <pre>{@code
  * Base64UrlWithoutPadding(
- *     HMAC-SHA256(secret, "key:v1", namespace, purpose, subject)
+ *     HMAC-SHA256(secret, "key:v1", applicationName, namespace, purpose, subject)
  * )
  * }</pre>
  *
@@ -51,7 +52,7 @@ import org.springframework.data.redis.core.script.RedisScript;
  * <p>例如，Redis 中的数据形态可能是：</p>
  *
  * <pre>{@code
- * key: ringo:verification:v1:account:email-verification:AbCdEf...
+ * key: ringo:verification:v1:identity-service:account:email-verification:AbCdEf...
  * hash:
  *   codeDigest        XyZ...
  *   expiresAt         1786266000000
@@ -63,9 +64,10 @@ import org.springframework.data.redis.core.script.RedisScript;
  * 或校验时发现业务已过期，都会提前删除记录。邮箱、手机号和验证码均不会以明文写入 Redis。</p>
  *
  * <p>Atomically stores verification state with Redis hashes and single-key Lua scripts. A Redis
- * key has the form {@code ringo:verification:v1:{namespace}:{purpose}:{keyDigest}}. The namespace
- * and purpose remain readable for business classification, while the subject is included only in
- * the HMAC-SHA256 key digest. Each hash stores {@code codeDigest}, {@code expiresAt}, {@code
+ * key has the form {@code
+ * ringo:verification:v1:{applicationName}:{namespace}:{purpose}:{keyDigest}}. The application name,
+ * namespace, and purpose remain readable for isolation and classification, while the subject is
+ * included only in the HMAC-SHA256 key digest. Each hash stores {@code codeDigest}, {@code expiresAt}, {@code
  * resendAt}, and {@code remainingAttempts}. Timestamps use epoch milliseconds, and the Redis key
  * expires at {@code expiresAt + expiredRetention}. Successful verification, exhausted attempts,
  * explicit invalidation, and detection of business expiration delete the record early. Email
@@ -81,6 +83,7 @@ public final class RedisVerificationStore implements VerificationStore {
     private static final String KEY_PREFIX = "ringo:verification:v1:";
     private static final String HMAC_ALGORITHM = "HmacSHA256";
     private static final int MINIMUM_SECRET_BYTES = 32;
+    private static final Pattern APPLICATION_NAME_PATTERN = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._-]*");
 
     /**
      * 原子签发脚本。
@@ -177,6 +180,7 @@ public final class RedisVerificationStore implements VerificationStore {
     private final StringRedisTemplate redisTemplate;
     private final byte[] secret;
     private final Duration expiredRetention;
+    private final @Nullable String applicationName;
 
     /**
      * 使用 Redis 模板、共享密钥和过期保留时间创建存储。
@@ -191,7 +195,33 @@ public final class RedisVerificationStore implements VerificationStore {
      * @throws IllegalArgumentException 当密钥过短或保留时间不是正数时 / if the secret is too short or
      *     retention is not positive
      */
+    @Deprecated(since = "1.0", forRemoval = false)
     public RedisVerificationStore(StringRedisTemplate redisTemplate, byte[] secret, Duration expiredRetention) {
+        this(redisTemplate, secret, expiredRetention, null, true);
+    }
+
+    /**
+     * 使用应用名称隔离 Redis 数据，创建验证码存储。
+     *
+     * <p>Creates a verification store whose Redis data is isolated by application name.</p>
+     *
+     * @param redisTemplate Redis 字符串模板 / the Redis string template
+     * @param secret 至少 32 字节的共享 HMAC 密钥 / the shared HMAC secret of at least 32 bytes
+     * @param expiredRetention 业务过期后的保留时间 / retention after business expiration
+     * @param applicationName Redis key 和摘要使用的应用名称 / application name used by Redis
+     *     keys and digests
+     */
+    public RedisVerificationStore(
+            StringRedisTemplate redisTemplate, byte[] secret, Duration expiredRetention, String applicationName) {
+        this(redisTemplate, secret, expiredRetention, applicationName, false);
+    }
+
+    private RedisVerificationStore(
+            StringRedisTemplate redisTemplate,
+            byte[] secret,
+            Duration expiredRetention,
+            @Nullable String applicationName,
+            boolean legacyFormat) {
         this.redisTemplate = Objects.requireNonNull(redisTemplate, "redisTemplate must not be null");
         Objects.requireNonNull(secret, "secret must not be null");
         this.expiredRetention = Objects.requireNonNull(expiredRetention, "expiredRetention must not be null");
@@ -202,6 +232,15 @@ public final class RedisVerificationStore implements VerificationStore {
             throw new IllegalArgumentException("expiredRetention must be positive: " + expiredRetention);
         }
         this.secret = secret.clone();
+        if (!legacyFormat) {
+            Objects.requireNonNull(applicationName, "applicationName must not be null");
+            if (!APPLICATION_NAME_PATTERN.matcher(applicationName).matches()) {
+                throw new IllegalArgumentException(
+                        "applicationName must start with an alphanumeric character and contain only letters, digits, '.', '_', or '-': "
+                                + applicationName);
+            }
+        }
+        this.applicationName = applicationName;
     }
 
     /** {@inheritDoc} */
@@ -279,7 +318,14 @@ public final class RedisVerificationStore implements VerificationStore {
      *     business segments and an irreversible subject digest
      */
     private String redisKey(VerificationKey key) {
-        return KEY_PREFIX + key.namespace() + ':' + key.purpose() + ':' + digest("key:v1", key, null);
+        String applicationSegment = applicationName == null ? "" : applicationName + ':';
+        return KEY_PREFIX
+                + applicationSegment
+                + key.namespace()
+                + ':'
+                + key.purpose()
+                + ':'
+                + digest("key:v1", key, null);
     }
 
     /**
@@ -304,11 +350,13 @@ public final class RedisVerificationStore implements VerificationStore {
      * 按确定的分段编码计算 HMAC-SHA256 摘要。
      *
      * <p>{@code domain} 用于隔离 Redis key 摘要和验证码摘要，防止相同输入在不同用途间复用。各字符串段通过
-     * {@link #update(Mac, String)} 编码，顺序为 domain、namespace、purpose、subject，以及可选 code。</p>
+     * {@link #update(Mac, String)} 编码，顺序为 domain、applicationName、namespace、purpose、subject，
+     * 以及可选 code。兼容构造器省略 applicationName 段。</p>
      *
      * <p>Computes an HMAC-SHA256 digest over deterministically framed segments. The domain separates
-     * Redis-key digests from code digests. Segment order is domain, namespace, purpose, subject,
-     * and the optional code.</p>
+     * Redis-key digests from code digests. Segment order is domain, application name, namespace,
+     * purpose, subject, and the optional code. The compatibility constructor omits the application
+     * name segment.</p>
      *
      * @param domain 摘要用途域 / digest-purpose domain
      * @param key 验证键 / verification key
@@ -323,6 +371,9 @@ public final class RedisVerificationStore implements VerificationStore {
             Mac mac = Mac.getInstance(HMAC_ALGORITHM);
             mac.init(new SecretKeySpec(secret, HMAC_ALGORITHM));
             update(mac, domain);
+            if (applicationName != null) {
+                update(mac, applicationName);
+            }
             update(mac, key.namespace());
             update(mac, key.purpose());
             update(mac, key.subject());

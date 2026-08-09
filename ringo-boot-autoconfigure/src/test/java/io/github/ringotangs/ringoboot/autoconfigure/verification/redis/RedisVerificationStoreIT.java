@@ -42,7 +42,7 @@ class RedisVerificationStoreIT extends VerificationStoreContract {
         redisTemplate.afterPropertiesSet();
         byte[] secret = new byte[32];
         new SecureRandom().nextBytes(secret);
-        store = new RedisVerificationStore(redisTemplate, secret, Duration.ofMinutes(1));
+        store = new RedisVerificationStore(redisTemplate, secret, Duration.ofMinutes(1), "ringo-boot-redis-it");
     }
 
     @AfterAll
