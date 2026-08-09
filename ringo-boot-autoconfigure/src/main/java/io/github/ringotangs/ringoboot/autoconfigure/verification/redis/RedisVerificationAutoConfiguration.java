@@ -10,6 +10,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -23,7 +24,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
  * {@link StringRedisTemplate} is available. The default Redis implementation backs off when the
  * application provides a custom {@link VerificationStore}.</p>
  */
-@AutoConfiguration(before = VerificationAutoConfiguration.class)
+@AutoConfiguration(after = RedisAutoConfiguration.class, before = VerificationAutoConfiguration.class)
 @ConditionalOnClass(StringRedisTemplate.class)
 @ConditionalOnBean(StringRedisTemplate.class)
 @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "enabled", havingValue = "true")

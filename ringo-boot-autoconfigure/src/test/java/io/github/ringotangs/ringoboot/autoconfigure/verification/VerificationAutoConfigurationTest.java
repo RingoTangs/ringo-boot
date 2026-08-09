@@ -27,8 +27,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 class VerificationAutoConfigurationTest {
@@ -102,6 +104,29 @@ class VerificationAutoConfigurationTest {
                             .isEqualTo(Duration.ofMinutes(1));
                     assertThat(context.getBeansOfType(InMemoryVerificationStore.class))
                             .isEmpty();
+                });
+    }
+
+    @Test
+    void configuresRedisStoreAfterSpringBootCreatesStringRedisTemplate() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        RedisVerificationAutoConfiguration.class,
+                        VerificationAutoConfiguration.class,
+                        VerificationChannelAutoConfiguration.class,
+                        RedisAutoConfiguration.class))
+                .withPropertyValues(
+                        "ringo.boot.verification.enabled=true",
+                        "ringo.boot.verification.store=redis",
+                        "ringo.boot.verification.redis.secret=" + SECRET)
+                .withBean(RedisConnectionFactory.class, () -> mock(RedisConnectionFactory.class))
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(StringRedisTemplate.class);
+                    assertThat(context).hasSingleBean(VerificationStore.class);
+                    assertThat(context.getBean(VerificationStore.class)).isInstanceOf(RedisVerificationStore.class);
+                    assertThat(context).hasSingleBean(EmailVerificationService.class);
+                    assertThat(context).hasSingleBean(SmsVerificationService.class);
                 });
     }
 

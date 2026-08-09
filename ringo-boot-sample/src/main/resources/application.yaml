@@ -9,7 +9,11 @@ spring:
       enabled: true
   data:
     redis:
-      url: ${REDIS_URL:redis://localhost:6379}
+#      url: ${REDIS_URL:redis://47.97.104.166:6379}
+      host: 47.97.104.166
+      port: 6379
+      database: 0
+      password: lGHlxrSL+hhWNBdNnqNYuFZT34OsCaqrj+OYhyFnzBY=
 server:
   port: 8080
 ringo:
@@ -29,5 +33,5 @@ ringo:
       max-attempts: 5
       resend-interval: 60s
       redis:
-        secret: ${VERIFICATION_HMAC_SECRET}
+        secret: v2pd/5bgDhCt81RaMcfAVC+nFYHNn/EMJdvmFo2dyEo=
         expired-retention: 1m
