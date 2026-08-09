@@ -21,7 +21,7 @@ import org.springframework.context.annotation.Bean;
  * <p>Auto-configures email and SMS verification services when their sender ports are
  * available.</p>
  */
-@AutoConfiguration(after = {VerificationAutoConfiguration.class, VerificationSenderAutoConfiguration.class})
+@AutoConfiguration(after = VerificationAutoConfiguration.class)
 @ConditionalOnClass(VerificationStore.class)
 @ConditionalOnSingleCandidate(VerificationStore.class)
 @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "enabled", havingValue = "true")

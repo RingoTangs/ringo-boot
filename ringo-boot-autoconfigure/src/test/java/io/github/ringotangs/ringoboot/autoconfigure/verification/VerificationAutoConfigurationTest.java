@@ -28,9 +28,7 @@ class VerificationAutoConfigurationTest {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(
-                    VerificationAutoConfiguration.class,
-                    VerificationSenderAutoConfiguration.class,
-                    VerificationChannelAutoConfiguration.class));
+                    VerificationAutoConfiguration.class, VerificationChannelAutoConfiguration.class));
 
     @Test
     void doesNotConfigureVerificationByDefault() {
