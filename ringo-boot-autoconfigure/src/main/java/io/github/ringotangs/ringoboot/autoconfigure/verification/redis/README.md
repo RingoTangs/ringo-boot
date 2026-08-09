@@ -7,7 +7,7 @@
 
 推荐使用 Docker Official Image 的 `redis:7.4.10-alpine`：
 
-- 当前项目的 Redis 集成测试使用 `redis:7.4-alpine`，即 Redis 7.4 系列。
+- 当前项目的 Redis 集成测试以 Redis 7.4 系列作为兼容基线。
 - 部署示例固定到具体补丁版本，避免 `latest` 或浮动标签升级后产生不可预期的变化。
 - 升级到新的 7.4 补丁版本前，应运行 `mvn -Predis-it verify` 验证真实 Redis 行为。
 - Alpine 镜像体积较小，足以运行本项目使用的 Redis Hash 和 Lua 脚本。
@@ -208,6 +208,39 @@ docker compose down --volumes
 
 Docker Compose 健康检查的工作方式可参考
 [Docker Compose Quickstart](https://docs.docker.com/compose/gettingstarted/)。
+
+## 使用外部 Redis 运行集成测试
+
+`redis-it` Profile 连接显式配置的外部 Redis，不依赖 Docker。测试会写入带随机 subject 的短期验证码
+记录，并在正常执行过程中消费或失效这些记录；不会执行 `FLUSHDB` 或扫描删除共享数据。
+
+PowerShell：
+
+```powershell
+$env:REDIS_IT_HOST="redis.example.com"
+$env:REDIS_IT_PORT="6379"
+$env:REDIS_IT_USERNAME="default"
+$env:REDIS_IT_PASSWORD="Redis 密码"
+$env:REDIS_IT_DATABASE="0"
+$env:REDIS_IT_SSL="false"
+mvn -Predis-it verify
+```
+
+Linux/macOS：
+
+```shell
+export REDIS_IT_HOST="redis.example.com"
+export REDIS_IT_PORT="6379"
+export REDIS_IT_USERNAME="default"
+export REDIS_IT_PASSWORD="Redis 密码"
+export REDIS_IT_DATABASE="0"
+export REDIS_IT_SSL="false"
+mvn -Predis-it verify
+```
+
+只有 `REDIS_IT_HOST` 是必填项。端口默认 `6379`，database 默认 `0`，用户名和密码可省略，TLS 默认关闭。
+显式启用 `redis-it` 后，缺少主机、连接失败或认证失败都会使构建失败。测试启动时会先执行 `PING`，但不会
+将认证信息输出到日志。建议使用专用测试实例或专用 database，不要对生产 Redis 运行集成测试。
 
 ## 配置 Spring Boot 应用
 
