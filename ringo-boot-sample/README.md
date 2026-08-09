@@ -17,7 +17,9 @@ ringo:
 
 启用验证码功能后，缺少自定义实现时默认使用 `InMemoryVerificationStore`。
 生产应用应提供自己的 `VerificationStore` Bean，以替换仅适用于本地开发和单实例应用的内存存储。
-`CodeGenerator`、`VerificationPolicy` 和 `VerificationStore` 均可通过自定义 Bean 覆盖。
+`CodeGenerator`、`VerificationStore` 和 Sender 均可通过自定义 Bean 覆盖。
+渠道服务的默认 `VerificationPolicy` 由 `ringo.boot.verification.*` 配置直接创建，不注册为 Spring Bean；
+业务特定策略可通过 `VerificationService.issue(key, policy)` 在调用时传入。
 
 `VerificationService` 只定义签发和校验的业务契约。`AbstractVerificationService` 是该契约的抽象骨架实现，统一编排生成、
 存储、限流、派发、派发失败补偿和校验消费。core 已提供 `EmailVerificationService`

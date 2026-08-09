@@ -1,6 +1,5 @@
 package io.github.ringotangs.ringoboot.autoconfigure.verification;
 
-import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.email.EmailVerificationService;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
@@ -36,8 +35,11 @@ public class VerificationChannelAutoConfiguration {
     @ConditionalOnBean(EmailCodeSender.class)
     @ConditionalOnMissingBean(EmailVerificationService.class)
     EmailVerificationService emailVerificationService(
-            CodeGenerator codeGenerator, VerificationStore store, VerificationPolicy policy, EmailCodeSender sender) {
-        return new EmailVerificationService(codeGenerator, store, policy, sender);
+            CodeGenerator codeGenerator,
+            VerificationStore store,
+            VerificationProperties properties,
+            EmailCodeSender sender) {
+        return new EmailVerificationService(codeGenerator, store, properties.toPolicy(), sender);
     }
 
     /**
@@ -49,7 +51,10 @@ public class VerificationChannelAutoConfiguration {
     @ConditionalOnBean(SmsCodeSender.class)
     @ConditionalOnMissingBean(SmsVerificationService.class)
     SmsVerificationService smsVerificationService(
-            CodeGenerator codeGenerator, VerificationStore store, VerificationPolicy policy, SmsCodeSender sender) {
-        return new SmsVerificationService(codeGenerator, store, policy, sender);
+            CodeGenerator codeGenerator,
+            VerificationStore store,
+            VerificationProperties properties,
+            SmsCodeSender sender) {
+        return new SmsVerificationService(codeGenerator, store, properties.toPolicy(), sender);
     }
 }

@@ -1,5 +1,6 @@
 package io.github.ringotangs.ringoboot.autoconfigure.verification;
 
+import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -67,5 +68,9 @@ public class VerificationProperties {
 
     public void setResendInterval(Duration resendInterval) {
         this.resendInterval = resendInterval;
+    }
+
+    VerificationPolicy toPolicy() {
+        return new VerificationPolicy(length, ttl, maxAttempts, resendInterval);
     }
 }

@@ -1,6 +1,5 @@
 package io.github.ringotangs.ringoboot.autoconfigure.verification;
 
-import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.email.StdoutEmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
@@ -36,21 +35,6 @@ public class VerificationAutoConfiguration {
     @ConditionalOnMissingBean
     CodeGenerator verificationCodeGenerator() {
         return new NumericCodeGenerator();
-    }
-
-    /**
-     * 根据配置属性创建默认验证码策略。
-     *
-     * <p>Creates the default verification policy from configuration properties.</p>
-     */
-    @Bean
-    @ConditionalOnMissingBean
-    VerificationPolicy verificationPolicy(VerificationProperties properties) {
-        return new VerificationPolicy(
-                properties.getLength(),
-                properties.getTtl(),
-                properties.getMaxAttempts(),
-                properties.getResendInterval());
     }
 
     /**

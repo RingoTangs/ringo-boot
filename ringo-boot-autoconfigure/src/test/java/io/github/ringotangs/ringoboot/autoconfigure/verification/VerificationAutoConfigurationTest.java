@@ -69,12 +69,13 @@ class VerificationAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(CodeGenerator.class);
-                    assertThat(context).hasSingleBean(VerificationPolicy.class);
+                    assertThat(context).doesNotHaveBean(VerificationPolicy.class);
                     assertThat(context).hasSingleBean(VerificationStore.class);
                     assertThat(context.getBean(VerificationStore.class)).isInstanceOf(InMemoryVerificationStore.class);
                     assertThat(context).getBeans(VerificationService.class).hasSize(2);
 
-                    VerificationPolicy policy = context.getBean(VerificationPolicy.class);
+                    VerificationPolicy policy =
+                            context.getBean(VerificationProperties.class).toPolicy();
                     assertThat(policy.length()).isEqualTo(8);
                     assertThat(policy.ttl()).isEqualTo(Duration.ofMinutes(10));
                     assertThat(policy.maxAttempts()).isEqualTo(3);
@@ -83,24 +84,43 @@ class VerificationAutoConfigurationTest {
     }
 
     @Test
-    void backsOffForCustomGeneratorPolicyAndStore() {
+    void backsOffForCustomGeneratorAndStore() {
         CodeGenerator generator = length -> "1".repeat(length);
-        VerificationPolicy policy = new VerificationPolicy(4, Duration.ofMinutes(1), 2, Duration.ZERO);
         VerificationStore store = new TestVerificationStore();
 
         contextRunner
                 .withPropertyValues("ringo.boot.verification.enabled=true")
                 .withBean(CodeGenerator.class, () -> generator)
-                .withBean(VerificationPolicy.class, () -> policy)
                 .withBean(VerificationStore.class, () -> store)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context.getBean(CodeGenerator.class)).isSameAs(generator);
-                    assertThat(context.getBean(VerificationPolicy.class)).isSameAs(policy);
+                    assertThat(context).doesNotHaveBean(VerificationPolicy.class);
                     assertThat(context.getBean(VerificationStore.class)).isSameAs(store);
                     assertThat(context.getBeansOfType(InMemoryVerificationStore.class))
                             .isEmpty();
                     assertThat(context).getBeans(VerificationService.class).hasSize(2);
+                });
+    }
+
+    @Test
+    void ignoresBusinessPolicyBeansWhenConfiguringChannelDefaults() {
+        VerificationPolicy loginPolicy = new VerificationPolicy(4, Duration.ofMinutes(1), 2, Duration.ZERO);
+        VerificationPolicy registrationPolicy =
+                new VerificationPolicy(8, Duration.ofMinutes(10), 3, Duration.ofSeconds(30));
+
+        contextRunner
+                .withPropertyValues("ringo.boot.verification.enabled=true", "ringo.boot.verification.length=6")
+                .withBean("loginPolicy", VerificationPolicy.class, () -> loginPolicy)
+                .withBean("registrationPolicy", VerificationPolicy.class, () -> registrationPolicy)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).getBeans(VerificationPolicy.class).hasSize(2);
+                    assertThat(context).getBeans(VerificationService.class).hasSize(2);
+                    assertThat(context.getBean(VerificationProperties.class)
+                                    .toPolicy()
+                                    .length())
+                            .isEqualTo(6);
                 });
     }
 
