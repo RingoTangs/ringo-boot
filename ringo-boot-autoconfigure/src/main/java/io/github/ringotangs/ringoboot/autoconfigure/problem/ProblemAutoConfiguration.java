@@ -1,6 +1,8 @@
 package io.github.ringotangs.ringoboot.autoconfigure.problem;
 
+import io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationProperties;
 import io.github.ringotangs.ringoboot.problem.ProblemException;
+import io.github.ringotangs.ringoboot.verification.VerificationException;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.*;
 import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
@@ -98,11 +100,35 @@ public class ProblemAutoConfiguration {
     }
 
     /**
-     * 装配两个异常处理器共享的消息解析器。
+     * 在验证码功能和应用或兜底异常处理开启时装配验证码技术异常处理器。
+     *
+     * <p>Configures verification technical exception handling when verification and either
+     * application or fallback exception handling are enabled.</p>
+     */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(VerificationException.class)
+    @Conditional(AnyHandlerEnabledCondition.class)
+    @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "enabled", havingValue = "true")
+    static class VerificationConfiguration {
+
+        /**
+         * 用户提供自定义 VerificationExceptionHandler 时不创建默认实现。
+         *
+         * <p>Backs off when a custom VerificationExceptionHandler is available.</p>
+         */
+        @Bean
+        @ConditionalOnMissingBean
+        VerificationExceptionHandler verificationExceptionHandler(ProblemMessageResolver messageResolver) {
+            return new VerificationExceptionHandler(messageResolver);
+        }
+    }
+
+    /**
+     * 装配应用、验证码和兜底异常处理器共享的消息解析器。
      * 只有至少一个处理器开启时才需要该解析器。
      *
-     * <p>Configures the message resolver shared by both handlers. The resolver is
-     * needed only when at least one handler is enabled.</p>
+     * <p>Configures the message resolver shared by application, verification, and fallback handlers.
+     * The resolver is needed only when application or fallback handling is enabled.</p>
      */
     @Configuration(proxyBeanMethods = false)
     @Conditional(AnyHandlerEnabledCondition.class)
