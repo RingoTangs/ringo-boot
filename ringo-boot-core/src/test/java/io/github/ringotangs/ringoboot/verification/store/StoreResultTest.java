@@ -1,4 +1,4 @@
-package io.github.ringotangs.ringoboot.verification;
+package io.github.ringotangs.ringoboot.verification.store;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;

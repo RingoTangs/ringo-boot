@@ -1,14 +1,14 @@
 package io.github.ringotangs.ringoboot.autoconfigure.verification;
 
-import io.github.ringotangs.ringoboot.verification.CodeGenerator;
-import io.github.ringotangs.ringoboot.verification.InMemoryVerificationStore;
-import io.github.ringotangs.ringoboot.verification.NumericCodeGenerator;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
-import io.github.ringotangs.ringoboot.verification.VerificationStore;
 import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.email.StdoutEmailCodeSender;
+import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
+import io.github.ringotangs.ringoboot.verification.generator.NumericCodeGenerator;
 import io.github.ringotangs.ringoboot.verification.sms.SmsCodeSender;
 import io.github.ringotangs.ringoboot.verification.sms.StdoutSmsCodeSender;
+import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
+import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;

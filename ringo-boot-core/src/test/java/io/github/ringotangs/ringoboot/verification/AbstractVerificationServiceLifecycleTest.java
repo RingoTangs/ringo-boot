@@ -5,6 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
+import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
+import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
+import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.lang.reflect.Field;
 import java.security.SecureRandom;
 import java.time.Clock;

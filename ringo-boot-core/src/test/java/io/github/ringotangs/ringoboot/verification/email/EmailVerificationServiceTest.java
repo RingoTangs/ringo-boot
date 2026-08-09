@@ -4,11 +4,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.github.ringotangs.ringoboot.verification.CodeDelivery;
 import io.github.ringotangs.ringoboot.verification.DeliveryResult;
-import io.github.ringotangs.ringoboot.verification.InMemoryVerificationStore;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
+import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
+import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;

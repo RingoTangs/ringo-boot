@@ -1,5 +1,6 @@
-package io.github.ringotangs.ringoboot.verification;
+package io.github.ringotangs.ringoboot.verification.sender;
 
+import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import java.time.Instant;
 import java.util.Objects;
 

@@ -1,4 +1,4 @@
-package io.github.ringotangs.ringoboot.verification;
+package io.github.ringotangs.ringoboot.verification.generator;
 
 /**
  * 生成非空白且长度与请求完全一致的验证码。

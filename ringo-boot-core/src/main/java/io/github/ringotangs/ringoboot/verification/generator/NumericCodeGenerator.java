@@ -1,4 +1,4 @@
-package io.github.ringotangs.ringoboot.verification;
+package io.github.ringotangs.ringoboot.verification.generator;
 
 import java.security.SecureRandom;
 import java.util.Objects;

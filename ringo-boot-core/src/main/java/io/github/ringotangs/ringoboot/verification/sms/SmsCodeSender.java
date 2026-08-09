@@ -1,6 +1,6 @@
 package io.github.ringotangs.ringoboot.verification.sms;
 
-import io.github.ringotangs.ringoboot.verification.CodeSender;
+import io.github.ringotangs.ringoboot.verification.sender.CodeSender;
 
 /**
  * 通过短信渠道派发验证码。

@@ -1,11 +1,11 @@
 package io.github.ringotangs.ringoboot.verification.sms;
 
 import io.github.ringotangs.ringoboot.verification.AbstractVerificationService;
-import io.github.ringotangs.ringoboot.verification.CodeDelivery;
-import io.github.ringotangs.ringoboot.verification.CodeGenerator;
-import io.github.ringotangs.ringoboot.verification.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
-import io.github.ringotangs.ringoboot.verification.VerificationStore;
+import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
+import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
+import io.github.ringotangs.ringoboot.verification.sender.CodeSenderException;
+import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.time.Clock;
 import java.util.Objects;
 

@@ -1,4 +1,4 @@
-package io.github.ringotangs.ringoboot.verification;
+package io.github.ringotangs.ringoboot.verification.sender;
 
 /**
  * 派发已生成的验证码。

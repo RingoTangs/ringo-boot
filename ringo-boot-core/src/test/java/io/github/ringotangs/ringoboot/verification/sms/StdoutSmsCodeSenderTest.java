@@ -3,8 +3,8 @@ package io.github.ringotangs.ringoboot.verification.sms;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.ringotangs.ringoboot.verification.CodeDelivery;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
+import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;

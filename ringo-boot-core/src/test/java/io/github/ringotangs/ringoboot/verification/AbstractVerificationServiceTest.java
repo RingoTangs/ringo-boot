@@ -6,6 +6,13 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
+import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
+import io.github.ringotangs.ringoboot.verification.sender.CodeSenderException;
+import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
+import io.github.ringotangs.ringoboot.verification.store.StoreResult;
+import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
+import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;

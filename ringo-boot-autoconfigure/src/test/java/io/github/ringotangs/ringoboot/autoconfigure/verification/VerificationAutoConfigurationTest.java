@@ -2,21 +2,21 @@ package io.github.ringotangs.ringoboot.autoconfigure.verification;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.github.ringotangs.ringoboot.verification.CodeGenerator;
-import io.github.ringotangs.ringoboot.verification.CodeSender;
-import io.github.ringotangs.ringoboot.verification.InMemoryVerificationStore;
-import io.github.ringotangs.ringoboot.verification.StoreResult;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.VerificationResult;
 import io.github.ringotangs.ringoboot.verification.VerificationService;
-import io.github.ringotangs.ringoboot.verification.VerificationStore;
 import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.email.EmailVerificationService;
 import io.github.ringotangs.ringoboot.verification.email.StdoutEmailCodeSender;
+import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
+import io.github.ringotangs.ringoboot.verification.sender.CodeSender;
 import io.github.ringotangs.ringoboot.verification.sms.SmsCodeSender;
 import io.github.ringotangs.ringoboot.verification.sms.SmsVerificationService;
 import io.github.ringotangs.ringoboot.verification.sms.StdoutSmsCodeSender;
+import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
+import io.github.ringotangs.ringoboot.verification.store.StoreResult;
+import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.time.Duration;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;

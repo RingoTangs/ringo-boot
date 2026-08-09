@@ -1,6 +1,6 @@
 package io.github.ringotangs.ringoboot.verification.sms;
 
-import io.github.ringotangs.ringoboot.verification.CodeDelivery;
+import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
 
 /**
  * 将短信验证码输出到标准输出，适用于开发和演示环境。
