@@ -73,13 +73,14 @@ public abstract class AbstractVerificationService implements VerificationService
 
     /** {@inheritDoc} */
     @Override
-    public final DeliveryResult issue(VerificationKey key) {
+    public final DeliveryResult issue(VerificationKey key) throws VerificationStoreException {
         return issue(key, defaultPolicy);
     }
 
     /** {@inheritDoc} */
     @Override
-    public final DeliveryResult issue(VerificationKey key, VerificationPolicy policy) {
+    public final DeliveryResult issue(VerificationKey key, VerificationPolicy policy)
+            throws VerificationStoreException {
         Objects.requireNonNull(key, "key must not be null");
         Objects.requireNonNull(policy, "policy must not be null");
         String code =
@@ -96,7 +97,7 @@ public abstract class AbstractVerificationService implements VerificationService
 
     /** {@inheritDoc} */
     @Override
-    public final VerificationResult verify(VerificationKey key, String code) {
+    public final VerificationResult verify(VerificationKey key, String code) throws VerificationStoreException {
         Objects.requireNonNull(key, "key must not be null");
         Objects.requireNonNull(code, "code must not be null");
         return store.verifyAndConsume(key, code, clock.instant());

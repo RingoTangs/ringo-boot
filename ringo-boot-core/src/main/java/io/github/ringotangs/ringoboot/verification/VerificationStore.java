@@ -12,6 +12,10 @@ import java.time.Instant;
  *
  * @implNote 分布式实现必须保证跨进程的原子操作语义 / Distributed implementations must preserve atomic
  *     semantics across processes.
+ * @implSpec 第三方适配器必须将连接、超时、序列化和原子操作故障包装为
+ *     {@link VerificationStoreException}，不得向调用方泄露供应商异常。 / Third-party adapters must wrap
+ *     connection, timeout, serialization, and atomic-operation failures in
+ *     {@link VerificationStoreException} instead of exposing vendor exceptions.
  */
 public interface VerificationStore {
 
@@ -29,8 +33,10 @@ public interface VerificationStore {
      * @param issuedAt 签发时间 / the issuance instant
      * @return 存储或限流结果 / the stored or throttled result
      * @throws NullPointerException 当任一参数为 {@code null} 时 / if any argument is {@code null}
+     * @throws VerificationStoreException 当底层存储操作失败时 / if the underlying storage operation fails
      */
-    StoreResult store(VerificationKey key, String code, VerificationPolicy policy, Instant issuedAt);
+    StoreResult store(VerificationKey key, String code, VerificationPolicy policy, Instant issuedAt)
+            throws VerificationStoreException;
 
     /**
      * 原子地校验验证码；成功或次数耗尽时消费记录，不匹配时扣减剩余尝试次数。
@@ -43,8 +49,10 @@ public interface VerificationStore {
      * @param verifiedAt 校验时间 / the verification instant
      * @return 校验结果 / the verification result
      * @throws NullPointerException 当任一参数为 {@code null} 时 / if any argument is {@code null}
+     * @throws VerificationStoreException 当底层存储操作失败时 / if the underlying storage operation fails
      */
-    VerificationResult verifyAndConsume(VerificationKey key, String code, Instant verifiedAt);
+    VerificationResult verifyAndConsume(VerificationKey key, String code, Instant verifiedAt)
+            throws VerificationStoreException;
 
     /**
      * 当验证码键与明文验证码同时匹配时原子地删除记录。
@@ -55,6 +63,7 @@ public interface VerificationStore {
      * @param code 待失效的明文验证码 / the plaintext code to invalidate
      * @return 是否删除了匹配记录 / whether a matching record was removed
      * @throws NullPointerException 当验证码键或验证码为 {@code null} 时 / if the key or code is {@code null}
+     * @throws VerificationStoreException 当底层存储操作失败时 / if the underlying storage operation fails
      */
-    boolean invalidate(VerificationKey key, String code);
+    boolean invalidate(VerificationKey key, String code) throws VerificationStoreException;
 }

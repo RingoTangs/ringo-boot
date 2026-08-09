@@ -21,8 +21,9 @@ public interface VerificationService {
      * @param key 验证码键 / the verification key
      * @return 不包含明文验证码的交付结果 / the delivery result without the plaintext code
      * @throws NullPointerException 当验证码键为 {@code null} 时 / if the verification key is {@code null}
+     * @throws VerificationStoreException 当验证码存储操作失败时 / if a verification storage operation fails
      */
-    DeliveryResult issue(VerificationKey key);
+    DeliveryResult issue(VerificationKey key) throws VerificationStoreException;
 
     /**
      * 使用指定策略签发并派发验证码。
@@ -33,8 +34,9 @@ public interface VerificationService {
      * @param policy 验证码策略 / the verification policy
      * @return 不包含明文验证码的交付结果 / the delivery result without the plaintext code
      * @throws NullPointerException 当验证码键或策略为 {@code null} 时 / if the key or policy is {@code null}
+     * @throws VerificationStoreException 当验证码存储操作失败时 / if a verification storage operation fails
      */
-    DeliveryResult issue(VerificationKey key, VerificationPolicy policy);
+    DeliveryResult issue(VerificationKey key, VerificationPolicy policy) throws VerificationStoreException;
 
     /**
      * 校验验证码，并根据结果原子地消费记录或扣减剩余尝试次数。
@@ -46,6 +48,7 @@ public interface VerificationService {
      * @param code 待校验的验证码 / the code to verify
      * @return 校验结果 / the verification result
      * @throws NullPointerException 当验证码键或验证码为 {@code null} 时 / if the key or code is {@code null}
+     * @throws VerificationStoreException 当验证码存储操作失败时 / if a verification storage operation fails
      */
-    VerificationResult verify(VerificationKey key, String code);
+    VerificationResult verify(VerificationKey key, String code) throws VerificationStoreException;
 }

@@ -78,7 +78,7 @@ class AbstractVerificationServiceTest {
 
     @Test
     void preservesDispatchFailureAndSuppressesInvalidationFailure() {
-        IllegalStateException invalidationFailure = new IllegalStateException("cleanup unavailable");
+        VerificationStoreException invalidationFailure = new VerificationStoreException("cleanup unavailable");
         VerificationStore store = new StubVerificationStore() {
             @Override
             public boolean invalidate(VerificationKey key, String code) {
@@ -94,6 +94,40 @@ class AbstractVerificationServiceTest {
         assertSame(dispatchFailure, thrown);
         assertEquals(1, thrown.getSuppressed().length);
         assertSame(invalidationFailure, thrown.getSuppressed()[0]);
+    }
+
+    @Test
+    void propagatesStoreFailureDuringIssuance() {
+        VerificationStoreException failure = new VerificationStoreException("storage unavailable");
+        VerificationStore store = new StubVerificationStore() {
+            @Override
+            public StoreResult store(VerificationKey key, String code, VerificationPolicy policy, Instant issuedAt) {
+                throw failure;
+            }
+        };
+        CapturingVerificationService template = template(length -> "123456", store);
+
+        VerificationStoreException thrown = assertThrows(VerificationStoreException.class, () -> template.issue(LOGIN));
+
+        assertSame(failure, thrown);
+        assertEquals(0, template.dispatches());
+    }
+
+    @Test
+    void propagatesStoreFailureDuringVerification() {
+        VerificationStoreException failure = new VerificationStoreException("storage unavailable");
+        VerificationStore store = new StubVerificationStore() {
+            @Override
+            public VerificationResult verifyAndConsume(VerificationKey key, String code, Instant verifiedAt) {
+                throw failure;
+            }
+        };
+        CapturingVerificationService template = template(length -> "123456", store);
+
+        VerificationStoreException thrown =
+                assertThrows(VerificationStoreException.class, () -> template.verify(LOGIN, "123456"));
+
+        assertSame(failure, thrown);
     }
 
     @Test
