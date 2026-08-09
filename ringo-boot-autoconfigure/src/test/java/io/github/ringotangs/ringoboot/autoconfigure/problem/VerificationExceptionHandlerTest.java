@@ -60,15 +60,8 @@ class VerificationExceptionHandlerTest {
     }
 
     @Test
-    void localizesGenerationAndUnavailableProblems() {
+    void usesBuiltInLocalizedMessages() {
         StaticMessageSource messageSource = new StaticMessageSource();
-        messageSource.addMessage("problem.verification.generation-failed.title", Locale.SIMPLIFIED_CHINESE, "验证码生成失败");
-        messageSource.addMessage(
-                "problem.verification.generation-failed.detail", Locale.SIMPLIFIED_CHINESE, "验证码服务发生内部错误");
-        messageSource.addMessage(
-                "problem.verification.service-unavailable.title", Locale.SIMPLIFIED_CHINESE, "验证码服务不可用");
-        messageSource.addMessage(
-                "problem.verification.service-unavailable.detail", Locale.SIMPLIFIED_CHINESE, "验证码服务暂时不可用");
         LocaleContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
         VerificationExceptionHandler handler =
                 new VerificationExceptionHandler(new MessageSourceProblemMessageResolver(messageSource));
@@ -80,6 +73,33 @@ class VerificationExceptionHandlerTest {
         assertEquals("验证码服务发生内部错误", generation.getDetail());
         assertEquals("验证码服务不可用", unavailable.getTitle());
         assertEquals("验证码服务暂时不可用", unavailable.getDetail());
+    }
+
+    @Test
+    void usesBuiltInEnglishMessages() {
+        LocaleContextHolder.setLocale(Locale.ENGLISH);
+        VerificationExceptionHandler handler =
+                new VerificationExceptionHandler(new MessageSourceProblemMessageResolver(new StaticMessageSource()));
+
+        ProblemDetail problem = handler.handleVerificationException(new VerificationStoreException("internal"));
+
+        assertEquals("Verification service unavailable", problem.getTitle());
+        assertEquals("The verification service is temporarily unavailable", problem.getDetail());
+    }
+
+    @Test
+    void applicationMessagesOverrideBuiltInMessagesPerKey() {
+        StaticMessageSource messageSource = new StaticMessageSource();
+        messageSource.addMessage(
+                "problem.verification.generation-failed.title", Locale.SIMPLIFIED_CHINESE, "自定义验证码生成失败");
+        LocaleContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
+        VerificationExceptionHandler handler =
+                new VerificationExceptionHandler(new MessageSourceProblemMessageResolver(messageSource));
+
+        ProblemDetail problem = handler.handleVerificationException(new CodeGenerationException("internal"));
+
+        assertEquals("自定义验证码生成失败", problem.getTitle());
+        assertEquals("验证码服务发生内部错误", problem.getDetail());
     }
 
     private VerificationExceptionHandler createDefaultHandler() {
