@@ -19,6 +19,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -88,6 +89,18 @@ class EmailVerificationControllerTest {
     }
 
     @Test
+    void localizesInvalidCodeForChineseRequest() throws Exception {
+        mockMvc.perform(post("/verification/email/verify")
+                        .header(HttpHeaders.ACCEPT_LANGUAGE, "zh-CN")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(verifyRequest(uniqueEmail(), "123456")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value(INVALID_CODE_TYPE))
+                .andExpect(jsonPath("$.title").value("验证码无效"))
+                .andExpect(jsonPath("$.detail").value("验证码无效"));
+    }
+
+    @Test
     void validatesIssueRequestEmail() throws Exception {
         mockMvc.perform(post("/verification/email/code")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -120,7 +133,9 @@ class EmailVerificationControllerTest {
                         .content(verifyRequest(email, code)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.type").value(INVALID_CODE_TYPE))
-                .andExpect(jsonPath("$.status").value(400));
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.title").value("Invalid verification code"))
+                .andExpect(jsonPath("$.detail").value("The verification code is invalid"));
     }
 
     private String uniqueEmail() {
