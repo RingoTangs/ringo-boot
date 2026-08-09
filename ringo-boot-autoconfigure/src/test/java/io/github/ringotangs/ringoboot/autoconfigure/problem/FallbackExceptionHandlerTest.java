@@ -67,9 +67,7 @@ class FallbackExceptionHandlerTest {
     }
 
     @Test
-    void localizesUnexpectedExceptionWhenInternationalizationIsEnabled() {
-        messageSource.addMessage("problem.internal-server-error.title", Locale.SIMPLIFIED_CHINESE, "服务器内部错误");
-        messageSource.addMessage("problem.internal-server-error.detail", Locale.SIMPLIFIED_CHINESE, "发生了意外错误");
+    void usesBuiltInLocalizedMessagesForUnexpectedException() {
         properties.setI18nEnabled(true);
         LocaleContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
         FallbackExceptionHandler handler = createHandler(new MessageSourceProblemMessageResolver(messageSource));
@@ -79,6 +77,35 @@ class FallbackExceptionHandlerTest {
         assertNotNull(body);
 
         assertEquals("服务器内部错误", body.getTitle());
+        assertEquals("发生了意外错误", body.getDetail());
+    }
+
+    @Test
+    void usesBuiltInEnglishMessagesForUnexpectedException() {
+        properties.setI18nEnabled(true);
+        LocaleContextHolder.setLocale(Locale.ENGLISH);
+        FallbackExceptionHandler handler = createHandler(new MessageSourceProblemMessageResolver(messageSource));
+
+        ProblemDetail body =
+                handler.handleException(new IllegalStateException("internal")).getBody();
+        assertNotNull(body);
+
+        assertEquals("Internal server error", body.getTitle());
+        assertEquals("An unexpected error occurred", body.getDetail());
+    }
+
+    @Test
+    void applicationMessagesOverrideBuiltInMessagesPerKey() {
+        messageSource.addMessage("problem.internal-server-error.title", Locale.SIMPLIFIED_CHINESE, "自定义服务器错误");
+        properties.setI18nEnabled(true);
+        LocaleContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
+        FallbackExceptionHandler handler = createHandler(new MessageSourceProblemMessageResolver(messageSource));
+
+        ProblemDetail body =
+                handler.handleException(new IllegalStateException("internal")).getBody();
+        assertNotNull(body);
+
+        assertEquals("自定义服务器错误", body.getTitle());
         assertEquals("发生了意外错误", body.getDetail());
     }
 
