@@ -269,11 +269,15 @@ ringo:
 ```
 
 验证码状态使用 Redis Hash，key 格式为
-`ringo:verification:v1:{applicationName}:{namespace}:{purpose}:{keyDigest}`。应用名称优先读取
+`{applicationName}:verification:v1:{namespace}:{purpose}:{keyDigest}`。应用名称优先读取
 `ringo.boot.verification.redis.application-name`，否则读取 `spring.application.name`；两者均缺失时应用启动失败。
 应用名称必须以字母或数字开头，只能包含字母、数字、点、下划线和连字符。应用名称也参与 key 摘要和验证码
 摘要计算，因此不同应用即使业务维度、验证主体和验证码完全相同，也不会共享 Redis 状态。修改应用名称会使
 旧名称下尚未过期的验证码不可访问。
+
+其中 `v1` 是由框架维护的 Redis 存储协议版本，用于隔离未来不兼容的 key、Hash 字段或摘要协议变更，
+不是可由应用修改的运行时配置。摘要计算中的 `key:v1` 和 `code:v1` 分别隔离 key 摘要与验证码摘要用途，
+同样由框架内部维护。
 
 启动应用前，可以从服务器密码文件加载 Redis 密码：
 

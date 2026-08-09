@@ -28,7 +28,7 @@ import org.springframework.data.redis.core.script.RedisScript;
  * <p>Redis key 的格式如下：</p>
  *
  * <pre>{@code
- * ringo:verification:v1:{applicationName}:{namespace}:{purpose}:{keyDigest}
+ * {applicationName}:verification:v1:{namespace}:{purpose}:{keyDigest}
  * }</pre>
  *
  * <p>{@code namespace} 和 {@code purpose} 以明文保留，便于按业务分类；邮箱、手机号等 {@code subject}
@@ -52,7 +52,7 @@ import org.springframework.data.redis.core.script.RedisScript;
  * <p>例如，Redis 中的数据形态可能是：</p>
  *
  * <pre>{@code
- * key: ringo:verification:v1:identity-service:account:email-verification:AbCdEf...
+ * key: identity-service:verification:v1:account:email-verification:AbCdEf...
  * hash:
  *   codeDigest        XyZ...
  *   expiresAt         1786266000000
@@ -65,13 +65,20 @@ import org.springframework.data.redis.core.script.RedisScript;
  *
  * <p>Atomically stores verification state with Redis hashes and single-key Lua scripts. A Redis
  * key has the form {@code
- * ringo:verification:v1:{applicationName}:{namespace}:{purpose}:{keyDigest}}. The application name,
+ * {applicationName}:verification:v1:{namespace}:{purpose}:{keyDigest}}. The application name,
  * namespace, and purpose remain readable for isolation and classification, while the subject is
  * included only in the HMAC-SHA256 key digest. Each hash stores {@code codeDigest}, {@code expiresAt}, {@code
  * resendAt}, and {@code remainingAttempts}. Timestamps use epoch milliseconds, and the Redis key
  * expires at {@code expiresAt + expiredRetention}. Successful verification, exhausted attempts,
  * explicit invalidation, and detection of business expiration delete the record early. Email
  * addresses, phone numbers, and verification codes are never stored in plaintext.</p>
+ *
+ * <p>{@code v1} 是框架维护的存储协议版本，不是运行时配置。未来发生不兼容的 key、Hash 字段或摘要协议
+ * 变更时，可使用新版本隔离新旧数据，避免新代码错误解释旧数据。</p>
+ *
+ * <p>{@code v1} is a framework-managed storage-protocol version, not a runtime configuration
+ * property. A future incompatible key, hash-field, or digest protocol can use a new version to
+ * isolate old data and prevent new code from interpreting it incorrectly.</p>
  *
  * @apiNote 所有共享 Redis 数据的应用实例必须使用同一 HMAC 密钥，否则相同验证键会映射到不同 Redis
  *     key，且验证码摘要无法匹配。 / Every application instance sharing Redis data must use the
@@ -80,7 +87,10 @@ import org.springframework.data.redis.core.script.RedisScript;
  */
 public final class RedisVerificationStore implements VerificationStore {
 
-    private static final String KEY_PREFIX = "ringo:verification:v1:";
+    private static final String LEGACY_KEY_PREFIX = "ringo:verification:v1:";
+    private static final String STORAGE_VERSION = "v1";
+    private static final String KEY_DIGEST_DOMAIN = "key:v1";
+    private static final String CODE_DIGEST_DOMAIN = "code:v1";
     private static final String HMAC_ALGORITHM = "HmacSHA256";
     private static final int MINIMUM_SECRET_BYTES = 32;
     private static final Pattern APPLICATION_NAME_PATTERN = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._-]*");
@@ -194,6 +204,9 @@ public final class RedisVerificationStore implements VerificationStore {
      * @throws NullPointerException 当任一参数为 {@code null} 时 / if any argument is {@code null}
      * @throws IllegalArgumentException 当密钥过短或保留时间不是正数时 / if the secret is too short or
      *     retention is not positive
+     * @deprecated 使用包含应用名称的构造器；此构造器仅保留旧 key 和摘要协议兼容性 / use the
+     *     application-name constructor; this constructor remains only for legacy key and digest
+     *     protocol compatibility
      */
     @Deprecated(since = "1.0", forRemoval = false)
     public RedisVerificationStore(StringRedisTemplate redisTemplate, byte[] secret, Duration expiredRetention) {
@@ -318,14 +331,10 @@ public final class RedisVerificationStore implements VerificationStore {
      *     business segments and an irreversible subject digest
      */
     private String redisKey(VerificationKey key) {
-        String applicationSegment = applicationName == null ? "" : applicationName + ':';
-        return KEY_PREFIX
-                + applicationSegment
-                + key.namespace()
-                + ':'
-                + key.purpose()
-                + ':'
-                + digest("key:v1", key, null);
+        String prefix = applicationName == null
+                ? LEGACY_KEY_PREFIX
+                : applicationName + ":verification:" + STORAGE_VERSION + ':';
+        return prefix + key.namespace() + ':' + key.purpose() + ':' + digest(KEY_DIGEST_DOMAIN, key, null);
     }
 
     /**
@@ -343,7 +352,7 @@ public final class RedisVerificationStore implements VerificationStore {
      *     digest
      */
     private String codeDigest(VerificationKey key, String code) {
-        return digest("code:v1", key, code);
+        return digest(CODE_DIGEST_DOMAIN, key, code);
     }
 
     /**

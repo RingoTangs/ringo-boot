@@ -85,7 +85,7 @@ class RedisVerificationStoreTest {
         ArgumentCaptor<Object[]> arguments = ArgumentCaptor.forClass(Object[].class);
         verify(redisTemplate).execute(any(RedisScript.class), keys.capture(), arguments.capture());
         assertThat(keys.getValue().getFirst())
-                .startsWith("ringo:verification:v1:test-application:account:email-verification:")
+                .startsWith("test-application:verification:v1:account:email-verification:")
                 .doesNotContain(KEY.subject());
         assertThat(arguments.getValue())
                 .allSatisfy(argument -> assertThat(argument.toString()).doesNotContain(KEY.subject(), "123456"));
@@ -138,9 +138,9 @@ class RedisVerificationStoreTest {
         verify(redisTemplate, org.mockito.Mockito.times(2))
                 .execute(any(RedisScript.class), keys.capture(), any(Object[].class));
         assertThat(keys.getAllValues().get(0).getFirst())
-                .startsWith("ringo:verification:v1:application-one:")
+                .startsWith("application-one:verification:v1:")
                 .isNotEqualTo(keys.getAllValues().get(1).getFirst());
-        assertThat(keys.getAllValues().get(1).getFirst()).startsWith("ringo:verification:v1:application-two:");
+        assertThat(keys.getAllValues().get(1).getFirst()).startsWith("application-two:verification:v1:");
     }
 
     private RedisVerificationStore store(StringRedisTemplate redisTemplate) {
