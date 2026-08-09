@@ -14,9 +14,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 /**
- * 显式选择 Redis 时自动配置验证码状态存储。
+ * 显式选择 Redis 且存在 {@link StringRedisTemplate} 时自动配置验证码状态存储。
  *
- * <p>Auto-configures verification state storage when Redis is explicitly selected.</p>
+ * <p>用户提供自定义 {@link VerificationStore} 时，默认 Redis 实现自动回退。</p>
+ *
+ * <p>Auto-configures verification state storage when Redis is explicitly selected and a
+ * {@link StringRedisTemplate} is available. The default Redis implementation backs off when the
+ * application provides a custom {@link VerificationStore}.</p>
  */
 @AutoConfiguration(before = VerificationAutoConfiguration.class)
 @ConditionalOnClass(StringRedisTemplate.class)
@@ -31,6 +35,12 @@ public class RedisVerificationAutoConfiguration {
      *
      * <p>Creates the Redis store with the Spring Data Redis template and configured
      * shared secret.</p>
+     *
+     * @param redisTemplate Redis 字符串操作模板 / the Redis string operations template
+     * @param properties Redis 验证码存储配置 / the Redis verification storage configuration
+     * @return Redis 验证码状态存储 / the Redis verification state store
+     * @throws IllegalStateException 当共享密钥缺失或不是有效 Base64 时 / if the shared secret is
+     *     missing or is not valid Base64
      */
     @Bean
     @ConditionalOnMissingBean(VerificationStore.class)

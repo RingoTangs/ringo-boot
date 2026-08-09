@@ -6,9 +6,9 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Redis 验证码状态存储配置。
+ * Redis 验证码状态存储的自动配置属性。
  *
- * <p>Configuration for Redis verification state storage.</p>
+ * <p>Auto-configuration properties for Redis verification state storage.</p>
  */
 @ConfigurationProperties(RedisVerificationProperties.PREFIX)
 public class RedisVerificationProperties {
@@ -45,21 +45,57 @@ public class RedisVerificationProperties {
      */
     private @Nullable String secret;
 
-    /** 业务过期后的记录保留时间。 / Record retention after business expiration. */
+    /**
+     * 验证码业务过期后 Redis 记录继续保留的时间，必须为正数，默认为一分钟。
+     *
+     * <p>How long the Redis record remains after the verification code expires for business use.
+     * Must be positive and defaults to one minute.</p>
+     */
     private Duration expiredRetention = Duration.ofMinutes(1);
 
+    /**
+     * 返回 Base64 编码的共享 HMAC 密钥。
+     *
+     * <p>Returns the Base64-encoded shared HMAC secret.</p>
+     *
+     * @return 共享密钥，未配置时为 {@code null} / the shared secret, or {@code null} when not
+     *     configured
+     */
     public @Nullable String getSecret() {
         return secret;
     }
 
+    /**
+     * 设置 Base64 编码的共享 HMAC 密钥。
+     *
+     * <p>Sets the Base64-encoded shared HMAC secret.</p>
+     *
+     * @param secret 共享密钥，解码后必须至少为 32 字节 / the shared secret, which must decode to
+     *     at least 32 bytes
+     */
     public void setSecret(@Nullable String secret) {
         this.secret = secret;
     }
 
+    /**
+     * 返回验证码业务过期后的 Redis 记录保留时间。
+     *
+     * <p>Returns the Redis record retention after business expiration.</p>
+     *
+     * @return 过期记录保留时间 / the expired record retention
+     */
     public Duration getExpiredRetention() {
         return expiredRetention;
     }
 
+    /**
+     * 设置验证码业务过期后的 Redis 记录保留时间。
+     *
+     * <p>Sets the Redis record retention after business expiration.</p>
+     *
+     * @param expiredRetention 过期记录保留时间，必须为正数 / the expired record retention,
+     *     which must be positive
+     */
     public void setExpiredRetention(Duration expiredRetention) {
         this.expiredRetention = expiredRetention;
     }
