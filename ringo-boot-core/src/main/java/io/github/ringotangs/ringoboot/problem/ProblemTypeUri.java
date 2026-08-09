@@ -29,8 +29,8 @@ public final class ProblemTypeUri {
         }
 
         StringBuilder value = new StringBuilder(PREFIX).append(':').append(domain);
-        for (int index = 0; index < segments.length; index++) {
-            String segment = Objects.requireNonNull(segments[index], "segment must not be null");
+        for (String valueSegment : segments) {
+            String segment = Objects.requireNonNull(valueSegment, "segment must not be null");
             validateSegment(segment, "segment");
             value.append(':').append(segment);
         }

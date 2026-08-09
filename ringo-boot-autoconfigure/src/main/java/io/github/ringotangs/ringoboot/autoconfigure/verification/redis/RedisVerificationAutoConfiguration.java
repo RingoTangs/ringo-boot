@@ -4,6 +4,7 @@ import io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationAut
 import io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationProperties;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.util.Base64;
+import org.jspecify.annotations.Nullable;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -50,7 +51,7 @@ public class RedisVerificationAutoConfiguration {
                 redisTemplate, decodeSecret(properties.getSecret()), properties.getExpiredRetention());
     }
 
-    private byte[] decodeSecret(String secret) {
+    private byte[] decodeSecret(@Nullable String secret) {
         if (secret == null || secret.isBlank()) {
             throw new IllegalStateException("ringo.boot.verification.redis.secret must be configured");
         }

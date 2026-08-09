@@ -4,6 +4,7 @@ import io.github.ringotangs.ringoboot.problem.ProblemDefinition;
 import io.github.ringotangs.ringoboot.problem.ProblemException;
 import java.util.Locale;
 import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.context.support.ResourceBundleMessageSource;
@@ -40,7 +41,7 @@ final class MessageSourceProblemMessageResolver implements ProblemMessageResolve
         return new ProblemMessages(Objects.requireNonNull(title), Objects.requireNonNull(detail));
     }
 
-    private String resolveMessage(String code, Object[] arguments, String defaultMessage, Locale locale) {
+    private String resolveMessage(String code, Object @Nullable [] arguments, String defaultMessage, Locale locale) {
         String applicationMessage = messageSource.getMessage(code, arguments, null, locale);
         return applicationMessage != null
                 ? applicationMessage

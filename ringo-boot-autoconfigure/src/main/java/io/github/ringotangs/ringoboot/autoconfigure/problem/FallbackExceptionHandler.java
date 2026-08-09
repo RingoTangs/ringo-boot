@@ -9,7 +9,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -28,7 +27,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * {@link SpringMvcExceptionHandler} 优先处理其负责的异常，最后由本处理器兜底。</p>
  */
 @RestControllerAdvice
-@Order(Ordered.LOWEST_PRECEDENCE)
+@Order
 public class FallbackExceptionHandler {
 
     private static final Log logger = LogFactory.getLog(FallbackExceptionHandler.class);

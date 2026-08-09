@@ -21,7 +21,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
  * 框架内部错误返回固定的脱敏内容，并在服务端记录完整异常。</p>
  *
  * <p>Adds stable Problem Details {@code type} values to built-in Spring MVC
- * exceptions. Client errors and expected timeouts retain Spring MVC's status,
+ * exceptions. Client errors and expected timeouts retain the Spring MVC status,
  * headers, and diagnostic text. Internal framework errors use a fixed safe body
  * and are logged with their full exception.</p>
  */

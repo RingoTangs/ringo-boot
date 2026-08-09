@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Objects;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import org.jspecify.annotations.Nullable;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
@@ -36,6 +37,7 @@ public final class RedisVerificationStore implements VerificationStore {
     private static final String HMAC_ALGORITHM = "HmacSHA256";
     private static final int MINIMUM_SECRET_BYTES = 32;
 
+    @SuppressWarnings("rawtypes")
     private static final RedisScript<List> STORE_SCRIPT = RedisScript.of("""
             local existingExpiresAt = tonumber(redis.call('HGET', KEYS[1], 'expiresAt'))
             if existingExpiresAt and tonumber(ARGV[6]) < existingExpiresAt then
@@ -189,7 +191,7 @@ public final class RedisVerificationStore implements VerificationStore {
         return digest("code:v1", key, code);
     }
 
-    private String digest(String domain, VerificationKey key, String code) {
+    private String digest(String domain, VerificationKey key, @Nullable String code) {
         try {
             Mac mac = Mac.getInstance(HMAC_ALGORITHM);
             mac.init(new SecretKeySpec(secret, HMAC_ALGORITHM));
@@ -212,7 +214,7 @@ public final class RedisVerificationStore implements VerificationStore {
         mac.update(bytes);
     }
 
-    private <T> T execute(RedisScript<T> script, String key, String... arguments) {
+    private <T extends @Nullable Object> @Nullable T execute(RedisScript<T> script, String key, String... arguments) {
         try {
             return redisTemplate.execute(script, List.of(key), (Object[]) arguments);
         } catch (DataAccessException exception) {
@@ -220,7 +222,7 @@ public final class RedisVerificationStore implements VerificationStore {
         }
     }
 
-    private long number(List<?> result, int index) {
+    private long number(@Nullable List<?> result, int index) {
         if (result == null || result.size() <= index || !(result.get(index) instanceof Number value)) {
             throw new VerificationStoreException("Redis store script returned an invalid result");
         }

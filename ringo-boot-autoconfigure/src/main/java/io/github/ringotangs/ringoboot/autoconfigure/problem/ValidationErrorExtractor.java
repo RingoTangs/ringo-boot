@@ -78,12 +78,12 @@ final class ValidationErrorExtractor {
     }
 
     private String constraintCode(MessageSourceResolvable resolvable) {
-        String @Nullable [] codes = resolvable.getCodes();
+        String[] codes = resolvable.getCodes();
         if (codes == null) {
             return FALLBACK_CODE;
         }
         for (int index = codes.length - 1; index >= 0; index--) {
-            if (codes[index] != null && !codes[index].isBlank()) {
+            if (!codes[index].isBlank()) {
                 String code = codes[index];
                 int qualifierIndex = code.indexOf('.');
                 return qualifierIndex >= 0 ? code.substring(0, qualifierIndex) : code;

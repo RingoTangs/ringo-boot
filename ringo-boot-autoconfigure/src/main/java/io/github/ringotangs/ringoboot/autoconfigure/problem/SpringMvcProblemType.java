@@ -47,46 +47,26 @@ enum SpringMvcProblemType {
 
     static @Nullable SpringMvcProblemType resolve(Exception exception) {
         Objects.requireNonNull(exception, "exception must not be null");
-        if (exception instanceof MissingPathVariableException
-                || exception instanceof ConversionNotSupportedException
-                || exception instanceof HttpMessageNotWritableException
-                || exception instanceof MethodValidationException) {
-            return INTERNAL_SERVER_ERROR;
-        }
-        if (exception instanceof HandlerMethodValidationException validationException) {
-            return validationException.isForReturnValue() ? INTERNAL_SERVER_ERROR : VALIDATION_FAILED;
-        }
-        if (exception instanceof HttpRequestMethodNotSupportedException) {
-            return METHOD_NOT_ALLOWED;
-        }
-        if (exception instanceof HttpMediaTypeNotSupportedException) {
-            return UNSUPPORTED_MEDIA_TYPE;
-        }
-        if (exception instanceof HttpMediaTypeNotAcceptableException) {
-            return NOT_ACCEPTABLE;
-        }
-        if (exception instanceof MissingServletRequestPartException
-                || exception instanceof ServletRequestBindingException) {
-            return MISSING_REQUEST_VALUE;
-        }
-        if (exception instanceof TypeMismatchException) {
-            return INVALID_PARAMETER;
-        }
-        if (exception instanceof HttpMessageNotReadableException) {
-            return MALFORMED_REQUEST;
-        }
-        if (exception instanceof MethodArgumentNotValidException) {
-            return VALIDATION_FAILED;
-        }
-        if (exception instanceof NoHandlerFoundException || exception instanceof NoResourceFoundException) {
-            return NOT_FOUND;
-        }
-        if (exception instanceof MaxUploadSizeExceededException) {
-            return PAYLOAD_TOO_LARGE;
-        }
-        if (exception instanceof AsyncRequestTimeoutException) {
-            return REQUEST_TIMEOUT;
-        }
-        return null;
+        return switch (exception) {
+            case MissingPathVariableException ignored -> INTERNAL_SERVER_ERROR;
+            case ConversionNotSupportedException ignored -> INTERNAL_SERVER_ERROR;
+            case HttpMessageNotWritableException ignored -> INTERNAL_SERVER_ERROR;
+            case MethodValidationException ignored -> INTERNAL_SERVER_ERROR;
+            case HandlerMethodValidationException validationException ->
+                validationException.isForReturnValue() ? INTERNAL_SERVER_ERROR : VALIDATION_FAILED;
+            case HttpRequestMethodNotSupportedException ignored -> METHOD_NOT_ALLOWED;
+            case HttpMediaTypeNotSupportedException ignored -> UNSUPPORTED_MEDIA_TYPE;
+            case HttpMediaTypeNotAcceptableException ignored -> NOT_ACCEPTABLE;
+            case MissingServletRequestPartException ignored -> MISSING_REQUEST_VALUE;
+            case ServletRequestBindingException ignored -> MISSING_REQUEST_VALUE;
+            case TypeMismatchException ignored -> INVALID_PARAMETER;
+            case HttpMessageNotReadableException ignored -> MALFORMED_REQUEST;
+            case MethodArgumentNotValidException ignored -> VALIDATION_FAILED;
+            case NoHandlerFoundException ignored -> NOT_FOUND;
+            case NoResourceFoundException ignored -> NOT_FOUND;
+            case MaxUploadSizeExceededException ignored -> PAYLOAD_TOO_LARGE;
+            case AsyncRequestTimeoutException ignored -> REQUEST_TIMEOUT;
+            default -> null;
+        };
     }
 }

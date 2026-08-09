@@ -130,6 +130,7 @@ public abstract class AbstractVerificationService implements VerificationService
     }
 
     private void validateGeneratedCode(String code, int expectedLength) {
+        //noinspection ConstantValue -- third-party generators can violate the SPI contract at runtime.
         if (code == null || code.isBlank() || code.length() != expectedLength) {
             throw new CodeGenerationException("generated code must be non-blank and have length " + expectedLength);
         }

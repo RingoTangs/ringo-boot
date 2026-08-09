@@ -70,6 +70,7 @@ public class EmailVerificationController {
          * address.</p>
          */
         public IssueEmailCodeRequest {
+            //noinspection ConstantValue -- JSON binding can supply null before Bean Validation runs.
             email = email == null ? null : email.strip();
         }
     }
@@ -102,6 +103,7 @@ public class EmailVerificationController {
          * address.</p>
          */
         public VerifyEmailCodeRequest {
+            //noinspection ConstantValue -- JSON binding can supply null before Bean Validation runs.
             email = email == null ? null : email.strip();
         }
     }

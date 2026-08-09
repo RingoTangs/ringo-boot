@@ -13,6 +13,7 @@ import java.net.URI;
  *
  * @see <a href="https://www.rfc-editor.org/rfc/rfc9457.html">RFC 9457</a>
  */
+@SuppressWarnings("unused") // Public convenience accessors are consumed by downstream applications.
 public interface ProblemType {
 
     /**

@@ -57,6 +57,21 @@ class RedisVerificationStoreTest {
     }
 
     @Test
+    void rejectsMissingScriptResults() {
+        RedisVerificationStore store = store(mock(StringRedisTemplate.class));
+
+        assertThatThrownBy(() -> store.store(KEY, "123456", VerificationPolicy.defaults(), NOW))
+                .isInstanceOf(VerificationStoreException.class)
+                .hasMessage("Redis store script returned an invalid result");
+        assertThatThrownBy(() -> store.verifyAndConsume(KEY, "123456", NOW))
+                .isInstanceOf(VerificationStoreException.class)
+                .hasMessage("Redis verify script returned no result");
+        assertThatThrownBy(() -> store.invalidate(KEY, "123456"))
+                .isInstanceOf(VerificationStoreException.class)
+                .hasMessage("Redis invalidate script returned no result");
+    }
+
+    @Test
     @SuppressWarnings({"rawtypes", "unchecked"})
     void doesNotSendPlaintextSubjectOrCodeToRedis() {
         StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
