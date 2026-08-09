@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
@@ -147,8 +148,25 @@ class AbstractVerificationServiceLifecycleTest {
 
     @Test
     void rejectsInvalidGeneratedCode() {
-        assertThrows(IllegalStateException.class, () -> service(length -> "").issue(LOGIN));
-        assertThrows(IllegalStateException.class, () -> service(length -> "123").issue(LOGIN));
+        assertThrows(
+                CodeGenerationException.class, () -> service(length -> null).issue(LOGIN));
+        assertThrows(CodeGenerationException.class, () -> service(length -> "").issue(LOGIN));
+        assertThrows(
+                CodeGenerationException.class, () -> service(length -> "123").issue(LOGIN));
+    }
+
+    @Test
+    void propagatesCodeGenerationException() {
+        CodeGenerationException failure = new CodeGenerationException("random source unavailable");
+
+        CodeGenerationException thrown = assertThrows(
+                CodeGenerationException.class,
+                () -> service(length -> {
+                            throw failure;
+                        })
+                        .issue(LOGIN));
+
+        assertTrue(thrown == failure);
     }
 
     private TestVerificationService service(CodeGenerator generator) {

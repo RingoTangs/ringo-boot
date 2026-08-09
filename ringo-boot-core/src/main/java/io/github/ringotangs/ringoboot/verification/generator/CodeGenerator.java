@@ -5,6 +5,11 @@ package io.github.ringotangs.ringoboot.verification.generator;
  *
  * <p>Generates a non-blank verification code whose length exactly matches the
  * requested length.</p>
+ *
+ * @implSpec 第三方适配器必须将随机源、远程服务和生成算法故障包装为
+ *     {@link CodeGenerationException}，不得向调用方泄露供应商异常。 / Third-party adapters must wrap
+ *     random-source, remote-service, and generation-algorithm failures in
+ *     {@link CodeGenerationException} instead of exposing vendor exceptions.
  */
 @FunctionalInterface
 public interface CodeGenerator {
@@ -16,8 +21,9 @@ public interface CodeGenerator {
      *
      * @param length 验证码长度 / the requested code length
      * @return 生成的验证码 / the generated verification code
+     * @throws CodeGenerationException 当验证码生成失败时 / if verification code generation fails
      * @throws IllegalArgumentException 当长度不受实现支持时 / if the length is not supported by the
      *     implementation
      */
-    String generate(int length);
+    String generate(int length) throws CodeGenerationException;
 }

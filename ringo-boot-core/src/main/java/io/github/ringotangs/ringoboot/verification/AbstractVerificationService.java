@@ -1,5 +1,6 @@
 package io.github.ringotangs.ringoboot.verification;
 
+import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSenderException;
@@ -79,21 +80,19 @@ public abstract class AbstractVerificationService implements VerificationService
 
     /** {@inheritDoc} */
     @Override
-    public final DeliveryResult issue(VerificationKey key) throws CodeSenderException, VerificationStoreException {
+    public final DeliveryResult issue(VerificationKey key)
+            throws CodeGenerationException, CodeSenderException, VerificationStoreException {
         return issue(key, defaultPolicy);
     }
 
     /** {@inheritDoc} */
     @Override
     public final DeliveryResult issue(VerificationKey key, VerificationPolicy policy)
-            throws CodeSenderException, VerificationStoreException {
+            throws CodeGenerationException, CodeSenderException, VerificationStoreException {
         Objects.requireNonNull(key, "key must not be null");
         Objects.requireNonNull(policy, "policy must not be null");
-        String code =
-                Objects.requireNonNull(codeGenerator.generate(policy.length()), "generated code must not be null");
-        if (code.isBlank() || code.length() != policy.length()) {
-            throw new IllegalStateException("generated code must be non-blank and have length " + policy.length());
-        }
+        String code = codeGenerator.generate(policy.length());
+        validateGeneratedCode(code, policy.length());
         Instant issuedAt = clock.instant();
         return switch (store.store(key, code, policy, issuedAt)) {
             case StoreResult.Throttled throttled -> new DeliveryResult.Throttled(throttled.retryAfter());
@@ -128,6 +127,12 @@ public abstract class AbstractVerificationService implements VerificationService
             throw dispatchFailure;
         }
         return new DeliveryResult.Delivered(expiresAt);
+    }
+
+    private void validateGeneratedCode(String code, int expectedLength) {
+        if (code == null || code.isBlank() || code.length() != expectedLength) {
+            throw new CodeGenerationException("generated code must be non-blank and have length " + expectedLength);
+        }
     }
 
     private void invalidateAfterFailure(VerificationKey key, String code, RuntimeException dispatchFailure) {
