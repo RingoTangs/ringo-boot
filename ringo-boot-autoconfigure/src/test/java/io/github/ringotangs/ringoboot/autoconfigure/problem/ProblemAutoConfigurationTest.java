@@ -35,6 +35,23 @@ class ProblemAutoConfigurationTest {
     }
 
     @Test
+    void doesNotConfigureHandlersWhenSpringWebIsAbsent() {
+        nonWebContextRunner
+                .withClassLoader(new FilteredClassLoader("org.springframework.web"))
+                .withPropertyValues(
+                        "ringo.boot.problem.enabled=true",
+                        "ringo.boot.problem.application-enabled=true",
+                        "ringo.boot.problem.mvc-enabled=true",
+                        "ringo.boot.problem.fallback-enabled=true")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);
+                    assertThat(context).doesNotHaveBean(FallbackExceptionHandler.class);
+                    assertThat(context).doesNotHaveBean(SpringMvcExceptionHandler.class);
+                });
+    }
+
+    @Test
     void doesNotConfigureExceptionHandlingByDefault() {
         contextRunner.run(context -> {
             assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);

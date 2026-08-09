@@ -70,6 +70,19 @@ class VerificationAutoConfigurationTest {
     }
 
     @Test
+    void configuresVerificationWithoutSpringWeb() {
+        contextRunner
+                .withClassLoader(new FilteredClassLoader("org.springframework.web"))
+                .withPropertyValues("ringo.boot.verification.enabled=true")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(VerificationStore.class);
+                    assertThat(context).hasSingleBean(EmailVerificationService.class);
+                    assertThat(context).hasSingleBean(SmsVerificationService.class);
+                });
+    }
+
+    @Test
     void configuresRedisStoreWhenExplicitlySelected() {
         StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
 
