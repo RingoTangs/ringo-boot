@@ -12,6 +12,7 @@ import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -28,7 +29,7 @@ abstract class VerificationStoreContract {
     @Test
     void storesAndThrottlesReissue() {
         VerificationKey key = key("account");
-        Instant now = Instant.now();
+        Instant now = now();
 
         StoreResult.Stored stored =
                 assertInstanceOf(StoreResult.Stored.class, store().store(key, "123456", POLICY, now));
@@ -43,7 +44,7 @@ abstract class VerificationStoreContract {
     @Test
     void decrementsAttemptsAndConsumesExhaustedCode() {
         VerificationKey key = key("account");
-        Instant now = Instant.now();
+        Instant now = now();
         store().store(key, "123456", POLICY, now);
 
         assertEquals(VerificationResult.MISMATCH, store().verifyAndConsume(key, "000000", now.plusSeconds(1)));
@@ -55,7 +56,7 @@ abstract class VerificationStoreContract {
     @Test
     void reportsExpiredThenConsumesRecord() {
         VerificationKey key = key("account");
-        Instant now = Instant.now();
+        Instant now = now();
         store().store(key, "123456", POLICY, now);
 
         assertEquals(VerificationResult.EXPIRED, store().verifyAndConsume(key, "123456", now.plus(POLICY.ttl())));
@@ -67,7 +68,7 @@ abstract class VerificationStoreContract {
     @Test
     void invalidatesOnlyMatchingCode() {
         VerificationKey key = key("account");
-        Instant now = Instant.now();
+        Instant now = now();
         store().store(key, "123456", POLICY, now);
 
         assertFalse(store().invalidate(key, "000000"));
@@ -80,7 +81,7 @@ abstract class VerificationStoreContract {
         String subject = UUID.randomUUID() + "@example.com";
         VerificationKey account = new VerificationKey("account", "login", subject);
         VerificationKey payment = new VerificationKey("payment", "login", subject);
-        Instant now = Instant.now();
+        Instant now = now();
         store().store(account, "123456", POLICY, now);
         store().store(payment, "654321", POLICY, now);
 
@@ -91,7 +92,7 @@ abstract class VerificationStoreContract {
     @Test
     void permitsOnlyOneConcurrentSuccessfulConsumption() throws Exception {
         VerificationKey key = key("account");
-        Instant now = Instant.now();
+        Instant now = now();
         store().store(key, "123456", POLICY, now);
         int threads = 16;
         CountDownLatch start = new CountDownLatch(1);
@@ -118,5 +119,9 @@ abstract class VerificationStoreContract {
 
     private VerificationKey key(String namespace) {
         return new VerificationKey(namespace, "login", UUID.randomUUID() + "@example.com");
+    }
+
+    private Instant now() {
+        return Instant.now().truncatedTo(ChronoUnit.MILLIS);
     }
 }
