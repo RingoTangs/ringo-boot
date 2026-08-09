@@ -1,4 +1,4 @@
 io.github.ringotangs.ringoboot.autoconfigure.problem.ProblemAutoConfiguration
 io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationAutoConfiguration
-io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationConsoleSenderAutoConfiguration
+io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationSenderAutoConfiguration
 io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationChannelAutoConfiguration

@@ -18,13 +18,13 @@ import org.springframework.test.web.servlet.MockMvc;
 @SpringBootTest
 @AutoConfigureMockMvc
 @ExtendWith(OutputCaptureExtension.class)
-class EmailVerificationConsoleSampleTest {
+class EmailVerificationStdoutSampleTest {
 
     @Autowired
     private MockMvc mockMvc;
 
     @Test
-    void defaultSampleConfigurationDeliversCodeToConsole(CapturedOutput output) throws Exception {
+    void defaultSampleConfigurationDeliversCodeToStdout(CapturedOutput output) throws Exception {
         String email = UUID.randomUUID() + "@example.com";
 
         mockMvc.perform(post("/verification/email/code")

@@ -2,7 +2,7 @@
 
 ## 邮箱验证码示例 / Email verification example
 
-示例通过验证码自动配置创建服务，并显式启用邮件控制台 Sender：
+示例通过验证码自动配置创建服务。启用后默认提供邮件和短信 Stdout Sender：
 
 ```yaml
 ringo:
@@ -13,8 +13,6 @@ ringo:
       ttl: 5m
       max-attempts: 5
       resend-interval: 60s
-      email:
-        console-enabled: true
 ```
 
 启用验证码功能后，缺少自定义实现时默认使用 `InMemoryVerificationStore`。
@@ -33,19 +31,8 @@ EmailCodeSender emailCodeSender(EmailClient emailClient) {
 }
 ```
 
-本地开发时可以显式启用所需渠道的控制台 Sender：
-
-```yaml
-ringo:
-  boot:
-    verification:
-      email:
-        console-enabled: true
-```
-
-控制台 Sender 默认关闭。启用后会在警告日志中输出明文验证码，仅能用于本地开发，
-不得在生产环境启用。应用提供真实的 `EmailCodeSender` 或 `SmsCodeSender` Bean 时，
-对应的控制台实现会自动回退。
+Stdout Sender 会输出明文验证码，仅能用于本地开发。应用提供真实的 `EmailCodeSender`
+或 `SmsCodeSender` Bean 时，对应的默认实现会自动回退。
 
 切换到 Redis 时只需提供 Redis 版本的 `VerificationStore` Bean，验证服务和发送逻辑不需要修改。
 
@@ -63,7 +50,7 @@ curl -i -X POST http://localhost:8080/verification/email/code \
   -d '{"email":"user@example.com"}'
 ```
 
-从应用的 `WARN` 日志中找到包含 `DEVELOPMENT ONLY` 的记录，读取其中的六位验证码，然后完成校验：
+从应用标准输出中找到包含 `DEVELOPMENT ONLY` 的记录，读取其中的六位验证码，然后完成校验：
 
 ```shell
 curl -i -X POST http://localhost:8080/verification/email/verify \
@@ -74,5 +61,5 @@ curl -i -X POST http://localhost:8080/verification/email/verify \
 成功校验返回 `204 No Content`，并立即消费验证码。相同验证码不能再次使用。
 
 > [!WARNING]
-> 控制台 Sender 会在日志中输出明文验证码，仅用于本地演示，不能用于生产环境。
-> 生产应用必须关闭 `console-enabled` 并提供真实的 `EmailCodeSender`。
+> Stdout Sender 会输出明文验证码，仅用于本地演示，不能用于生产环境。
+> 生产应用必须提供真实的 `EmailCodeSender` 和 `SmsCodeSender` 覆盖默认实现。

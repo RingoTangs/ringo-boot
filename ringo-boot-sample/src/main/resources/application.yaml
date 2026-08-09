@@ -23,5 +23,3 @@ ringo:
       ttl: 5m
       max-attempts: 5
       resend-interval: 60s
-      email:
-        console-enabled: true

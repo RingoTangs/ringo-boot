@@ -29,12 +29,6 @@ public class VerificationProperties {
     /** 默认重发间隔。 / Default resend interval. */
     private Duration resendInterval = Duration.ofSeconds(60);
 
-    /** 邮件验证码渠道配置。 / Email verification channel settings. */
-    private final Channel email = new Channel();
-
-    /** 短信验证码渠道配置。 / SMS verification channel settings. */
-    private final Channel sms = new Channel();
-
     public boolean isEnabled() {
         return enabled;
     }
@@ -73,32 +67,5 @@ public class VerificationProperties {
 
     public void setResendInterval(Duration resendInterval) {
         this.resendInterval = resendInterval;
-    }
-
-    public Channel getEmail() {
-        return email;
-    }
-
-    public Channel getSms() {
-        return sms;
-    }
-
-    /**
-     * 验证码渠道的开发辅助配置。
-     *
-     * <p>Development support settings for a verification channel.</p>
-     */
-    public static class Channel {
-
-        /** 是否启用会输出明文验证码的控制台发送器。 / Whether to enable the console sender that outputs plaintext codes. */
-        private boolean consoleEnabled;
-
-        public boolean isConsoleEnabled() {
-            return consoleEnabled;
-        }
-
-        public void setConsoleEnabled(boolean consoleEnabled) {
-            this.consoleEnabled = consoleEnabled;
-        }
     }
 }

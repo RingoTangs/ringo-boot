@@ -12,6 +12,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnSingleCandidate;
 import org.springframework.context.annotation.Bean;
 
 /**
@@ -20,8 +21,9 @@ import org.springframework.context.annotation.Bean;
  * <p>Auto-configures email and SMS verification services when their sender ports are
  * available.</p>
  */
-@AutoConfiguration(after = {VerificationAutoConfiguration.class, VerificationConsoleSenderAutoConfiguration.class})
+@AutoConfiguration(after = {VerificationAutoConfiguration.class, VerificationSenderAutoConfiguration.class})
 @ConditionalOnClass(VerificationStore.class)
+@ConditionalOnSingleCandidate(VerificationStore.class)
 @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "enabled", havingValue = "true")
 public class VerificationChannelAutoConfiguration {
 
