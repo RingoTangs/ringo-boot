@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 @Service
 class EmailVerificationApplicationService {
 
+    private static final String NAMESPACE = "account";
     private static final String PURPOSE = "email-verification";
 
     private final EmailVerificationService verificationService;
@@ -39,7 +40,7 @@ class EmailVerificationApplicationService {
     }
 
     private VerificationKey key(String email) {
-        return new VerificationKey(PURPOSE, email);
+        return new VerificationKey(NAMESPACE, PURPOSE, email);
     }
 
     private String normalize(String email) {

@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 
 class AbstractVerificationServiceLifecycleTest {
 
-    private static final VerificationKey LOGIN = new VerificationKey("login", "user@example.com");
+    private static final VerificationKey LOGIN = new VerificationKey("account", "login", "user@example.com");
     private static final Instant START = Instant.parse("2026-01-01T00:00:00Z");
 
     private final MutableClock clock = new MutableClock(START);
@@ -86,13 +86,16 @@ class AbstractVerificationServiceLifecycleTest {
     @Test
     void isolatesPurposeAndSubject() {
         VerificationService service = service(length -> "123456");
-        VerificationKey registration = new VerificationKey("register", LOGIN.subject());
-        VerificationKey otherUser = new VerificationKey(LOGIN.purpose(), "other@example.com");
+        VerificationKey paymentLogin = new VerificationKey("payment", LOGIN.purpose(), LOGIN.subject());
+        VerificationKey registration = new VerificationKey(LOGIN.namespace(), "register", LOGIN.subject());
+        VerificationKey otherUser = new VerificationKey(LOGIN.namespace(), LOGIN.purpose(), "other@example.com");
         service.issue(LOGIN);
+        service.issue(paymentLogin);
         service.issue(registration);
         service.issue(otherUser);
 
         assertEquals(VerificationResult.SUCCESS, service.verify(LOGIN, "123456"));
+        assertEquals(VerificationResult.SUCCESS, service.verify(paymentLogin, "123456"));
         assertEquals(VerificationResult.SUCCESS, service.verify(registration, "123456"));
         assertEquals(VerificationResult.SUCCESS, service.verify(otherUser, "123456"));
     }

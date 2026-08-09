@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 
 class AbstractVerificationServiceTest {
 
-    private static final VerificationKey LOGIN = new VerificationKey("login", "user@example.com");
+    private static final VerificationKey LOGIN = new VerificationKey("account", "login", "user@example.com");
     private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
 
     @Test

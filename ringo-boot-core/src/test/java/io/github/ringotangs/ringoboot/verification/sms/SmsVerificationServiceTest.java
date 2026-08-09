@@ -21,7 +21,7 @@ class SmsVerificationServiceTest {
 
     @Test
     void dispatchesCompleteDeliveryToSmsSender() {
-        VerificationKey key = new VerificationKey("login", "+8613800000000");
+        VerificationKey key = new VerificationKey("account", "login", "+8613800000000");
         AtomicReference<CodeDelivery> captured = new AtomicReference<>();
         SmsVerificationService service = new SmsVerificationService(
                 length -> "123456",

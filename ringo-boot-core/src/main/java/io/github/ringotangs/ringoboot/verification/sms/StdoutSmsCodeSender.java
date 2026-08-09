@@ -25,7 +25,9 @@ public final class StdoutSmsCodeSender implements SmsCodeSender {
      */
     @Override
     public void send(CodeDelivery delivery) {
-        System.out.println("DEVELOPMENT ONLY - SMS verification code: purpose="
+        System.out.println("DEVELOPMENT ONLY - SMS verification code: namespace="
+                + delivery.key().namespace()
+                + ", purpose="
                 + delivery.key().purpose()
                 + ", subject="
                 + mask(delivery.key().subject())

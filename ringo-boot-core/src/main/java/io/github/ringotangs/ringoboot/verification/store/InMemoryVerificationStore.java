@@ -170,6 +170,7 @@ public final class InMemoryVerificationStore implements VerificationStore {
         try {
             Mac mac = Mac.getInstance(HMAC_ALGORITHM);
             mac.init(new SecretKeySpec(secret, HMAC_ALGORITHM));
+            update(mac, key.namespace());
             update(mac, key.purpose());
             update(mac, key.subject());
             update(mac, code);

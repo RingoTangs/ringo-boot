@@ -17,11 +17,12 @@ class StdoutSmsCodeSenderTest {
     void writesCodeWithDevelopmentWarningAndMaskedPhoneNumber() {
         String output = captureOutput(() -> new StdoutSmsCodeSender()
                 .send(new CodeDelivery(
-                        new VerificationKey("sms-login", "+8613800000000"),
+                        new VerificationKey("account", "sms-login", "+8613800000000"),
                         "654321",
                         Instant.parse("2026-01-01T00:05:00Z"))));
 
         assertTrue(output.contains("DEVELOPMENT ONLY"));
+        assertTrue(output.contains("namespace=account"));
         assertTrue(output.contains("purpose=sms-login"));
         assertTrue(output.contains("subject=***0000"));
         assertTrue(output.contains("code=654321"));

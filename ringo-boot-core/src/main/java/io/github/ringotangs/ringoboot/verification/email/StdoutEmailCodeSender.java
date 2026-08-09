@@ -25,7 +25,9 @@ public final class StdoutEmailCodeSender implements EmailCodeSender {
      */
     @Override
     public void send(CodeDelivery delivery) {
-        System.out.println("DEVELOPMENT ONLY - Email verification code: purpose="
+        System.out.println("DEVELOPMENT ONLY - Email verification code: namespace="
+                + delivery.key().namespace()
+                + ", purpose="
                 + delivery.key().purpose()
                 + ", subject="
                 + mask(delivery.key().subject())

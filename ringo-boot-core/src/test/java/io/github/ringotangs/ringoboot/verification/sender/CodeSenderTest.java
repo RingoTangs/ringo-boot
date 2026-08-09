@@ -19,7 +19,9 @@ class CodeSenderTest {
         EmailCodeSender emailSender = emailDelivery::set;
         SmsCodeSender smsSender = smsDelivery::set;
         CodeDelivery delivery = new CodeDelivery(
-                new VerificationKey("login", "user@example.com"), "123456", Instant.parse("2026-01-01T00:05:00Z"));
+                new VerificationKey("account", "login", "user@example.com"),
+                "123456",
+                Instant.parse("2026-01-01T00:05:00Z"));
 
         CodeSender commonEmailSender = emailSender;
         CodeSender commonSmsSender = smsSender;
@@ -37,7 +39,9 @@ class CodeSenderTest {
             throw failure;
         };
         CodeDelivery delivery = new CodeDelivery(
-                new VerificationKey("login", "user@example.com"), "123456", Instant.parse("2026-01-01T00:05:00Z"));
+                new VerificationKey("account", "login", "user@example.com"),
+                "123456",
+                Instant.parse("2026-01-01T00:05:00Z"));
 
         CodeSenderException thrown = assertThrows(CodeSenderException.class, () -> sender.send(delivery));
 

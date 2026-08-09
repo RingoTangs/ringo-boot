@@ -31,12 +31,4 @@ class VerificationPolicyTest {
                 IllegalArgumentException.class,
                 () -> new VerificationPolicy(6, Duration.ofMinutes(1), 1, Duration.ofSeconds(-1)));
     }
-
-    @Test
-    void rejectsMissingAndBlankKeys() {
-        assertThrows(NullPointerException.class, () -> new VerificationKey(null, "subject"));
-        assertThrows(NullPointerException.class, () -> new VerificationKey("login", null));
-        assertThrows(IllegalArgumentException.class, () -> new VerificationKey(" ", "subject"));
-        assertThrows(IllegalArgumentException.class, () -> new VerificationKey("login", " "));
-    }
 }

@@ -17,11 +17,12 @@ class StdoutEmailCodeSenderTest {
     void writesCodeWithDevelopmentWarningAndMaskedAddress() {
         String output = captureOutput(() -> new StdoutEmailCodeSender()
                 .send(new CodeDelivery(
-                        new VerificationKey("email-login", "user@example.com"),
+                        new VerificationKey("account", "email-login", "user@example.com"),
                         "123456",
                         Instant.parse("2026-01-01T00:05:00Z"))));
 
         assertTrue(output.contains("DEVELOPMENT ONLY"));
+        assertTrue(output.contains("namespace=account"));
         assertTrue(output.contains("purpose=email-login"));
         assertTrue(output.contains("subject=u***@example.com"));
         assertTrue(output.contains("code=123456"));

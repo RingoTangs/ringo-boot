@@ -21,7 +21,7 @@ class EmailVerificationServiceTest {
 
     @Test
     void dispatchesCompleteDeliveryToEmailSender() {
-        VerificationKey key = new VerificationKey("login", "user@example.com");
+        VerificationKey key = new VerificationKey("account", "login", "user@example.com");
         AtomicReference<CodeDelivery> captured = new AtomicReference<>();
         EmailVerificationService service = new EmailVerificationService(
                 length -> "123456",
