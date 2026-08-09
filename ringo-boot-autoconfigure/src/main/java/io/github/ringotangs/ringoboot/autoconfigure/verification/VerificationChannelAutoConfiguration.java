@@ -1,9 +1,11 @@
 package io.github.ringotangs.ringoboot.autoconfigure.verification;
 
+import io.github.ringotangs.ringoboot.verification.email.DefaultEmailVerificationFacade;
 import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.email.EmailVerificationFacade;
 import io.github.ringotangs.ringoboot.verification.email.EmailVerificationService;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
+import io.github.ringotangs.ringoboot.verification.sms.DefaultSmsVerificationFacade;
 import io.github.ringotangs.ringoboot.verification.sms.SmsCodeSender;
 import io.github.ringotangs.ringoboot.verification.sms.SmsVerificationFacade;
 import io.github.ringotangs.ringoboot.verification.sms.SmsVerificationService;
@@ -65,7 +67,7 @@ public class VerificationChannelAutoConfiguration {
     @ConditionalOnBean(EmailVerificationService.class)
     @ConditionalOnMissingBean(EmailVerificationFacade.class)
     EmailVerificationFacade emailVerificationFacade(EmailVerificationService verificationService) {
-        return new EmailVerificationFacade(verificationService);
+        return new DefaultEmailVerificationFacade(verificationService);
     }
 
     /**
@@ -102,6 +104,6 @@ public class VerificationChannelAutoConfiguration {
     @ConditionalOnBean(SmsVerificationService.class)
     @ConditionalOnMissingBean(SmsVerificationFacade.class)
     SmsVerificationFacade smsVerificationFacade(SmsVerificationService verificationService) {
-        return new SmsVerificationFacade(verificationService);
+        return new DefaultSmsVerificationFacade(verificationService);
     }
 }

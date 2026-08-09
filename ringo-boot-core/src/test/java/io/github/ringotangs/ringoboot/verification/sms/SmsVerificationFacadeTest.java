@@ -42,9 +42,9 @@ class SmsVerificationFacadeTest {
                 () -> facade(store).verify("account", "login", "+8613800000000", "123456"));
     }
 
-    private SmsVerificationFacade facade(StubStore store) {
+    private DefaultSmsVerificationFacade facade(StubStore store) {
         SmsVerificationService service = new SmsVerificationService(length -> "123456", store, delivery -> {});
-        return new SmsVerificationFacade(service);
+        return new DefaultSmsVerificationFacade(service);
     }
 
     private static final class StubStore implements VerificationStore {

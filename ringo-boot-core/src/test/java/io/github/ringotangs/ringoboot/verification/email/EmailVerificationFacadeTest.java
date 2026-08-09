@@ -22,7 +22,7 @@ class EmailVerificationFacadeTest {
     @Test
     void normalizesEmailAndReturnsExpiration() {
         StubStore store = new StubStore();
-        EmailVerificationFacade facade = facade(store);
+        DefaultEmailVerificationFacade facade = facade(store);
 
         Instant expiresAt = facade.issue("account", "bind-email", "  USER@Example.COM  ");
 
@@ -45,7 +45,7 @@ class EmailVerificationFacadeTest {
     @Test
     void acceptsSuccessAndHidesEveryUnsuccessfulResult() {
         StubStore store = new StubStore();
-        EmailVerificationFacade facade = facade(store);
+        DefaultEmailVerificationFacade facade = facade(store);
         store.verificationResult = VerificationResult.SUCCESS;
         assertDoesNotThrow(() -> facade.verify("account", "login", "user@example.com", "123456"));
 
@@ -60,9 +60,9 @@ class EmailVerificationFacadeTest {
         }
     }
 
-    private EmailVerificationFacade facade(StubStore store) {
+    private DefaultEmailVerificationFacade facade(StubStore store) {
         EmailVerificationService service = new EmailVerificationService(length -> "123456", store, delivery -> {});
-        return new EmailVerificationFacade(service);
+        return new DefaultEmailVerificationFacade(service);
     }
 
     private static final class StubStore implements VerificationStore {

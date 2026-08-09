@@ -6,16 +6,19 @@ import static org.mockito.Mockito.mock;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationAutoConfiguration;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationProperties;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationStore;
+import io.github.ringotangs.ringoboot.verification.VerificationFacade;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.VerificationResult;
 import io.github.ringotangs.ringoboot.verification.VerificationService;
+import io.github.ringotangs.ringoboot.verification.email.DefaultEmailVerificationFacade;
 import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.email.EmailVerificationFacade;
 import io.github.ringotangs.ringoboot.verification.email.EmailVerificationService;
 import io.github.ringotangs.ringoboot.verification.email.StdoutEmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSender;
+import io.github.ringotangs.ringoboot.verification.sms.DefaultSmsVerificationFacade;
 import io.github.ringotangs.ringoboot.verification.sms.SmsCodeSender;
 import io.github.ringotangs.ringoboot.verification.sms.SmsVerificationFacade;
 import io.github.ringotangs.ringoboot.verification.sms.SmsVerificationService;
@@ -117,6 +120,10 @@ class VerificationAutoConfigurationTest {
             assertThat(context).hasSingleBean(SmsVerificationService.class);
             assertThat(context).hasSingleBean(EmailVerificationFacade.class);
             assertThat(context).hasSingleBean(SmsVerificationFacade.class);
+            assertThat(context.getBean(EmailVerificationFacade.class))
+                    .isInstanceOf(DefaultEmailVerificationFacade.class);
+            assertThat(context.getBean(SmsVerificationFacade.class)).isInstanceOf(DefaultSmsVerificationFacade.class);
+            assertThat(context).getBeans(VerificationFacade.class).hasSize(2);
         });
     }
 
@@ -131,6 +138,21 @@ class VerificationAutoConfigurationTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context.getBean(EmailVerificationFacade.class)).isSameAs(facade);
                     assertThat(context).hasSingleBean(SmsVerificationFacade.class);
+                });
+    }
+
+    @Test
+    void customSmsVerificationFacadeOverridesDefaultIndependently() {
+        SmsVerificationFacade facade = mock(SmsVerificationFacade.class);
+
+        contextRunner
+                .withPropertyValues("ringo.boot.verification.enabled=true")
+                .withBean(SmsVerificationFacade.class, () -> facade)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context.getBean(SmsVerificationFacade.class)).isSameAs(facade);
+                    assertThat(context.getBean(EmailVerificationFacade.class))
+                            .isInstanceOf(DefaultEmailVerificationFacade.class);
                 });
     }
 
