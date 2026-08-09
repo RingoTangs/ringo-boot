@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationAutoConfiguration;
+import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationProperties;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationStore;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
@@ -44,6 +45,7 @@ class VerificationAutoConfigurationTest {
     void doesNotConfigureVerificationByDefault() {
         contextRunner.run(context -> {
             assertThat(context).doesNotHaveBean(VerificationProperties.class);
+            assertThat(context).doesNotHaveBean(RedisVerificationProperties.class);
             assertThat(context).doesNotHaveBean(CodeGenerator.class);
             assertThat(context).doesNotHaveBean(VerificationPolicy.class);
             assertThat(context).doesNotHaveBean(VerificationStore.class);
@@ -58,6 +60,7 @@ class VerificationAutoConfigurationTest {
             assertThat(context).hasNotFailed();
             assertThat(context).hasSingleBean(VerificationStore.class);
             assertThat(context.getBean(VerificationStore.class)).isInstanceOf(InMemoryVerificationStore.class);
+            assertThat(context).doesNotHaveBean(RedisVerificationProperties.class);
             assertThat(context.getBean(EmailCodeSender.class)).isInstanceOf(StdoutEmailCodeSender.class);
             assertThat(context.getBean(SmsCodeSender.class)).isInstanceOf(StdoutSmsCodeSender.class);
             assertThat(context).getBeans(CodeSender.class).hasSize(2);
@@ -80,6 +83,10 @@ class VerificationAutoConfigurationTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(VerificationStore.class);
                     assertThat(context.getBean(VerificationStore.class)).isInstanceOf(RedisVerificationStore.class);
+                    assertThat(context).hasSingleBean(RedisVerificationProperties.class);
+                    assertThat(context.getBean(RedisVerificationProperties.class)
+                                    .getExpiredRetention())
+                            .isEqualTo(Duration.ofMinutes(1));
                     assertThat(context.getBeansOfType(InMemoryVerificationStore.class))
                             .isEmpty();
                 });

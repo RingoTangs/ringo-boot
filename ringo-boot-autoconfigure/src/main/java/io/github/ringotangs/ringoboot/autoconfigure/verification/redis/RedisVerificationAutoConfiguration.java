@@ -23,7 +23,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 @ConditionalOnBean(StringRedisTemplate.class)
 @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "enabled", havingValue = "true")
 @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "store", havingValue = "redis")
-@EnableConfigurationProperties(VerificationProperties.class)
+@EnableConfigurationProperties({VerificationProperties.class, RedisVerificationProperties.class})
 public class RedisVerificationAutoConfiguration {
 
     /**
@@ -34,9 +34,10 @@ public class RedisVerificationAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean(VerificationStore.class)
-    VerificationStore redisVerificationStore(StringRedisTemplate redisTemplate, VerificationProperties properties) {
-        VerificationProperties.Redis redis = properties.getRedis();
-        return new RedisVerificationStore(redisTemplate, decodeSecret(redis.getSecret()), redis.getExpiredRetention());
+    VerificationStore redisVerificationStore(
+            StringRedisTemplate redisTemplate, RedisVerificationProperties properties) {
+        return new RedisVerificationStore(
+                redisTemplate, decodeSecret(properties.getSecret()), properties.getExpiredRetention());
     }
 
     private byte[] decodeSecret(String secret) {
