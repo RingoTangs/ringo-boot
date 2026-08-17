@@ -45,7 +45,6 @@ import org.springframework.data.redis.core.script.RedisScript;
  * <ul>
  *   <li>{@code codeDigest}：绑定业务维度、subject 和验证码的 HMAC-SHA256 摘要；</li>
  *   <li>{@code expiresAt}：验证码业务过期时间，使用 epoch milliseconds；</li>
- *   <li>{@code resendAt}：允许再次签发验证码的时间，使用 epoch milliseconds；</li>
  *   <li>{@code remainingAttempts}：剩余校验次数。</li>
  * </ul>
  *
@@ -56,7 +55,6 @@ import org.springframework.data.redis.core.script.RedisScript;
  * hash:
  *   codeDigest        XyZ...
  *   expiresAt         1786266000000
- *   resendAt          1786265760000
  *   remainingAttempts 5
  * }</pre>
  *
@@ -67,8 +65,8 @@ import org.springframework.data.redis.core.script.RedisScript;
  * key has the form {@code
  * {applicationName}:verification:v1:{namespace}:{purpose}:{keyDigest}}. The application name,
  * namespace, and purpose remain readable for isolation and classification, while the subject is
- * included only in the HMAC-SHA256 key digest. Each hash stores {@code codeDigest}, {@code expiresAt}, {@code
- * resendAt}, and {@code remainingAttempts}. Timestamps use epoch milliseconds, and the Redis key
+ * included only in the HMAC-SHA256 key digest. Each hash stores {@code codeDigest}, {@code expiresAt}, and
+ * {@code remainingAttempts}. Timestamps use epoch milliseconds, and the Redis key
  * expires at {@code expiresAt + expiredRetention}. Successful verification, exhausted attempts,
  * explicit invalidation, and detection of business expiration delete the record early. Email
  * addresses, phone numbers, and verification codes are never stored in plaintext.</p>
@@ -96,37 +94,28 @@ public final class RedisVerificationStore implements VerificationStore {
     private static final Pattern APPLICATION_NAME_PATTERN = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._-]*");
 
     /**
-     * 原子签发脚本。
+     * 原子存储脚本。
      *
      * <p>{@code KEYS[1]} 是完整 Redis key。参数依次为：{@code ARGV[1]} 验证码摘要、{@code ARGV[2]}
-     * 业务过期时间、{@code ARGV[3]} 可重发时间、{@code ARGV[4]} 最大尝试次数、{@code ARGV[5]}
-     * Redis 删除时间、{@code ARGV[6]} 本次签发时间，所有时间均为 epoch milliseconds。</p>
+     * 业务过期时间、{@code ARGV[3]} 最大尝试次数、{@code ARGV[4]} Redis 删除时间，
+     * 所有时间均为 epoch milliseconds。</p>
      *
-     * <p>未到已有记录的重发时间时返回 {@code [1, retryAfterMillis]}；否则覆盖 Hash、设置绝对 TTL，
-     * 并返回 {@code [0, expiresAtMillis]}。检查、写入和设置 TTL 在一个 Lua 脚本中完成，避免并发重发绕过限流。</p>
+     * <p>脚本会完整覆盖同一验证码键的旧 Hash、设置绝对 TTL，并返回业务过期时间。</p>
      *
      * <p>Atomic issuance script. {@code KEYS[1]} is the complete Redis key. Arguments are the code
-     * digest, business expiration, resend time, maximum attempts, Redis deletion time, and current
+     * digest, business expiration, maximum attempts, Redis deletion time, and current
      * issuance time. It returns {@code [1, retryAfterMillis]} when issuance is throttled, otherwise
      * replaces the hash, sets its absolute TTL, and returns {@code [0, expiresAtMillis]}.</p>
      */
-    @SuppressWarnings("rawtypes")
-    private static final RedisScript<List> STORE_SCRIPT = RedisScript.of("""
-            local existingExpiresAt = tonumber(redis.call('HGET', KEYS[1], 'expiresAt'))
-            if existingExpiresAt and tonumber(ARGV[6]) < existingExpiresAt then
-                local existingResendAt = tonumber(redis.call('HGET', KEYS[1], 'resendAt'))
-                if existingResendAt and tonumber(ARGV[6]) < existingResendAt then
-                    return {1, existingResendAt - tonumber(ARGV[6])}
-                end
-            end
+    private static final RedisScript<Long> STORE_SCRIPT = RedisScript.of("""
+            redis.call('DEL', KEYS[1])
             redis.call('HSET', KEYS[1],
                 'codeDigest', ARGV[1],
                 'expiresAt', ARGV[2],
-                'resendAt', ARGV[3],
-                'remainingAttempts', ARGV[4])
-            redis.call('PEXPIREAT', KEYS[1], ARGV[5])
-            return {0, tonumber(ARGV[2])}
-            """, List.class);
+                'remainingAttempts', ARGV[3])
+            redis.call('PEXPIREAT', KEYS[1], ARGV[4])
+            return tonumber(ARGV[2])
+            """, Long.class);
 
     /**
      * 原子校验并消费脚本。
@@ -265,24 +254,18 @@ public final class RedisVerificationStore implements VerificationStore {
         Objects.requireNonNull(policy, "policy must not be null");
         Objects.requireNonNull(issuedAt, "issuedAt must not be null");
         Instant expiresAt = issuedAt.plus(policy.ttl());
-        Instant resendAt = issuedAt.plus(policy.resendInterval());
         Instant deleteAt = expiresAt.plus(expiredRetention);
-        List<?> result = execute(
+        Long result = execute(
                 STORE_SCRIPT,
                 redisKey(key),
                 codeDigest(key, code),
                 Long.toString(expiresAt.toEpochMilli()),
-                Long.toString(resendAt.toEpochMilli()),
                 Integer.toString(policy.maxAttempts()),
-                Long.toString(deleteAt.toEpochMilli()),
-                Long.toString(issuedAt.toEpochMilli()));
-        long status = number(result, 0);
-        long value = number(result, 1);
-        return switch ((int) status) {
-            case 0 -> new StoreResult.Stored(Instant.ofEpochMilli(value));
-            case 1 -> new StoreResult.Throttled(Duration.ofMillis(value));
-            default -> throw new VerificationStoreException("Redis store script returned an unknown status");
-        };
+                Long.toString(deleteAt.toEpochMilli()));
+        if (result == null) {
+            throw new VerificationStoreException("Redis store script returned no result");
+        }
+        return new StoreResult(Instant.ofEpochMilli(result));
     }
 
     /** {@inheritDoc} */
@@ -433,23 +416,5 @@ public final class RedisVerificationStore implements VerificationStore {
         } catch (DataAccessException exception) {
             throw new VerificationStoreException("Redis verification operation failed", exception);
         }
-    }
-
-    /**
-     * 从 Store Lua 脚本返回数组中读取数字，并拒绝缺失或类型错误的响应。
-     *
-     * <p>Reads a number from the Store Lua result array and rejects missing or malformed results.</p>
-     *
-     * @param result Lua 返回数组 / Lua result array
-     * @param index 数字所在索引 / index containing the number
-     * @return 转换后的 long 值 / converted long value
-     * @throws VerificationStoreException 当返回数据不符合脚本协议时 / if the result violates the
-     *     script protocol
-     */
-    private long number(@Nullable List<?> result, int index) {
-        if (result == null || result.size() <= index || !(result.get(index) instanceof Number value)) {
-            throw new VerificationStoreException("Redis store script returned an invalid result");
-        }
-        return value.longValue();
     }
 }

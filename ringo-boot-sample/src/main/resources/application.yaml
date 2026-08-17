@@ -31,7 +31,8 @@ ringo:
       length: 6
       ttl: 5m
       max-attempts: 5
-      resend-interval: 60s
+      issue-rate-limit:
+        interval: 60s
       redis:
         secret: v2pd/5bgDhCt81RaMcfAVC+nFYHNn/EMJdvmFo2dyEo=
         expired-retention: 1m

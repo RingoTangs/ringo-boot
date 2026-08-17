@@ -2,6 +2,10 @@ package io.github.ringotangs.ringoboot.verification;
 
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
+import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimiter;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitException;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDeliveryRejectedException;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
@@ -23,6 +27,7 @@ public abstract class AbstractVerificationService implements VerificationService
 
     private final CodeGenerator codeGenerator;
     private final VerificationStore store;
+    private final IssueRateLimiter issueRateLimiter;
     private final VerificationPolicy defaultPolicy;
     private final Clock clock;
 
@@ -35,7 +40,7 @@ public abstract class AbstractVerificationService implements VerificationService
      * @throws NullPointerException 当生成器或存储为 {@code null} 时
      */
     protected AbstractVerificationService(CodeGenerator codeGenerator, VerificationStore store) {
-        this(codeGenerator, store, VerificationPolicy.defaults(), Clock.systemUTC());
+        this(codeGenerator, store, new InMemoryIssueRateLimiter(), VerificationPolicy.defaults(), Clock.systemUTC());
     }
 
     /**
@@ -49,7 +54,7 @@ public abstract class AbstractVerificationService implements VerificationService
      */
     protected AbstractVerificationService(
             CodeGenerator codeGenerator, VerificationStore store, VerificationPolicy defaultPolicy) {
-        this(codeGenerator, store, defaultPolicy, Clock.systemUTC());
+        this(codeGenerator, store, new InMemoryIssueRateLimiter(), defaultPolicy, Clock.systemUTC());
     }
 
     /**
@@ -64,8 +69,28 @@ public abstract class AbstractVerificationService implements VerificationService
      */
     protected AbstractVerificationService(
             CodeGenerator codeGenerator, VerificationStore store, VerificationPolicy defaultPolicy, Clock clock) {
+        this(codeGenerator, store, new InMemoryIssueRateLimiter(), defaultPolicy, clock);
+    }
+
+    /**
+     * 使用指定生成器、存储、签发限流器、默认策略和时钟创建渠道服务。
+     *
+     * @param codeGenerator 验证码生成器
+     * @param store 验证码状态存储
+     * @param issueRateLimiter 验证码签发限流器
+     * @param defaultPolicy 默认验证码策略
+     * @param clock 提供签发和校验时间的时钟
+     * @throws NullPointerException 当任一参数为 {@code null} 时
+     */
+    protected AbstractVerificationService(
+            CodeGenerator codeGenerator,
+            VerificationStore store,
+            IssueRateLimiter issueRateLimiter,
+            VerificationPolicy defaultPolicy,
+            Clock clock) {
         this.codeGenerator = Objects.requireNonNull(codeGenerator, "codeGenerator must not be null");
         this.store = Objects.requireNonNull(store, "store must not be null");
+        this.issueRateLimiter = Objects.requireNonNull(issueRateLimiter, "issueRateLimiter must not be null");
         this.defaultPolicy = Objects.requireNonNull(defaultPolicy, "defaultPolicy must not be null");
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
     }
@@ -73,23 +98,26 @@ public abstract class AbstractVerificationService implements VerificationService
     /** {@inheritDoc} */
     @Override
     public final IssueResult issue(VerificationKey key)
-            throws CodeGenerationException, CodeSenderException, VerificationStoreException {
+            throws CodeGenerationException, CodeSenderException, IssueRateLimitException, VerificationStoreException {
         return issue(key, defaultPolicy);
     }
 
     /** {@inheritDoc} */
     @Override
     public final IssueResult issue(VerificationKey key, VerificationPolicy policy)
-            throws CodeGenerationException, CodeSenderException, VerificationStoreException {
+            throws CodeGenerationException, CodeSenderException, IssueRateLimitException, VerificationStoreException {
         Objects.requireNonNull(key, "key must not be null");
         Objects.requireNonNull(policy, "policy must not be null");
+        Instant issuedAt = clock.instant();
+        IssueLimitResult limitResult = Objects.requireNonNull(
+                issueRateLimiter.acquire(key, issuedAt), "issue rate limiter result must not be null");
+        if (limitResult instanceof IssueLimitResult.Throttled throttled) {
+            return new IssueResult.Throttled(throttled.retryAfter());
+        }
         String code = codeGenerator.generate(policy.length());
         validateGeneratedCode(code, policy.length());
-        Instant issuedAt = clock.instant();
-        return switch (store.store(key, code, policy, issuedAt)) {
-            case StoreResult.Throttled throttled -> new IssueResult.Throttled(throttled.retryAfter());
-            case StoreResult.Stored stored -> dispatchStored(key, code, stored.expiresAt());
-        };
+        StoreResult stored = store.store(key, code, policy, issuedAt);
+        return dispatchStored(key, code, stored.expiresAt());
     }
 
     /** {@inheritDoc} */

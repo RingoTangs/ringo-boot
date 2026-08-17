@@ -13,7 +13,8 @@ ringo:
       length: 6
       ttl: 5m
       max-attempts: 5
-      resend-interval: 60s
+      issue-rate-limit:
+        interval: 60s
       redis:
         secret: ${VERIFICATION_HMAC_SECRET}
         expired-retention: 1m

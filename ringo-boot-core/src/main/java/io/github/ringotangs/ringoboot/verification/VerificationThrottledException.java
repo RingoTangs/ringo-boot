@@ -4,7 +4,7 @@ import java.time.Duration;
 import java.util.Objects;
 
 /**
- * 同一验证键在重发间隔内被重复签发时抛出的业务异常。
+ * 同一验证键在签发限制周期内被重复签发时抛出的业务异常。
  *
  */
 public final class VerificationThrottledException extends RuntimeException {

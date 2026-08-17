@@ -15,20 +15,12 @@ class VerificationPolicyTest {
         assertEquals(6, policy.length());
         assertEquals(Duration.ofMinutes(5), policy.ttl());
         assertEquals(5, policy.maxAttempts());
-        assertEquals(Duration.ofSeconds(60), policy.resendInterval());
     }
 
     @Test
     void rejectsInvalidValues() {
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> new VerificationPolicy(0, Duration.ofMinutes(1), 1, Duration.ZERO));
-        assertThrows(IllegalArgumentException.class, () -> new VerificationPolicy(6, Duration.ZERO, 1, Duration.ZERO));
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> new VerificationPolicy(6, Duration.ofMinutes(1), 0, Duration.ZERO));
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> new VerificationPolicy(6, Duration.ofMinutes(1), 1, Duration.ofSeconds(-1)));
+        assertThrows(IllegalArgumentException.class, () -> new VerificationPolicy(0, Duration.ofMinutes(1), 1));
+        assertThrows(IllegalArgumentException.class, () -> new VerificationPolicy(6, Duration.ZERO, 1));
+        assertThrows(IllegalArgumentException.class, () -> new VerificationPolicy(6, Duration.ofMinutes(1), 0));
     }
 }

@@ -9,6 +9,7 @@ import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.VerificationResult;
 import io.github.ringotangs.ringoboot.verification.VerificationThrottledException;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
@@ -34,11 +35,11 @@ class EmailVerificationFacadeTest {
     @Test
     void convertsThrottlingToBusinessException() {
         StubStore store = new StubStore();
-        store.storeResult = new StoreResult.Throttled(Duration.ofSeconds(9));
 
         VerificationThrottledException exception = assertThrows(
                 VerificationThrottledException.class,
-                () -> facade(store).issue("account", "login", "user@example.com"));
+                () -> facade(store, new IssueLimitResult.Throttled(Duration.ofSeconds(9)), CodeSendResult.ACCEPTED)
+                        .issue("account", "login", "user@example.com"));
 
         assertEquals(Duration.ofSeconds(9), exception.retryAfter());
     }
@@ -75,21 +76,29 @@ class EmailVerificationFacadeTest {
     }
 
     private DefaultEmailVerificationFacade facade(StubStore store, CodeSendResult sendResult) {
-        EmailVerificationService service =
-                new EmailVerificationService(length -> "123456", store, delivery -> sendResult);
+        return facade(store, new IssueLimitResult.Allowed(), sendResult);
+    }
+
+    private DefaultEmailVerificationFacade facade(
+            StubStore store, IssueLimitResult limitResult, CodeSendResult sendResult) {
+        EmailVerificationService service = new EmailVerificationService(
+                length -> "123456",
+                store,
+                (key, requestedAt) -> limitResult,
+                VerificationPolicy.defaults(),
+                delivery -> sendResult);
         return new DefaultEmailVerificationFacade(service);
     }
 
     private static final class StubStore implements VerificationStore {
 
-        private StoreResult storeResult = new StoreResult.Stored(EXPIRES_AT);
         private VerificationResult verificationResult = VerificationResult.SUCCESS;
         private VerificationKey lastKey;
 
         @Override
         public StoreResult store(VerificationKey key, String code, VerificationPolicy policy, Instant issuedAt) {
             lastKey = key;
-            return storeResult;
+            return new StoreResult(EXPIRES_AT);
         }
 
         @Override

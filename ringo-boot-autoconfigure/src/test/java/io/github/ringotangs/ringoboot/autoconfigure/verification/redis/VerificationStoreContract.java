@@ -2,7 +2,6 @@ package io.github.ringotangs.ringoboot.autoconfigure.verification.redis;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
@@ -21,24 +20,22 @@ import org.junit.jupiter.api.Test;
 
 abstract class VerificationStoreContract {
 
-    private static final VerificationPolicy POLICY =
-            new VerificationPolicy(6, Duration.ofMinutes(5), 2, Duration.ofMinutes(1));
+    private static final VerificationPolicy POLICY = new VerificationPolicy(6, Duration.ofMinutes(5), 2);
 
     protected abstract VerificationStore store();
 
     @Test
-    void storesAndThrottlesReissue() {
+    void storesAndOverwritesReissue() {
         VerificationKey key = key("account");
         Instant now = now();
 
-        StoreResult.Stored stored =
-                assertInstanceOf(StoreResult.Stored.class, store().store(key, "123456", POLICY, now));
-        StoreResult.Throttled throttled = assertInstanceOf(
-                StoreResult.Throttled.class, store().store(key, "654321", POLICY, now.plusSeconds(10)));
+        StoreResult stored = store().store(key, "123456", POLICY, now);
+        StoreResult overwritten = store().store(key, "654321", POLICY, now.plusSeconds(10));
 
         assertEquals(now.plus(POLICY.ttl()), stored.expiresAt());
-        assertEquals(Duration.ofSeconds(50), throttled.retryAfter());
-        assertEquals(VerificationResult.SUCCESS, store().verifyAndConsume(key, "123456", now.plusSeconds(11)));
+        assertEquals(now.plusSeconds(10).plus(POLICY.ttl()), overwritten.expiresAt());
+        assertEquals(VerificationResult.MISMATCH, store().verifyAndConsume(key, "123456", now.plusSeconds(11)));
+        assertEquals(VerificationResult.SUCCESS, store().verifyAndConsume(key, "654321", now.plusSeconds(12)));
     }
 
     @Test

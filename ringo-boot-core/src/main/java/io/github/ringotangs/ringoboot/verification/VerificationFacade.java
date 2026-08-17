@@ -20,7 +20,7 @@ public interface VerificationFacade {
      * @param purpose 验证用途
      * @param subject 验证主体
      * @return 验证码过期时间
-     * @throws VerificationThrottledException 当重发间隔尚未结束时
+     * @throws VerificationThrottledException 当签发频率限制尚未解除时
      */
     Instant issue(String namespace, String purpose, String subject);
 

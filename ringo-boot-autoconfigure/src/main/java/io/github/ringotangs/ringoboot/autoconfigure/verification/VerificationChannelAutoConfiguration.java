@@ -5,6 +5,7 @@ import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.email.EmailVerificationFacade;
 import io.github.ringotangs.ringoboot.verification.email.EmailVerificationService;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.sms.DefaultSmsVerificationFacade;
 import io.github.ringotangs.ringoboot.verification.sms.SmsCodeSender;
 import io.github.ringotangs.ringoboot.verification.sms.SmsVerificationFacade;
@@ -29,7 +30,7 @@ import org.springframework.context.annotation.Bean;
  */
 @AutoConfiguration(after = VerificationAutoConfiguration.class)
 @ConditionalOnClass(VerificationStore.class)
-@ConditionalOnSingleCandidate(VerificationStore.class)
+@ConditionalOnSingleCandidate(IssueRateLimiter.class)
 @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "enabled", havingValue = "true")
 public class VerificationChannelAutoConfiguration {
 
@@ -46,13 +47,15 @@ public class VerificationChannelAutoConfiguration {
      */
     @Bean
     @ConditionalOnBean(EmailCodeSender.class)
+    @ConditionalOnSingleCandidate(VerificationStore.class)
     @ConditionalOnMissingBean(EmailVerificationService.class)
     EmailVerificationService emailVerificationService(
             CodeGenerator codeGenerator,
             VerificationStore store,
+            IssueRateLimiter issueRateLimiter,
             VerificationProperties properties,
             EmailCodeSender sender) {
-        return new EmailVerificationService(codeGenerator, store, properties.toPolicy(), sender);
+        return new EmailVerificationService(codeGenerator, store, issueRateLimiter, properties.toPolicy(), sender);
     }
 
     /**
@@ -83,13 +86,15 @@ public class VerificationChannelAutoConfiguration {
      */
     @Bean
     @ConditionalOnBean(SmsCodeSender.class)
+    @ConditionalOnSingleCandidate(VerificationStore.class)
     @ConditionalOnMissingBean(SmsVerificationService.class)
     SmsVerificationService smsVerificationService(
             CodeGenerator codeGenerator,
             VerificationStore store,
+            IssueRateLimiter issueRateLimiter,
             VerificationProperties properties,
             SmsCodeSender sender) {
-        return new SmsVerificationService(codeGenerator, store, properties.toPolicy(), sender);
+        return new SmsVerificationService(codeGenerator, store, issueRateLimiter, properties.toPolicy(), sender);
     }
 
     /**

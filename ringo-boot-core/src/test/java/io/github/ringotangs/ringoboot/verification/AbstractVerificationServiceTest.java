@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
+import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDeliveryRejectedException;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
@@ -62,7 +63,7 @@ class AbstractVerificationServiceTest {
                     return "1234";
                 },
                 new InMemoryVerificationStore());
-        VerificationPolicy policy = new VerificationPolicy(4, Duration.ofMinutes(1), 2, Duration.ZERO);
+        VerificationPolicy policy = new VerificationPolicy(4, Duration.ofMinutes(1), 2);
 
         IssueResult.Accepted issued = assertInstanceOf(IssueResult.Accepted.class, template.issue(LOGIN, policy));
 
@@ -71,7 +72,7 @@ class AbstractVerificationServiceTest {
     }
 
     @Test
-    void invalidatesCodeWhenDispatchFailsAndAllowsImmediateRetry() {
+    void invalidatesCodeWhenDispatchFailsButKeepsIssueLimit() {
         CapturingVerificationService template = template(length -> "123456", new InMemoryVerificationStore());
         CodeSenderException failure = new CodeSenderException("provider unavailable");
         template.failWith(failure);
@@ -81,18 +82,18 @@ class AbstractVerificationServiceTest {
         IssueResult result = template.issue(LOGIN);
 
         assertSame(failure, thrown);
-        assertInstanceOf(IssueResult.Accepted.class, result);
+        assertInstanceOf(IssueResult.Throttled.class, result);
     }
 
     @Test
-    void invalidatesRejectedCodeAndAllowsImmediateRetry() {
+    void invalidatesRejectedCodeButKeepsIssueLimit() {
         CapturingVerificationService template = template(length -> "123456", new InMemoryVerificationStore());
         template.respondWith(CodeSendResult.REJECTED);
 
         assertThrows(CodeDeliveryRejectedException.class, () -> template.issue(LOGIN));
         template.respondWith(CodeSendResult.ACCEPTED);
 
-        assertInstanceOf(IssueResult.Accepted.class, template.issue(LOGIN));
+        assertInstanceOf(IssueResult.Throttled.class, template.issue(LOGIN));
     }
 
     @Test
@@ -188,7 +189,7 @@ class AbstractVerificationServiceTest {
 
         private CapturingVerificationService(
                 CodeGenerator generator, VerificationStore store, VerificationPolicy policy, Clock clock) {
-            super(generator, store, policy, clock);
+            super(generator, store, new InMemoryIssueRateLimiter(Duration.ofSeconds(60)), policy, clock);
         }
 
         @Override
@@ -222,7 +223,7 @@ class AbstractVerificationServiceTest {
 
         @Override
         public StoreResult store(VerificationKey key, String code, VerificationPolicy policy, Instant issuedAt) {
-            return new StoreResult.Stored(NOW.plusSeconds(60));
+            return new StoreResult(NOW.plusSeconds(60));
         }
 
         @Override

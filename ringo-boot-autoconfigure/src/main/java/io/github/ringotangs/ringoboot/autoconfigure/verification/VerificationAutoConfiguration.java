@@ -4,6 +4,8 @@ import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.email.StdoutEmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.generator.NumericCodeGenerator;
+import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimiter;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.sms.SmsCodeSender;
 import io.github.ringotangs.ringoboot.verification.sms.StdoutSmsCodeSender;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
@@ -27,8 +29,25 @@ import org.springframework.context.annotation.Bean;
 @AutoConfiguration
 @ConditionalOnClass(VerificationStore.class)
 @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "enabled", havingValue = "true")
-@EnableConfigurationProperties(VerificationProperties.class)
+@EnableConfigurationProperties({VerificationProperties.class, IssueRateLimitProperties.class})
 public class VerificationAutoConfiguration {
+
+    /**
+     * 在内存模式且用户未提供限流器时创建进程内签发限流器。
+     *
+     * @param properties 签发限流配置属性
+     * @return 进程内验证码签发限流器
+     */
+    @Bean
+    @ConditionalOnMissingBean(IssueRateLimiter.class)
+    @ConditionalOnProperty(
+            prefix = VerificationProperties.PREFIX,
+            name = "store",
+            havingValue = "memory",
+            matchIfMissing = true)
+    IssueRateLimiter inMemoryIssueRateLimiter(IssueRateLimitProperties properties) {
+        return new InMemoryIssueRateLimiter(properties.getInterval());
+    }
 
     /**
      * 在用户未提供生成器时创建安全的数字验证码生成器。

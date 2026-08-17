@@ -32,10 +32,10 @@ class RedisVerificationStoreTest {
     void mapsStoreAndVerificationScriptResults() {
         StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
         when(redisTemplate.execute(any(RedisScript.class), anyList(), any(Object[].class)))
-                .thenReturn(List.of(0L, NOW.plusSeconds(300).toEpochMilli()), 2L);
+                .thenReturn(NOW.plusSeconds(300).toEpochMilli(), 2L);
         RedisVerificationStore store = store(redisTemplate);
 
-        StoreResult.Stored stored = (StoreResult.Stored) store.store(KEY, "123456", VerificationPolicy.defaults(), NOW);
+        StoreResult stored = store.store(KEY, "123456", VerificationPolicy.defaults(), NOW);
 
         assertThat(stored.expiresAt()).isEqualTo(NOW.plusSeconds(300));
         assertThat(store.verifyAndConsume(KEY, "123456", NOW.plusSeconds(1))).isEqualTo(VerificationResult.SUCCESS);
@@ -62,7 +62,7 @@ class RedisVerificationStoreTest {
 
         assertThatThrownBy(() -> store.store(KEY, "123456", VerificationPolicy.defaults(), NOW))
                 .isInstanceOf(VerificationStoreException.class)
-                .hasMessage("Redis store script returned an invalid result");
+                .hasMessage("Redis store script returned no result");
         assertThatThrownBy(() -> store.verifyAndConsume(KEY, "123456", NOW))
                 .isInstanceOf(VerificationStoreException.class)
                 .hasMessage("Redis verify script returned no result");
@@ -76,7 +76,7 @@ class RedisVerificationStoreTest {
     void doesNotSendPlaintextSubjectOrCodeToRedis() {
         StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
         when(redisTemplate.execute(any(RedisScript.class), anyList(), any(Object[].class)))
-                .thenReturn(List.of(0L, NOW.plusSeconds(300).toEpochMilli()));
+                .thenReturn(NOW.plusSeconds(300).toEpochMilli());
         RedisVerificationStore store = store(redisTemplate);
 
         store.store(KEY, "123456", VerificationPolicy.defaults(), NOW);
@@ -110,7 +110,7 @@ class RedisVerificationStoreTest {
     void keepsLegacyKeyFormatForDeprecatedConstructor() {
         StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
         when(redisTemplate.execute(any(RedisScript.class), anyList(), any(Object[].class)))
-                .thenReturn(List.of(0L, NOW.plusSeconds(300).toEpochMilli()));
+                .thenReturn(NOW.plusSeconds(300).toEpochMilli());
         RedisVerificationStore store = new RedisVerificationStore(redisTemplate, new byte[32], Duration.ofMinutes(1));
 
         store.store(KEY, "123456", VerificationPolicy.defaults(), NOW);
@@ -127,7 +127,7 @@ class RedisVerificationStoreTest {
     void isolatesApplicationsInKeysAndDigests() {
         StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
         when(redisTemplate.execute(any(RedisScript.class), anyList(), any(Object[].class)))
-                .thenReturn(List.of(0L, NOW.plusSeconds(300).toEpochMilli()));
+                .thenReturn(NOW.plusSeconds(300).toEpochMilli());
 
         new RedisVerificationStore(redisTemplate, new byte[32], Duration.ofMinutes(1), "application-one")
                 .store(KEY, "123456", VerificationPolicy.defaults(), NOW);

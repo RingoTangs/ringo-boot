@@ -7,7 +7,7 @@ import java.time.Instant;
 
 /**
  * 定义验证码状态的原子存储契约。实现不得持久化明文验证码。
- * 同一验证码键的签发、比对、尝试次数扣减和消费必须具备原子性。
+ * 同一验证码键的写入、比对、尝试次数扣减和消费必须具备原子性。
  *
  *
  * <p><strong>实现注意事项：</strong> 分布式实现必须保证跨进程的原子操作语义
@@ -17,7 +17,7 @@ import java.time.Instant;
 public interface VerificationStore {
 
     /**
-     * 尝试保存新验证码状态，并原子地执行重发间隔检查。
+     * 保存新的验证码状态，并覆盖同一验证码键的旧状态。
      * 实现可以在本次调用期间读取明文验证码，但只能保存不可逆的安全表示。
      *
      *
@@ -25,7 +25,7 @@ public interface VerificationStore {
      * @param code 新签发的明文验证码
      * @param policy 验证码策略
      * @param issuedAt 签发时间
-     * @return 存储或限流结果
+     * @return 成功存储后的结果
      * @throws NullPointerException 当任一参数为 {@code null} 时
      * @throws VerificationStoreException 当底层存储操作失败时
      */

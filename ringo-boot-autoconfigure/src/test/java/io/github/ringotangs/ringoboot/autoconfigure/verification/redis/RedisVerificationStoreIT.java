@@ -1,10 +1,22 @@
 package io.github.ringotangs.ringoboot.autoconfigure.verification.redis;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+
+import io.github.ringotangs.ringoboot.verification.VerificationKey;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.security.SecureRandom;
 import java.time.Duration;
+import java.time.Instant;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.RedisPassword;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
@@ -19,6 +31,7 @@ class RedisVerificationStoreIT extends VerificationStoreContract {
 
     private static LettuceConnectionFactory connectionFactory;
     private static VerificationStore store;
+    private static IssueRateLimiter issueRateLimiter;
 
     @BeforeAll
     static void createStore() {
@@ -43,6 +56,8 @@ class RedisVerificationStoreIT extends VerificationStoreContract {
         byte[] secret = new byte[32];
         new SecureRandom().nextBytes(secret);
         store = new RedisVerificationStore(redisTemplate, secret, Duration.ofMinutes(1), "ringo-boot-redis-it");
+        issueRateLimiter =
+                new RedisIssueRateLimiter(redisTemplate, secret, Duration.ofMillis(500), "ringo-boot-redis-it");
     }
 
     @AfterAll
@@ -53,6 +68,46 @@ class RedisVerificationStoreIT extends VerificationStoreContract {
     @Override
     protected VerificationStore store() {
         return store;
+    }
+
+    @Test
+    void limitsConcurrentIssuanceAtomically() throws Exception {
+        VerificationKey key =
+                new VerificationKey("account", "login", UUID.randomUUID().toString());
+        Instant requestedAt = Instant.now();
+        int threads = 16;
+        CountDownLatch start = new CountDownLatch(1);
+        try (var executor = Executors.newFixedThreadPool(threads)) {
+            @SuppressWarnings("unchecked")
+            Future<IssueLimitResult>[] futures = new Future[threads];
+            for (int index = 0; index < threads; index++) {
+                futures[index] = executor.submit(() -> {
+                    start.await();
+                    return issueRateLimiter.acquire(key, requestedAt);
+                });
+            }
+            start.countDown();
+
+            int allowed = 0;
+            for (Future<IssueLimitResult> future : futures) {
+                if (future.get() instanceof IssueLimitResult.Allowed) {
+                    allowed++;
+                }
+            }
+            assertEquals(1, allowed);
+        }
+    }
+
+    @Test
+    void allowsIssuanceAfterRedisTtlExpires() throws Exception {
+        VerificationKey key =
+                new VerificationKey("account", "registration", UUID.randomUUID().toString());
+
+        assertInstanceOf(IssueLimitResult.Allowed.class, issueRateLimiter.acquire(key, Instant.now()));
+        assertInstanceOf(IssueLimitResult.Throttled.class, issueRateLimiter.acquire(key, Instant.now()));
+        Thread.sleep(600);
+
+        assertInstanceOf(IssueLimitResult.Allowed.class, issueRateLimiter.acquire(key, Instant.now()));
     }
 
     private static void assertConnectionAvailable() {

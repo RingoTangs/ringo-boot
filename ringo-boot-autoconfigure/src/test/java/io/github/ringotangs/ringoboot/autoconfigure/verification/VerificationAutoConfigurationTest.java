@@ -3,6 +3,7 @@ package io.github.ringotangs.ringoboot.autoconfigure.verification;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisIssueRateLimiter;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationAutoConfiguration;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationProperties;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationStore;
@@ -17,6 +18,9 @@ import io.github.ringotangs.ringoboot.verification.email.EmailVerificationFacade
 import io.github.ringotangs.ringoboot.verification.email.EmailVerificationService;
 import io.github.ringotangs.ringoboot.verification.email.StdoutEmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
+import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimiter;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSender;
 import io.github.ringotangs.ringoboot.verification.sms.DefaultSmsVerificationFacade;
@@ -184,6 +188,8 @@ class VerificationAutoConfigurationTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(VerificationStore.class);
                     assertThat(context.getBean(VerificationStore.class)).isInstanceOf(RedisVerificationStore.class);
+                    assertThat(context).hasSingleBean(IssueRateLimiter.class);
+                    assertThat(context.getBean(IssueRateLimiter.class)).isInstanceOf(RedisIssueRateLimiter.class);
                     assertThat(context).hasSingleBean(RedisVerificationProperties.class);
                     assertThat(context.getBean(RedisVerificationProperties.class)
                                     .getExpiredRetention())
@@ -325,13 +331,14 @@ class VerificationAutoConfigurationTest {
                         "ringo.boot.verification.length=8",
                         "ringo.boot.verification.ttl=10m",
                         "ringo.boot.verification.max-attempts=3",
-                        "ringo.boot.verification.resend-interval=30s")
+                        "ringo.boot.verification.issue-rate-limit.interval=30s")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(CodeGenerator.class);
                     assertThat(context).doesNotHaveBean(VerificationPolicy.class);
                     assertThat(context).hasSingleBean(VerificationStore.class);
                     assertThat(context.getBean(VerificationStore.class)).isInstanceOf(InMemoryVerificationStore.class);
+                    assertThat(context.getBean(IssueRateLimiter.class)).isInstanceOf(InMemoryIssueRateLimiter.class);
                     assertThat(context).getBeans(VerificationService.class).hasSize(2);
 
                     VerificationPolicy policy =
@@ -339,7 +346,8 @@ class VerificationAutoConfigurationTest {
                     assertThat(policy.length()).isEqualTo(8);
                     assertThat(policy.ttl()).isEqualTo(Duration.ofMinutes(10));
                     assertThat(policy.maxAttempts()).isEqualTo(3);
-                    assertThat(policy.resendInterval()).isEqualTo(Duration.ofSeconds(30));
+                    assertThat(context.getBean(IssueRateLimitProperties.class).getInterval())
+                            .isEqualTo(Duration.ofSeconds(30));
                 });
     }
 
@@ -364,10 +372,25 @@ class VerificationAutoConfigurationTest {
     }
 
     @Test
+    void backsOffForCustomIssueRateLimiter() {
+        IssueRateLimiter limiter = (key, requestedAt) -> new IssueLimitResult.Allowed();
+
+        contextRunner
+                .withPropertyValues("ringo.boot.verification.enabled=true")
+                .withBean(IssueRateLimiter.class, () -> limiter)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context.getBean(IssueRateLimiter.class)).isSameAs(limiter);
+                    assertThat(context.getBeansOfType(InMemoryIssueRateLimiter.class))
+                            .isEmpty();
+                    assertThat(context).getBeans(VerificationService.class).hasSize(2);
+                });
+    }
+
+    @Test
     void ignoresBusinessPolicyBeansWhenConfiguringChannelDefaults() {
-        VerificationPolicy loginPolicy = new VerificationPolicy(4, Duration.ofMinutes(1), 2, Duration.ZERO);
-        VerificationPolicy registrationPolicy =
-                new VerificationPolicy(8, Duration.ofMinutes(10), 3, Duration.ofSeconds(30));
+        VerificationPolicy loginPolicy = new VerificationPolicy(4, Duration.ofMinutes(1), 2);
+        VerificationPolicy registrationPolicy = new VerificationPolicy(8, Duration.ofMinutes(10), 3);
 
         contextRunner
                 .withPropertyValues("ringo.boot.verification.enabled=true", "ringo.boot.verification.length=6")
@@ -468,7 +491,7 @@ class VerificationAutoConfigurationTest {
                 "ringo.boot.verification.length=0",
                 "ringo.boot.verification.ttl=0s",
                 "ringo.boot.verification.max-attempts=0",
-                "ringo.boot.verification.resend-interval=-1s"
+                "ringo.boot.verification.issue-rate-limit.interval=-1s"
             })
     void failsForInvalidPolicy(String property) {
         contextRunner
@@ -483,7 +506,7 @@ class VerificationAutoConfigurationTest {
 
         @Override
         public StoreResult store(VerificationKey key, String code, VerificationPolicy policy, Instant issuedAt) {
-            return new StoreResult.Stored(issuedAt.plus(policy.ttl()));
+            return new StoreResult(issuedAt.plus(policy.ttl()));
         }
 
         @Override

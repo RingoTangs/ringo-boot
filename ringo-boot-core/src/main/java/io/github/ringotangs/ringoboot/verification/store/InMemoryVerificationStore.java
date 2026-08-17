@@ -8,7 +8,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -56,14 +55,14 @@ public final class InMemoryVerificationStore implements VerificationStore {
     }
 
     /**
-     * 原子地保存验证码摘要；重发间隔未结束时保留原记录并返回限流结果。
+     * 原子地保存验证码摘要，并覆盖同一验证码键的旧状态。
      *
      *
      * @param key 验证码键
      * @param code 新签发的明文验证码，仅在调用期间使用
      * @param policy 验证码策略
      * @param issuedAt 签发时间
-     * @return 成功存储或限流结果
+     * @return 成功存储后的结果
      * @throws NullPointerException 当任一参数为 {@code null} 时
      */
     @Override
@@ -72,18 +71,9 @@ public final class InMemoryVerificationStore implements VerificationStore {
         Objects.requireNonNull(code, "code must not be null");
         Objects.requireNonNull(policy, "policy must not be null");
         Objects.requireNonNull(issuedAt, "issuedAt must not be null");
-        AtomicReference<StoreResult> result = new AtomicReference<>();
-        entries.compute(key, (ignored, existing) -> {
-            if (existing != null && issuedAt.isBefore(existing.expiresAt()) && issuedAt.isBefore(existing.resendAt())) {
-                result.set(new StoreResult.Throttled(Duration.between(issuedAt, existing.resendAt())));
-                return existing;
-            }
-            Instant expiresAt = issuedAt.plus(policy.ttl());
-            result.set(new StoreResult.Stored(expiresAt));
-            return new Entry(
-                    digest(key, code), expiresAt, issuedAt.plus(policy.resendInterval()), policy.maxAttempts());
-        });
-        return Objects.requireNonNull(result.get());
+        Instant expiresAt = issuedAt.plus(policy.ttl());
+        entries.put(key, new Entry(digest(key, code), expiresAt, policy.maxAttempts()));
+        return new StoreResult(expiresAt);
     }
 
     /**
@@ -170,10 +160,10 @@ public final class InMemoryVerificationStore implements VerificationStore {
         mac.update(bytes);
     }
 
-    private record Entry(byte[] digest, Instant expiresAt, Instant resendAt, int remainingAttempts) {
+    private record Entry(byte[] digest, Instant expiresAt, int remainingAttempts) {
 
         Entry withRemainingAttempts(int attempts) {
-            return new Entry(digest, expiresAt, resendAt, attempts);
+            return new Entry(digest, expiresAt, attempts);
         }
     }
 }

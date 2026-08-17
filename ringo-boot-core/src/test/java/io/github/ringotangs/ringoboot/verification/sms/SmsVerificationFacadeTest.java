@@ -8,6 +8,7 @@ import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.VerificationResult;
 import io.github.ringotangs.ringoboot.verification.VerificationThrottledException;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
@@ -32,9 +33,10 @@ class SmsVerificationFacadeTest {
     @Test
     void convertsResultsToSymmetricBusinessExceptions() {
         StubStore store = new StubStore();
-        store.storeResult = new StoreResult.Throttled(Duration.ofSeconds(4));
         VerificationThrottledException throttled = assertThrows(
-                VerificationThrottledException.class, () -> facade(store).issue("account", "login", "+8613800000000"));
+                VerificationThrottledException.class,
+                () -> facade(store, new IssueLimitResult.Throttled(Duration.ofSeconds(4)), CodeSendResult.ACCEPTED)
+                        .issue("account", "login", "+8613800000000"));
         assertEquals(Duration.ofSeconds(4), throttled.retryAfter());
 
         store.verificationResult = VerificationResult.EXPIRED;
@@ -57,20 +59,29 @@ class SmsVerificationFacadeTest {
     }
 
     private DefaultSmsVerificationFacade facade(StubStore store, CodeSendResult sendResult) {
-        SmsVerificationService service = new SmsVerificationService(length -> "123456", store, delivery -> sendResult);
+        return facade(store, new IssueLimitResult.Allowed(), sendResult);
+    }
+
+    private DefaultSmsVerificationFacade facade(
+            StubStore store, IssueLimitResult limitResult, CodeSendResult sendResult) {
+        SmsVerificationService service = new SmsVerificationService(
+                length -> "123456",
+                store,
+                (key, requestedAt) -> limitResult,
+                VerificationPolicy.defaults(),
+                delivery -> sendResult);
         return new DefaultSmsVerificationFacade(service);
     }
 
     private static final class StubStore implements VerificationStore {
 
-        private StoreResult storeResult = new StoreResult.Stored(EXPIRES_AT);
         private VerificationResult verificationResult = VerificationResult.SUCCESS;
         private VerificationKey lastKey;
 
         @Override
         public StoreResult store(VerificationKey key, String code, VerificationPolicy policy, Instant issuedAt) {
             lastKey = key;
-            return storeResult;
+            return new StoreResult(EXPIRES_AT);
         }
 
         @Override

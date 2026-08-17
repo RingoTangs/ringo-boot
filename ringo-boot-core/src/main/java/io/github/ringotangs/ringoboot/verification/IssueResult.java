@@ -44,7 +44,7 @@ public sealed interface IssueResult permits IssueResult.Accepted, IssueResult.Un
     }
 
     /**
-     * 表示验证码因重发间隔尚未结束而未签发或交付。
+     * 表示验证码因签发频率限制而未签发或交付。
      *
      *
      * @param retryAfter 距离允许再次签发的剩余时间

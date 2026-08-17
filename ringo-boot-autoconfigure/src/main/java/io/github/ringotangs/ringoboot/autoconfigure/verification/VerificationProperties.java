@@ -54,14 +54,6 @@ public class VerificationProperties {
     private int maxAttempts = 5;
 
     /**
-     * 同一验证键再次发送验证码前需要等待的时间，不得为负数，默认为六十秒。
-     *
-     * <p>Required wait before another code can be issued for the same verification key. Must not be
-     * negative and defaults to sixty seconds.</p>
-     */
-    private Duration resendInterval = Duration.ofSeconds(60);
-
-    /**
      * 返回是否启用验证码自动配置。
      *
      * <p>Returns whether verification auto-configuration is enabled.</p>
@@ -173,29 +165,6 @@ public class VerificationProperties {
     }
 
     /**
-     * 返回同一验证键的验证码重发间隔。
-     *
-     * <p>Returns the code resend interval for the same verification key.</p>
-     *
-     * @return 验证码重发间隔 / the verification code resend interval
-     */
-    public Duration getResendInterval() {
-        return resendInterval;
-    }
-
-    /**
-     * 设置同一验证键的验证码重发间隔。
-     *
-     * <p>Sets the code resend interval for the same verification key.</p>
-     *
-     * @param resendInterval 重发间隔，不得为负数 / the resend interval, which must not be
-     *     negative
-     */
-    public void setResendInterval(Duration resendInterval) {
-        this.resendInterval = resendInterval;
-    }
-
-    /**
      * 根据当前配置创建不可变的验证码策略。
      *
      * <p>Creates an immutable verification policy from the current configuration.</p>
@@ -203,6 +172,6 @@ public class VerificationProperties {
      * @return 当前配置对应的验证码策略 / the verification policy represented by this configuration
      */
     VerificationPolicy toPolicy() {
-        return new VerificationPolicy(length, ttl, maxAttempts, resendInterval);
+        return new VerificationPolicy(length, ttl, maxAttempts);
     }
 }

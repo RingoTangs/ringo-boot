@@ -1,7 +1,9 @@
 package io.github.ringotangs.ringoboot.autoconfigure.verification.redis;
 
+import io.github.ringotangs.ringoboot.autoconfigure.verification.IssueRateLimitProperties;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationAutoConfiguration;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationProperties;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.util.Base64;
 import org.jspecify.annotations.Nullable;
@@ -30,8 +32,35 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 @ConditionalOnBean(StringRedisTemplate.class)
 @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "enabled", havingValue = "true")
 @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "store", havingValue = "redis")
-@EnableConfigurationProperties({VerificationProperties.class, RedisVerificationProperties.class})
+@EnableConfigurationProperties({
+    VerificationProperties.class,
+    IssueRateLimitProperties.class,
+    RedisVerificationProperties.class
+})
 public class RedisVerificationAutoConfiguration {
+
+    /**
+     * 使用 Redis 和共享 HMAC 密钥创建跨实例签发限流器。
+     *
+     * @param redisTemplate Redis 字符串操作模板
+     * @param limitProperties 签发限流配置
+     * @param redisProperties Redis 验证码配置
+     * @param environment Spring 环境
+     * @return Redis 验证码签发限流器
+     */
+    @Bean
+    @ConditionalOnMissingBean(IssueRateLimiter.class)
+    IssueRateLimiter redisIssueRateLimiter(
+            StringRedisTemplate redisTemplate,
+            IssueRateLimitProperties limitProperties,
+            RedisVerificationProperties redisProperties,
+            Environment environment) {
+        return new RedisIssueRateLimiter(
+                redisTemplate,
+                decodeSecret(redisProperties.getSecret()),
+                limitProperties.getInterval(),
+                applicationName(redisProperties, environment));
+    }
 
     /**
      * 使用 Spring Data Redis 模板和配置的共享密钥创建 Redis Store。

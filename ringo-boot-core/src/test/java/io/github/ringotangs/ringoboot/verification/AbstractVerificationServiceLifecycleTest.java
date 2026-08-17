@@ -76,7 +76,7 @@ class AbstractVerificationServiceLifecycleTest {
     @Test
     void limitsAttemptsAndRemovesExhaustedCode() {
         VerificationService service = service(length -> "123456");
-        VerificationPolicy policy = new VerificationPolicy(6, Duration.ofMinutes(5), 2, Duration.ZERO);
+        VerificationPolicy policy = new VerificationPolicy(6, Duration.ofMinutes(5), 2);
         service.issue(LOGIN, policy);
 
         assertEquals(VerificationResult.MISMATCH, service.verify(LOGIN, ""));
