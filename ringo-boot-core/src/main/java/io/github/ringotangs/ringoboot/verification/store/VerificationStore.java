@@ -13,9 +13,9 @@ import java.time.Instant;
  * not persist plaintext codes. Issuance, comparison, attempt decrement, and consumption
  * for the same verification key must be atomic.</p>
  *
- * @implNote 分布式实现必须保证跨进程的原子操作语义 / Distributed implementations must preserve atomic
+ * <p><strong>实现注意事项 / Implementation note:</strong> 分布式实现必须保证跨进程的原子操作语义 / Distributed implementations must preserve atomic
  *     semantics across processes.
- * @implSpec 第三方适配器必须将连接、超时、序列化和原子操作故障包装为
+ * <p><strong>实现要求 / Implementation requirements:</strong> 第三方适配器必须将连接、超时、序列化和原子操作故障包装为
  *     {@link VerificationStoreException}，不得向调用方泄露供应商异常。 / Third-party adapters must wrap
  *     connection, timeout, serialization, and atomic-operation failures in
  *     {@link VerificationStoreException} instead of exposing vendor exceptions.

@@ -19,7 +19,7 @@ import java.util.Objects;
  * <p>Coordinates verification code generation, storage, channel dispatch,
  * failure compensation, and verification consumption.</p>
  *
- * @apiNote 子类只需实现 {@link #dispatch(CodeDelivery)} 以完成邮件、短信等渠道的派发。 /
+ * <p><strong>API 注意事项 / API note:</strong> 子类只需实现 {@link #dispatch(CodeDelivery)} 以完成邮件、短信等渠道的派发。 /
  *     Subclasses only implement {@link #dispatch(CodeDelivery)} for channels such as
  *     email or SMS.
  */
@@ -117,6 +117,7 @@ public abstract class AbstractVerificationService implements VerificationService
      * channel.</p>
      *
      * @param delivery 验证码交付内容 / the verification code delivery
+     * @return 渠道对发送请求的受理结果 / the channel's acceptance result for the delivery request
      * @throws CodeSenderException 当渠道派发操作失败时 / if the channel delivery operation fails
      */
     protected abstract CodeSendResult dispatch(CodeDelivery delivery) throws CodeSenderException;

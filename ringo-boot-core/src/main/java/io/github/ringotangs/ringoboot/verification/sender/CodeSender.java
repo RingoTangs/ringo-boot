@@ -5,9 +5,9 @@ package io.github.ringotangs.ringoboot.verification.sender;
  *
  * <p>Dispatches a generated verification code.</p>
  *
- * @apiNote 实现不得记录或长期保留明文验证码。 / Implementations must not log or
+ * <p><strong>API 注意事项 / API note:</strong> 实现不得记录或长期保留明文验证码。 / Implementations must not log or
  *     retain plaintext codes beyond delivery.
- * @implSpec 第三方适配器必须将供应商正常受理映射为 {@link CodeSendResult#ACCEPTED}，明确拒绝映射为
+ * <p><strong>实现要求 / Implementation requirements:</strong> 第三方适配器必须将供应商正常受理映射为 {@link CodeSendResult#ACCEPTED}，明确拒绝映射为
  *     {@link CodeSendResult#REJECTED}，请求超时或响应丢失等不确定结果映射为
  *     {@link CodeSendResult#UNKNOWN}。只有能够确定请求未提交给供应商的本地或适配器故障才应抛出
  *     {@link CodeSenderException}，并且不得泄露供应商异常。 / Third-party adapters must map

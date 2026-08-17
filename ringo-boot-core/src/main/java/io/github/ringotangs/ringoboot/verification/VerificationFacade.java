@@ -8,7 +8,7 @@ import java.time.Instant;
  * <p>High-level contract for issuing and verifying one-time verification codes in business use
  * cases.</p>
  *
- * @apiNote 同时启用多个验证码渠道时，Spring 容器中会存在多个此接口的实现。普通业务应注入
+ * <p><strong>API 注意事项 / API note:</strong> 同时启用多个验证码渠道时，Spring 容器中会存在多个此接口的实现。普通业务应注入
  *     {@code EmailVerificationFacade} 或 {@code SmsVerificationFacade} 等具体渠道接口；通用编排可以注入
  *     集合或 Map。 / When multiple verification channels are enabled, the Spring container has
  *     multiple implementations of this interface. Regular business code should inject a

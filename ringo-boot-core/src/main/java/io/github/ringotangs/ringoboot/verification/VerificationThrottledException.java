@@ -11,6 +11,7 @@ import java.util.Objects;
  */
 public final class VerificationThrottledException extends RuntimeException {
 
+    /** 再次签发验证码前需要等待的时间。 / Time to wait before issuing another code. */
     private final Duration retryAfter;
 
     /**

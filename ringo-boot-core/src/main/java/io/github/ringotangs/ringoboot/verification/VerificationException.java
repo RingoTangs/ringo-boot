@@ -8,7 +8,7 @@ import java.util.Objects;
  * <p>Base exception for technical failures during verification code generation, delivery, or
  * storage.</p>
  *
- * @apiNote 调用方可以捕获此类型统一记录或转换验证码技术异常，同时仍可捕获具体子类以区分失败来源。 /
+ * <p><strong>API 注意事项 / API note:</strong> 调用方可以捕获此类型统一记录或转换验证码技术异常，同时仍可捕获具体子类以区分失败来源。 /
  *     Callers may catch this type to uniformly record or translate verification failures while
  *     retaining the option to catch concrete subclasses for a specific failure source.
  */

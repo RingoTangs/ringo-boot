@@ -26,7 +26,7 @@ import javax.crypto.spec.SecretKeySpec;
  * HMAC-SHA256 digests created with a process-local random key and are verified with a
  * constant-time comparison.</p>
  *
- * @apiNote 仅适用于测试、本地开发和单实例应用。状态不会持久化或跨实例共享，进程重启后全部失效。
+ * <p><strong>API 注意事项 / API note:</strong> 仅适用于测试、本地开发和单实例应用。状态不会持久化或跨实例共享，进程重启后全部失效。
  *     / Intended only for tests, local development, and single-instance applications.
  *     State is neither durable nor shared and is lost when the process restarts.
  */

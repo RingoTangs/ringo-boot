@@ -5,7 +5,7 @@ package io.github.ringotangs.ringoboot.verification;
  *
  * <p>Business exception thrown when a verification code cannot be verified.</p>
  *
- * @apiNote 此异常有意隐藏验证码不存在、过期、不匹配或尝试次数耗尽等内部原因，避免调用方泄露验证状态。 /
+ * <p><strong>API 注意事项 / API note:</strong> 此异常有意隐藏验证码不存在、过期、不匹配或尝试次数耗尽等内部原因，避免调用方泄露验证状态。 /
  *     This exception intentionally hides whether a code is absent, expired, mismatched, or
  *     exhausted so callers do not disclose verification state.
  */

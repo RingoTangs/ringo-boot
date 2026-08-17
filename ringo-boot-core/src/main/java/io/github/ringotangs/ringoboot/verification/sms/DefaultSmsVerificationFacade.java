@@ -13,7 +13,7 @@ import java.util.Objects;
  *
  * <p>Default SMS verification facade backed by {@link SmsVerificationService}.</p>
  *
- * @apiNote 手机号只去除首尾空白，不推断或改写国家区号。校验成功会一次性消费验证码。 / Phone
+ * <p><strong>API 注意事项 / API note:</strong> 手机号只去除首尾空白，不推断或改写国家区号。校验成功会一次性消费验证码。 / Phone
  *     numbers are only stripped; country codes are not inferred or rewritten. Successful
  *     verification consumes the code once.
  */
