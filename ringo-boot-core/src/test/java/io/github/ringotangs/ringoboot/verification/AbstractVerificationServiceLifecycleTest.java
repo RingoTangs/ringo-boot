@@ -37,7 +37,7 @@ class AbstractVerificationServiceLifecycleTest {
     void issuesCodeWithDefaultPolicyAndRedactsToString() {
         TestVerificationService service = service(length -> "123456");
 
-        DeliveryResult.Accepted issued = assertInstanceOf(DeliveryResult.Accepted.class, service.issue(LOGIN));
+        IssueResult.Accepted issued = assertInstanceOf(IssueResult.Accepted.class, service.issue(LOGIN));
 
         assertEquals(START.plus(Duration.ofMinutes(5)), issued.expiresAt());
         assertEquals("123456", service.lastCode());
@@ -49,13 +49,13 @@ class AbstractVerificationServiceLifecycleTest {
         AtomicInteger sequence = new AtomicInteger(111110);
         TestVerificationService service = service(length -> Integer.toString(sequence.incrementAndGet()));
 
-        assertInstanceOf(DeliveryResult.Accepted.class, service.issue(LOGIN));
+        assertInstanceOf(IssueResult.Accepted.class, service.issue(LOGIN));
         String firstCode = service.lastCode();
-        DeliveryResult.Throttled throttled = assertInstanceOf(DeliveryResult.Throttled.class, service.issue(LOGIN));
+        IssueResult.Throttled throttled = assertInstanceOf(IssueResult.Throttled.class, service.issue(LOGIN));
         assertEquals(Duration.ofSeconds(60), throttled.retryAfter());
 
         clock.advance(Duration.ofSeconds(60));
-        assertInstanceOf(DeliveryResult.Accepted.class, service.issue(LOGIN));
+        assertInstanceOf(IssueResult.Accepted.class, service.issue(LOGIN));
         String secondCode = service.lastCode();
 
         assertEquals(VerificationResult.MISMATCH, service.verify(LOGIN, firstCode));

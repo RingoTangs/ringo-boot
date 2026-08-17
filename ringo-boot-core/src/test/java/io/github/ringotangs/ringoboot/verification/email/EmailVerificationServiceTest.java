@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.github.ringotangs.ringoboot.verification.DeliveryResult;
+import io.github.ringotangs.ringoboot.verification.IssueResult;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
@@ -34,7 +34,7 @@ class EmailVerificationServiceTest {
                     return CodeSendResult.ACCEPTED;
                 });
 
-        DeliveryResult.Accepted result = assertInstanceOf(DeliveryResult.Accepted.class, service.issue(key));
+        IssueResult.Accepted result = assertInstanceOf(IssueResult.Accepted.class, service.issue(key));
 
         assertEquals(key, captured.get().key());
         assertEquals("123456", captured.get().code());

@@ -32,13 +32,13 @@ class AbstractVerificationServiceTest {
     void issuesDispatchesAndVerifiesThroughServiceWithoutExposingCodeInResult() {
         CapturingVerificationService template = template(length -> "123456", new InMemoryVerificationStore());
 
-        DeliveryResult.Accepted delivered = assertInstanceOf(DeliveryResult.Accepted.class, template.issue(LOGIN));
+        IssueResult.Accepted issued = assertInstanceOf(IssueResult.Accepted.class, template.issue(LOGIN));
 
-        assertEquals(NOW.plus(Duration.ofMinutes(5)), delivered.expiresAt());
+        assertEquals(NOW.plus(Duration.ofMinutes(5)), issued.expiresAt());
         assertEquals(LOGIN, template.delivery().key());
         assertEquals("123456", template.delivery().code());
         assertFalse(template.delivery().toString().contains("123456"));
-        assertFalse(delivered.toString().contains("123456"));
+        assertFalse(issued.toString().contains("123456"));
         assertEquals(VerificationResult.SUCCESS, template.verify(LOGIN, "123456"));
     }
 
@@ -47,7 +47,7 @@ class AbstractVerificationServiceTest {
         CapturingVerificationService template = template(length -> "123456", new InMemoryVerificationStore());
 
         template.issue(LOGIN);
-        DeliveryResult.Throttled throttled = assertInstanceOf(DeliveryResult.Throttled.class, template.issue(LOGIN));
+        IssueResult.Throttled throttled = assertInstanceOf(IssueResult.Throttled.class, template.issue(LOGIN));
 
         assertEquals(1, template.dispatches());
         assertEquals(Duration.ofSeconds(60), throttled.retryAfter());
@@ -64,11 +64,10 @@ class AbstractVerificationServiceTest {
                 new InMemoryVerificationStore());
         VerificationPolicy policy = new VerificationPolicy(4, Duration.ofMinutes(1), 2, Duration.ZERO);
 
-        DeliveryResult.Accepted delivered =
-                assertInstanceOf(DeliveryResult.Accepted.class, template.issue(LOGIN, policy));
+        IssueResult.Accepted issued = assertInstanceOf(IssueResult.Accepted.class, template.issue(LOGIN, policy));
 
         assertEquals(4, requestedLength.get());
-        assertEquals(NOW.plus(Duration.ofMinutes(1)), delivered.expiresAt());
+        assertEquals(NOW.plus(Duration.ofMinutes(1)), issued.expiresAt());
     }
 
     @Test
@@ -79,10 +78,10 @@ class AbstractVerificationServiceTest {
 
         CodeSenderException thrown = assertThrows(CodeSenderException.class, () -> template.issue(LOGIN));
         template.failWith(null);
-        DeliveryResult result = template.issue(LOGIN);
+        IssueResult result = template.issue(LOGIN);
 
         assertSame(failure, thrown);
-        assertInstanceOf(DeliveryResult.Accepted.class, result);
+        assertInstanceOf(IssueResult.Accepted.class, result);
     }
 
     @Test
@@ -93,7 +92,7 @@ class AbstractVerificationServiceTest {
         assertThrows(CodeDeliveryRejectedException.class, () -> template.issue(LOGIN));
         template.respondWith(CodeSendResult.ACCEPTED);
 
-        assertInstanceOf(DeliveryResult.Accepted.class, template.issue(LOGIN));
+        assertInstanceOf(IssueResult.Accepted.class, template.issue(LOGIN));
     }
 
     @Test
@@ -101,8 +100,8 @@ class AbstractVerificationServiceTest {
         CapturingVerificationService template = template(length -> "123456", new InMemoryVerificationStore());
         template.respondWith(CodeSendResult.UNKNOWN);
 
-        assertInstanceOf(DeliveryResult.Uncertain.class, template.issue(LOGIN));
-        assertInstanceOf(DeliveryResult.Throttled.class, template.issue(LOGIN));
+        assertInstanceOf(IssueResult.Uncertain.class, template.issue(LOGIN));
+        assertInstanceOf(IssueResult.Throttled.class, template.issue(LOGIN));
         assertEquals(VerificationResult.SUCCESS, template.verify(LOGIN, "123456"));
     }
 

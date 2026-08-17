@@ -8,8 +8,7 @@ import java.util.Objects;
  * 表示验证码签发及交付流程的安全结果，不包含明文验证码。
  *
  */
-public sealed interface DeliveryResult
-        permits DeliveryResult.Accepted, DeliveryResult.Uncertain, DeliveryResult.Throttled {
+public sealed interface IssueResult permits IssueResult.Accepted, IssueResult.Uncertain, IssueResult.Throttled {
 
     /**
      * 表示验证码已成功签发，并且发送供应商明确接受了请求。
@@ -17,10 +16,10 @@ public sealed interface DeliveryResult
      *
      * @param expiresAt 验证码过期时间
      */
-    record Accepted(Instant expiresAt) implements DeliveryResult {
+    record Accepted(Instant expiresAt) implements IssueResult {
 
         /**
-         * 创建并校验成功交付结果。
+         * 创建并校验渠道已受理的签发结果。
          *
          *
          * @throws NullPointerException 当过期时间为 {@code null} 时
@@ -36,9 +35,9 @@ public sealed interface DeliveryResult
      *
      * @param expiresAt 验证码过期时间
      */
-    record Uncertain(Instant expiresAt) implements DeliveryResult {
+    record Uncertain(Instant expiresAt) implements IssueResult {
 
-        /** 创建并校验不确定交付结果。 */
+        /** 创建并校验渠道受理状态不确定的签发结果。 */
         public Uncertain {
             Objects.requireNonNull(expiresAt, "expiresAt must not be null");
         }
@@ -50,10 +49,10 @@ public sealed interface DeliveryResult
      *
      * @param retryAfter 距离允许再次签发的剩余时间
      */
-    record Throttled(Duration retryAfter) implements DeliveryResult {
+    record Throttled(Duration retryAfter) implements IssueResult {
 
         /**
-         * 创建并校验限流交付结果。
+         * 创建并校验受限流的签发结果。
          *
          *
          * @throws NullPointerException 当剩余时间为 {@code null} 时

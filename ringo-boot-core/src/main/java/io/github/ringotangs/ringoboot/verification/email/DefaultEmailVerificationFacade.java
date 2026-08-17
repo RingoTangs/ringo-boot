@@ -1,7 +1,7 @@
 package io.github.ringotangs.ringoboot.verification.email;
 
-import io.github.ringotangs.ringoboot.verification.DeliveryResult;
 import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
+import io.github.ringotangs.ringoboot.verification.IssueResult;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationResult;
 import io.github.ringotangs.ringoboot.verification.VerificationThrottledException;
@@ -33,9 +33,9 @@ public final class DefaultEmailVerificationFacade implements EmailVerificationFa
     @Override
     public Instant issue(String namespace, String purpose, String email) {
         return switch (verificationService.issue(key(namespace, purpose, email))) {
-            case DeliveryResult.Accepted accepted -> accepted.expiresAt();
-            case DeliveryResult.Uncertain uncertain -> uncertain.expiresAt();
-            case DeliveryResult.Throttled throttled -> throw new VerificationThrottledException(throttled.retryAfter());
+            case IssueResult.Accepted accepted -> accepted.expiresAt();
+            case IssueResult.Uncertain uncertain -> uncertain.expiresAt();
+            case IssueResult.Throttled throttled -> throw new VerificationThrottledException(throttled.retryAfter());
         };
     }
 

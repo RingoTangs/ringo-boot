@@ -18,13 +18,13 @@ public interface VerificationService {
      *
      *
      * @param key 验证码键
-     * @return 不包含明文验证码的交付结果
+     * @return 不包含明文验证码的签发结果
      * @throws CodeGenerationException 当验证码生成失败时
      * @throws CodeSenderException 当验证码渠道派发失败时
      * @throws NullPointerException 当验证码键为 {@code null} 时
      * @throws VerificationStoreException 当验证码存储操作失败时
      */
-    DeliveryResult issue(VerificationKey key)
+    IssueResult issue(VerificationKey key)
             throws CodeGenerationException, CodeSenderException, VerificationStoreException;
 
     /**
@@ -33,13 +33,13 @@ public interface VerificationService {
      *
      * @param key 验证码键
      * @param policy 验证码策略
-     * @return 不包含明文验证码的交付结果
+     * @return 不包含明文验证码的签发结果
      * @throws CodeGenerationException 当验证码生成失败时
      * @throws CodeSenderException 当验证码渠道派发失败时
      * @throws NullPointerException 当验证码键或策略为 {@code null} 时
      * @throws VerificationStoreException 当验证码存储操作失败时
      */
-    DeliveryResult issue(VerificationKey key, VerificationPolicy policy)
+    IssueResult issue(VerificationKey key, VerificationPolicy policy)
             throws CodeGenerationException, CodeSenderException, VerificationStoreException;
 
     /**

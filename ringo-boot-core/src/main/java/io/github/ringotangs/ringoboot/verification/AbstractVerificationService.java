@@ -72,14 +72,14 @@ public abstract class AbstractVerificationService implements VerificationService
 
     /** {@inheritDoc} */
     @Override
-    public final DeliveryResult issue(VerificationKey key)
+    public final IssueResult issue(VerificationKey key)
             throws CodeGenerationException, CodeSenderException, VerificationStoreException {
         return issue(key, defaultPolicy);
     }
 
     /** {@inheritDoc} */
     @Override
-    public final DeliveryResult issue(VerificationKey key, VerificationPolicy policy)
+    public final IssueResult issue(VerificationKey key, VerificationPolicy policy)
             throws CodeGenerationException, CodeSenderException, VerificationStoreException {
         Objects.requireNonNull(key, "key must not be null");
         Objects.requireNonNull(policy, "policy must not be null");
@@ -87,7 +87,7 @@ public abstract class AbstractVerificationService implements VerificationService
         validateGeneratedCode(code, policy.length());
         Instant issuedAt = clock.instant();
         return switch (store.store(key, code, policy, issuedAt)) {
-            case StoreResult.Throttled throttled -> new DeliveryResult.Throttled(throttled.retryAfter());
+            case StoreResult.Throttled throttled -> new IssueResult.Throttled(throttled.retryAfter());
             case StoreResult.Stored stored -> dispatchStored(key, code, stored.expiresAt());
         };
     }
@@ -110,13 +110,13 @@ public abstract class AbstractVerificationService implements VerificationService
      */
     protected abstract CodeSendResult dispatch(CodeDelivery delivery) throws CodeSenderException;
 
-    private DeliveryResult dispatchStored(VerificationKey key, String code, Instant expiresAt) {
+    private IssueResult dispatchStored(VerificationKey key, String code, Instant expiresAt) {
         try {
             CodeSendResult result = Objects.requireNonNull(
                     dispatch(new CodeDelivery(key, code, expiresAt)), "code sender result must not be null");
             return switch (result) {
-                case ACCEPTED -> new DeliveryResult.Accepted(expiresAt);
-                case UNKNOWN -> new DeliveryResult.Uncertain(expiresAt);
+                case ACCEPTED -> new IssueResult.Accepted(expiresAt);
+                case UNKNOWN -> new IssueResult.Uncertain(expiresAt);
                 case REJECTED -> throw new CodeDeliveryRejectedException();
             };
         } catch (RuntimeException dispatchFailure) {
