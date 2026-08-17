@@ -30,4 +30,12 @@ class CodeSenderExceptionTest {
         assertThrows(NullPointerException.class, () -> new CodeSenderException(null, new Exception()));
         assertThrows(NullPointerException.class, () -> new CodeSenderException("delivery unavailable", null));
     }
+
+    @Test
+    void representsExplicitProviderRejectionAsSenderFailure() {
+        CodeDeliveryRejectedException exception = new CodeDeliveryRejectedException();
+
+        assertInstanceOf(CodeSenderException.class, exception);
+        assertEquals("Verification code delivery was rejected", exception.getMessage());
+    }
 }

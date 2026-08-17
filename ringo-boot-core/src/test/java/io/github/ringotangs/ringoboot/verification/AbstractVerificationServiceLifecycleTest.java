@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
+import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.lang.reflect.Field;
@@ -36,7 +37,7 @@ class AbstractVerificationServiceLifecycleTest {
     void issuesCodeWithDefaultPolicyAndRedactsToString() {
         TestVerificationService service = service(length -> "123456");
 
-        DeliveryResult.Delivered issued = assertInstanceOf(DeliveryResult.Delivered.class, service.issue(LOGIN));
+        DeliveryResult.Accepted issued = assertInstanceOf(DeliveryResult.Accepted.class, service.issue(LOGIN));
 
         assertEquals(START.plus(Duration.ofMinutes(5)), issued.expiresAt());
         assertEquals("123456", service.lastCode());
@@ -48,13 +49,13 @@ class AbstractVerificationServiceLifecycleTest {
         AtomicInteger sequence = new AtomicInteger(111110);
         TestVerificationService service = service(length -> Integer.toString(sequence.incrementAndGet()));
 
-        assertInstanceOf(DeliveryResult.Delivered.class, service.issue(LOGIN));
+        assertInstanceOf(DeliveryResult.Accepted.class, service.issue(LOGIN));
         String firstCode = service.lastCode();
         DeliveryResult.Throttled throttled = assertInstanceOf(DeliveryResult.Throttled.class, service.issue(LOGIN));
         assertEquals(Duration.ofSeconds(60), throttled.retryAfter());
 
         clock.advance(Duration.ofSeconds(60));
-        assertInstanceOf(DeliveryResult.Delivered.class, service.issue(LOGIN));
+        assertInstanceOf(DeliveryResult.Accepted.class, service.issue(LOGIN));
         String secondCode = service.lastCode();
 
         assertEquals(VerificationResult.MISMATCH, service.verify(LOGIN, firstCode));
@@ -186,8 +187,9 @@ class AbstractVerificationServiceLifecycleTest {
         }
 
         @Override
-        protected void dispatch(CodeDelivery delivery) {
+        protected CodeSendResult dispatch(CodeDelivery delivery) {
             lastCode = delivery.code();
+            return CodeSendResult.ACCEPTED;
         }
 
         private String lastCode() {

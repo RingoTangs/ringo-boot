@@ -9,6 +9,7 @@ import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.VerificationResult;
 import io.github.ringotangs.ringoboot.verification.VerificationThrottledException;
+import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.time.Duration;
@@ -43,6 +44,15 @@ class EmailVerificationFacadeTest {
     }
 
     @Test
+    void treatsUnknownProviderOutcomeAsAcceptedByTheApplicationFacade() {
+        StubStore store = new StubStore();
+
+        Instant expiresAt = facade(store, CodeSendResult.UNKNOWN).issue("account", "bind-email", "user@example.com");
+
+        assertEquals(EXPIRES_AT, expiresAt);
+    }
+
+    @Test
     void acceptsSuccessAndHidesEveryUnsuccessfulResult() {
         StubStore store = new StubStore();
         DefaultEmailVerificationFacade facade = facade(store);
@@ -61,7 +71,12 @@ class EmailVerificationFacadeTest {
     }
 
     private DefaultEmailVerificationFacade facade(StubStore store) {
-        EmailVerificationService service = new EmailVerificationService(length -> "123456", store, delivery -> {});
+        return facade(store, CodeSendResult.ACCEPTED);
+    }
+
+    private DefaultEmailVerificationFacade facade(StubStore store, CodeSendResult sendResult) {
+        EmailVerificationService service =
+                new EmailVerificationService(length -> "123456", store, delivery -> sendResult);
         return new DefaultEmailVerificationFacade(service);
     }
 

@@ -10,16 +10,18 @@ import java.util.Objects;
  * <p>Represents the safe outcome of issuing and delivering a verification code without
  * exposing the plaintext code.</p>
  */
-public sealed interface DeliveryResult permits DeliveryResult.Delivered, DeliveryResult.Throttled {
+public sealed interface DeliveryResult
+        permits DeliveryResult.Accepted, DeliveryResult.Uncertain, DeliveryResult.Throttled {
 
     /**
-     * 表示验证码已成功签发并交付。
+     * 表示验证码已成功签发，并且发送供应商明确接受了请求。
      *
-     * <p>Indicates that the verification code was issued and delivered successfully.</p>
+     * <p>Indicates that the code was issued and the delivery provider explicitly accepted the
+     * request.</p>
      *
      * @param expiresAt 验证码过期时间 / the code expiration instant
      */
-    record Delivered(Instant expiresAt) implements DeliveryResult {
+    record Accepted(Instant expiresAt) implements DeliveryResult {
 
         /**
          * 创建并校验成功交付结果。
@@ -29,7 +31,22 @@ public sealed interface DeliveryResult permits DeliveryResult.Delivered, Deliver
          * @throws NullPointerException 当过期时间为 {@code null} 时 / if the expiration instant is
          *     {@code null}
          */
-        public Delivered {
+        public Accepted {
+            Objects.requireNonNull(expiresAt, "expiresAt must not be null");
+        }
+    }
+
+    /**
+     * 表示验证码已成功签发，但无法确认发送供应商是否接受请求。
+     *
+     * <p>Indicates that the code was issued but provider acceptance could not be determined.</p>
+     *
+     * @param expiresAt 验证码过期时间 / the instant at which the code expires
+     */
+    record Uncertain(Instant expiresAt) implements DeliveryResult {
+
+        /** 创建并校验不确定交付结果。 / Creates and validates an uncertain delivery result. */
+        public Uncertain {
             Objects.requireNonNull(expiresAt, "expiresAt must not be null");
         }
     }

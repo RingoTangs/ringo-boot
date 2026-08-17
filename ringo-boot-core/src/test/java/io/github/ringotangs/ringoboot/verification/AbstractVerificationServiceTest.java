@@ -8,6 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
+import io.github.ringotangs.ringoboot.verification.sender.CodeDeliveryRejectedException;
+import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.StoreResult;
@@ -30,7 +32,7 @@ class AbstractVerificationServiceTest {
     void issuesDispatchesAndVerifiesThroughServiceWithoutExposingCodeInResult() {
         CapturingVerificationService template = template(length -> "123456", new InMemoryVerificationStore());
 
-        DeliveryResult.Delivered delivered = assertInstanceOf(DeliveryResult.Delivered.class, template.issue(LOGIN));
+        DeliveryResult.Accepted delivered = assertInstanceOf(DeliveryResult.Accepted.class, template.issue(LOGIN));
 
         assertEquals(NOW.plus(Duration.ofMinutes(5)), delivered.expiresAt());
         assertEquals(LOGIN, template.delivery().key());
@@ -62,8 +64,8 @@ class AbstractVerificationServiceTest {
                 new InMemoryVerificationStore());
         VerificationPolicy policy = new VerificationPolicy(4, Duration.ofMinutes(1), 2, Duration.ZERO);
 
-        DeliveryResult.Delivered delivered =
-                assertInstanceOf(DeliveryResult.Delivered.class, template.issue(LOGIN, policy));
+        DeliveryResult.Accepted delivered =
+                assertInstanceOf(DeliveryResult.Accepted.class, template.issue(LOGIN, policy));
 
         assertEquals(4, requestedLength.get());
         assertEquals(NOW.plus(Duration.ofMinutes(1)), delivered.expiresAt());
@@ -80,7 +82,28 @@ class AbstractVerificationServiceTest {
         DeliveryResult result = template.issue(LOGIN);
 
         assertSame(failure, thrown);
-        assertInstanceOf(DeliveryResult.Delivered.class, result);
+        assertInstanceOf(DeliveryResult.Accepted.class, result);
+    }
+
+    @Test
+    void invalidatesRejectedCodeAndAllowsImmediateRetry() {
+        CapturingVerificationService template = template(length -> "123456", new InMemoryVerificationStore());
+        template.respondWith(CodeSendResult.REJECTED);
+
+        assertThrows(CodeDeliveryRejectedException.class, () -> template.issue(LOGIN));
+        template.respondWith(CodeSendResult.ACCEPTED);
+
+        assertInstanceOf(DeliveryResult.Accepted.class, template.issue(LOGIN));
+    }
+
+    @Test
+    void keepsCodeWhenDeliveryOutcomeIsUnknown() {
+        CapturingVerificationService template = template(length -> "123456", new InMemoryVerificationStore());
+        template.respondWith(CodeSendResult.UNKNOWN);
+
+        assertInstanceOf(DeliveryResult.Uncertain.class, template.issue(LOGIN));
+        assertInstanceOf(DeliveryResult.Throttled.class, template.issue(LOGIN));
+        assertEquals(VerificationResult.SUCCESS, template.verify(LOGIN, "123456"));
     }
 
     @Test
@@ -162,6 +185,7 @@ class AbstractVerificationServiceTest {
         private final AtomicReference<CodeDelivery> delivery = new AtomicReference<>();
         private final AtomicInteger dispatches = new AtomicInteger();
         private RuntimeException failure;
+        private CodeSendResult result = CodeSendResult.ACCEPTED;
 
         private CapturingVerificationService(
                 CodeGenerator generator, VerificationStore store, VerificationPolicy policy, Clock clock) {
@@ -169,12 +193,13 @@ class AbstractVerificationServiceTest {
         }
 
         @Override
-        protected void dispatch(CodeDelivery delivery) {
+        protected CodeSendResult dispatch(CodeDelivery delivery) {
             dispatches.incrementAndGet();
             if (failure != null) {
                 throw failure;
             }
             this.delivery.set(delivery);
+            return result;
         }
 
         private CodeDelivery delivery() {
@@ -187,6 +212,10 @@ class AbstractVerificationServiceTest {
 
         private void failWith(RuntimeException failure) {
             this.failure = failure;
+        }
+
+        private void respondWith(CodeSendResult result) {
+            this.result = result;
         }
     }
 

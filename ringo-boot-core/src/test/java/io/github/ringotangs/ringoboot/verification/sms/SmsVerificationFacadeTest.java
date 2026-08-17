@@ -8,6 +8,7 @@ import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.VerificationResult;
 import io.github.ringotangs.ringoboot.verification.VerificationThrottledException;
+import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.time.Duration;
@@ -42,8 +43,21 @@ class SmsVerificationFacadeTest {
                 () -> facade(store).verify("account", "login", "+8613800000000", "123456"));
     }
 
+    @Test
+    void treatsUnknownProviderOutcomeAsAcceptedByTheApplicationFacade() {
+        StubStore store = new StubStore();
+
+        Instant expiresAt = facade(store, CodeSendResult.UNKNOWN).issue("account", "login", "+8613800000000");
+
+        assertEquals(EXPIRES_AT, expiresAt);
+    }
+
     private DefaultSmsVerificationFacade facade(StubStore store) {
-        SmsVerificationService service = new SmsVerificationService(length -> "123456", store, delivery -> {});
+        return facade(store, CodeSendResult.ACCEPTED);
+    }
+
+    private DefaultSmsVerificationFacade facade(StubStore store, CodeSendResult sendResult) {
+        SmsVerificationService service = new SmsVerificationService(length -> "123456", store, delivery -> sendResult);
         return new DefaultSmsVerificationFacade(service);
     }
 

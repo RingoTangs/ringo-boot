@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
+import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -168,8 +169,9 @@ class EmailVerificationControllerTest {
         private final Map<String, CodeDelivery> deliveries = new ConcurrentHashMap<>();
 
         @Override
-        public void send(CodeDelivery delivery) {
+        public CodeSendResult send(CodeDelivery delivery) {
             deliveries.put(delivery.key().subject(), delivery);
+            return CodeSendResult.ACCEPTED;
         }
 
         CodeDelivery latest(String email) {

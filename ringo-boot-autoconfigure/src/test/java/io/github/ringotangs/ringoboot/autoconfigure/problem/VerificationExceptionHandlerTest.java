@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
 import io.github.ringotangs.ringoboot.verification.VerificationThrottledException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
+import io.github.ringotangs.ringoboot.verification.sender.CodeDeliveryRejectedException;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
 import java.net.URI;
@@ -53,13 +54,16 @@ class VerificationExceptionHandlerTest {
                 new CodeSenderException("provider token=secret", new IllegalStateException("provider details")));
         ProblemDetail storeProblem = handler.handleVerificationException(
                 new VerificationStoreException("redis password=secret", new IllegalStateException("redis details")));
+        ProblemDetail rejectedProblem = handler.handleVerificationException(new CodeDeliveryRejectedException());
 
         assertServiceUnavailable(senderProblem);
         assertServiceUnavailable(storeProblem);
+        assertServiceUnavailable(rejectedProblem);
         assertThat(senderProblem.getDetail()).doesNotContain("provider", "secret");
         assertThat(storeProblem.getDetail()).doesNotContain("redis", "secret");
         assertLogged(output, CodeSenderException.class);
         assertLogged(output, VerificationStoreException.class);
+        assertLogged(output, CodeDeliveryRejectedException.class);
     }
 
     @Test

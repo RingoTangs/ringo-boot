@@ -8,6 +8,7 @@ import io.github.ringotangs.ringoboot.verification.DeliveryResult;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
+import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
 import java.time.Clock;
 import java.time.Instant;
@@ -28,9 +29,12 @@ class SmsVerificationServiceTest {
                 new InMemoryVerificationStore(),
                 VerificationPolicy.defaults(),
                 Clock.fixed(NOW, ZoneOffset.UTC),
-                captured::set);
+                delivery -> {
+                    captured.set(delivery);
+                    return CodeSendResult.ACCEPTED;
+                });
 
-        DeliveryResult.Delivered result = assertInstanceOf(DeliveryResult.Delivered.class, service.issue(key));
+        DeliveryResult.Accepted result = assertInstanceOf(DeliveryResult.Accepted.class, service.issue(key));
 
         assertEquals(key, captured.get().key());
         assertEquals("123456", captured.get().code());

@@ -3,6 +3,8 @@ package io.github.ringotangs.ringoboot.verification;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
+import io.github.ringotangs.ringoboot.verification.sender.CodeDeliveryRejectedException;
+import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
@@ -117,16 +119,21 @@ public abstract class AbstractVerificationService implements VerificationService
      * @param delivery 验证码交付内容 / the verification code delivery
      * @throws CodeSenderException 当渠道派发操作失败时 / if the channel delivery operation fails
      */
-    protected abstract void dispatch(CodeDelivery delivery) throws CodeSenderException;
+    protected abstract CodeSendResult dispatch(CodeDelivery delivery) throws CodeSenderException;
 
     private DeliveryResult dispatchStored(VerificationKey key, String code, Instant expiresAt) {
         try {
-            dispatch(new CodeDelivery(key, code, expiresAt));
+            CodeSendResult result = Objects.requireNonNull(
+                    dispatch(new CodeDelivery(key, code, expiresAt)), "code sender result must not be null");
+            return switch (result) {
+                case ACCEPTED -> new DeliveryResult.Accepted(expiresAt);
+                case UNKNOWN -> new DeliveryResult.Uncertain(expiresAt);
+                case REJECTED -> throw new CodeDeliveryRejectedException();
+            };
         } catch (RuntimeException dispatchFailure) {
             invalidateAfterFailure(key, code, dispatchFailure);
             throw dispatchFailure;
         }
-        return new DeliveryResult.Delivered(expiresAt);
     }
 
     private void validateGeneratedCode(String code, int expectedLength) {

@@ -1,6 +1,7 @@
 package io.github.ringotangs.ringoboot.verification.sms;
 
 import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
+import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 
 /**
  * 将短信验证码输出到标准输出，适用于开发和演示环境。
@@ -22,9 +23,10 @@ public final class StdoutSmsCodeSender implements SmsCodeSender {
      * <p>Writes the code and masked phone number to standard output.</p>
      *
      * @param delivery 验证码交付内容 / the verification code delivery
+     * @return 始终返回供应商已接受 / always returns provider accepted
      */
     @Override
-    public void send(CodeDelivery delivery) {
+    public CodeSendResult send(CodeDelivery delivery) {
         System.out.println("DEVELOPMENT ONLY - SMS verification code: namespace="
                 + delivery.key().namespace()
                 + ", purpose="
@@ -35,6 +37,7 @@ public final class StdoutSmsCodeSender implements SmsCodeSender {
                 + delivery.code()
                 + ", expiresAt="
                 + delivery.expiresAt());
+        return CodeSendResult.ACCEPTED;
     }
 
     private String mask(String subject) {

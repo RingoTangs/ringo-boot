@@ -36,7 +36,8 @@ public final class DefaultSmsVerificationFacade implements SmsVerificationFacade
     @Override
     public Instant issue(String namespace, String purpose, String phoneNumber) {
         return switch (verificationService.issue(key(namespace, purpose, phoneNumber))) {
-            case DeliveryResult.Delivered delivered -> delivered.expiresAt();
+            case DeliveryResult.Accepted accepted -> accepted.expiresAt();
+            case DeliveryResult.Uncertain uncertain -> uncertain.expiresAt();
             case DeliveryResult.Throttled throttled -> throw new VerificationThrottledException(throttled.retryAfter());
         };
     }

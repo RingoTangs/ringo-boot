@@ -17,6 +17,7 @@ import io.github.ringotangs.ringoboot.verification.email.EmailVerificationFacade
 import io.github.ringotangs.ringoboot.verification.email.EmailVerificationService;
 import io.github.ringotangs.ringoboot.verification.email.StdoutEmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
+import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSender;
 import io.github.ringotangs.ringoboot.verification.sms.DefaultSmsVerificationFacade;
 import io.github.ringotangs.ringoboot.verification.sms.SmsCodeSender;
@@ -385,7 +386,7 @@ class VerificationAutoConfigurationTest {
 
     @Test
     void configuresEmailServiceWhenSenderIsAvailable() {
-        EmailCodeSender sender = delivery -> {};
+        EmailCodeSender sender = delivery -> CodeSendResult.ACCEPTED;
 
         contextRunner
                 .withPropertyValues("ringo.boot.verification.enabled=true")
@@ -401,7 +402,7 @@ class VerificationAutoConfigurationTest {
 
     @Test
     void configuresSmsServiceWhenSenderIsAvailable() {
-        SmsCodeSender sender = delivery -> {};
+        SmsCodeSender sender = delivery -> CodeSendResult.ACCEPTED;
 
         contextRunner
                 .withPropertyValues("ringo.boot.verification.enabled=true")
@@ -419,8 +420,8 @@ class VerificationAutoConfigurationTest {
     void configuresBothChannelServicesWhenBothSendersAreAvailable() {
         contextRunner
                 .withPropertyValues("ringo.boot.verification.enabled=true")
-                .withBean(EmailCodeSender.class, () -> delivery -> {})
-                .withBean(SmsCodeSender.class, () -> delivery -> {})
+                .withBean(EmailCodeSender.class, () -> delivery -> CodeSendResult.ACCEPTED)
+                .withBean(SmsCodeSender.class, () -> delivery -> CodeSendResult.ACCEPTED)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(EmailVerificationService.class);
@@ -431,7 +432,7 @@ class VerificationAutoConfigurationTest {
 
     @Test
     void backsOffForCustomEmailService() {
-        EmailCodeSender sender = delivery -> {};
+        EmailCodeSender sender = delivery -> CodeSendResult.ACCEPTED;
         EmailVerificationService service =
                 new EmailVerificationService(length -> "1".repeat(length), new TestVerificationStore(), sender);
 
