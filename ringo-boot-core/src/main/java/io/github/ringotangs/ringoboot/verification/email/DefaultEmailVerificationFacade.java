@@ -10,24 +10,20 @@ import java.util.Locale;
 import java.util.Objects;
 
 /**
- * 基于 {@link EmailVerificationService} 的默认邮箱验证码 Facade。
+ * 基于 {@link EmailVerificationService} 的默认邮箱验证码门面。
  *
- * <p>Default email verification facade backed by {@link EmailVerificationService}.</p>
  *
- * <p><strong>API 注意事项 / API note:</strong> 邮箱会去除首尾空白并按 {@link Locale#ROOT} 转为小写。校验成功会一次性消费验证码。 /
- *     Email addresses are stripped and lower-cased with {@link Locale#ROOT}. Successful
- *     verification consumes the code once.
+ * <p><strong>API 注意事项：</strong> 邮箱会去除首尾空白并按 {@link Locale#ROOT} 转为小写。校验成功会一次性消费验证码。
  */
 public final class DefaultEmailVerificationFacade implements EmailVerificationFacade {
 
     private final EmailVerificationService verificationService;
 
     /**
-     * 使用底层邮箱验证码服务创建默认 Facade。
+     * 使用底层邮箱验证码服务创建默认门面。
      *
-     * <p>Creates the default facade with the underlying email verification service.</p>
      *
-     * @param verificationService 底层邮箱验证码服务 / underlying email verification service
+     * @param verificationService 底层邮箱验证码服务
      */
     public DefaultEmailVerificationFacade(EmailVerificationService verificationService) {
         this.verificationService = Objects.requireNonNull(verificationService, "verificationService must not be null");

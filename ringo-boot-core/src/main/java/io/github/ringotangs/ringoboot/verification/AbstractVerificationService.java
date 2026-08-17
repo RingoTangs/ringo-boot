@@ -16,12 +16,8 @@ import java.util.Objects;
 /**
  * 统一编排验证码生成、存储、渠道派发、失败补偿和校验消费流程。
  *
- * <p>Coordinates verification code generation, storage, channel dispatch,
- * failure compensation, and verification consumption.</p>
  *
- * <p><strong>API 注意事项 / API note:</strong> 子类只需实现 {@link #dispatch(CodeDelivery)} 以完成邮件、短信等渠道的派发。 /
- *     Subclasses only implement {@link #dispatch(CodeDelivery)} for channels such as
- *     email or SMS.
+ * <p><strong>API 注意事项：</strong> 子类只需实现 {@link #dispatch(CodeDelivery)} 以完成邮件、短信等渠道的派发。
  */
 public abstract class AbstractVerificationService implements VerificationService {
 
@@ -33,12 +29,10 @@ public abstract class AbstractVerificationService implements VerificationService
     /**
      * 使用安全默认策略和 UTC 系统时钟创建渠道服务。
      *
-     * <p>Creates a channel service with the secure default policy and UTC system
-     * clock.</p>
      *
-     * @param codeGenerator 验证码生成器 / the code generator
-     * @param store 验证码状态存储 / the verification state store
-     * @throws NullPointerException 当生成器或存储为 {@code null} 时 / if the generator or store is {@code null}
+     * @param codeGenerator 验证码生成器
+     * @param store 验证码状态存储
+     * @throws NullPointerException 当生成器或存储为 {@code null} 时
      */
     protected AbstractVerificationService(CodeGenerator codeGenerator, VerificationStore store) {
         this(codeGenerator, store, VerificationPolicy.defaults(), Clock.systemUTC());
@@ -47,13 +41,11 @@ public abstract class AbstractVerificationService implements VerificationService
     /**
      * 使用指定默认策略和 UTC 系统时钟创建渠道服务。
      *
-     * <p>Creates a channel service with the supplied default policy and UTC system
-     * clock.</p>
      *
-     * @param codeGenerator 验证码生成器 / the code generator
-     * @param store 验证码状态存储 / the verification state store
-     * @param defaultPolicy 默认验证码策略 / the default verification policy
-     * @throws NullPointerException 当任一参数为 {@code null} 时 / if any argument is {@code null}
+     * @param codeGenerator 验证码生成器
+     * @param store 验证码状态存储
+     * @param defaultPolicy 默认验证码策略
+     * @throws NullPointerException 当任一参数为 {@code null} 时
      */
     protected AbstractVerificationService(
             CodeGenerator codeGenerator, VerificationStore store, VerificationPolicy defaultPolicy) {
@@ -63,14 +55,12 @@ public abstract class AbstractVerificationService implements VerificationService
     /**
      * 使用指定生成器、存储、默认策略和时钟创建渠道服务。
      *
-     * <p>Creates a channel service with the supplied generator, store, default policy,
-     * and clock.</p>
      *
-     * @param codeGenerator 验证码生成器 / the code generator
-     * @param store 验证码状态存储 / the verification state store
-     * @param defaultPolicy 默认验证码策略 / the default verification policy
-     * @param clock 提供签发和校验时间的时钟 / the clock supplying issuance and verification instants
-     * @throws NullPointerException 当任一参数为 {@code null} 时 / if any argument is {@code null}
+     * @param codeGenerator 验证码生成器
+     * @param store 验证码状态存储
+     * @param defaultPolicy 默认验证码策略
+     * @param clock 提供签发和校验时间的时钟
+     * @throws NullPointerException 当任一参数为 {@code null} 时
      */
     protected AbstractVerificationService(
             CodeGenerator codeGenerator, VerificationStore store, VerificationPolicy defaultPolicy, Clock clock) {
@@ -113,12 +103,10 @@ public abstract class AbstractVerificationService implements VerificationService
     /**
      * 将已生成并存储的验证码派发到具体渠道。
      *
-     * <p>Dispatches a generated and stored verification code through the concrete
-     * channel.</p>
      *
-     * @param delivery 验证码交付内容 / the verification code delivery
-     * @return 渠道对发送请求的受理结果 / the channel's acceptance result for the delivery request
-     * @throws CodeSenderException 当渠道派发操作失败时 / if the channel delivery operation fails
+     * @param delivery 验证码交付内容
+     * @return 渠道对发送请求的受理结果
+     * @throws CodeSenderException 当渠道派发操作失败时
      */
     protected abstract CodeSendResult dispatch(CodeDelivery delivery) throws CodeSenderException;
 
@@ -138,7 +126,7 @@ public abstract class AbstractVerificationService implements VerificationService
     }
 
     private void validateGeneratedCode(String code, int expectedLength) {
-        //noinspection ConstantValue -- third-party generators can violate the SPI contract at runtime.
+        //noinspection ConstantValue -- 第三方生成器可能在运行时违反 SPI 契约。
         if (code == null || code.isBlank() || code.length() != expectedLength) {
             throw new CodeGenerationException("generated code must be non-blank and have length " + expectedLength);
         }

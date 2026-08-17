@@ -4,12 +4,6 @@
  * 验证码生成、派发和存储的技术故障统一继承 {@link
  * io.github.ringotangs.ringoboot.verification.VerificationException}。
  *
- * <p>Provides framework-neutral abstractions for issuing, delivering, storing, and
- * verifying short-lived codes. The lifecycle supports expiration, resend throttling,
- * maximum attempts, delivery-failure compensation, and one-time consumption after
- * successful verification. Technical generation, delivery, and storage failures share
- * the {@link io.github.ringotangs.ringoboot.verification.VerificationException} base
- * type.</p>
  */
 @NullMarked
 package io.github.ringotangs.ringoboot.verification;

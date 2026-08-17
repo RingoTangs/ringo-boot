@@ -9,24 +9,20 @@ import java.time.Instant;
 import java.util.Objects;
 
 /**
- * 基于 {@link SmsVerificationService} 的默认短信验证码 Facade。
+ * 基于 {@link SmsVerificationService} 的默认短信验证码门面。
  *
- * <p>Default SMS verification facade backed by {@link SmsVerificationService}.</p>
  *
- * <p><strong>API 注意事项 / API note:</strong> 手机号只去除首尾空白，不推断或改写国家区号。校验成功会一次性消费验证码。 / Phone
- *     numbers are only stripped; country codes are not inferred or rewritten. Successful
- *     verification consumes the code once.
+ * <p><strong>API 注意事项：</strong> 手机号只去除首尾空白，不推断或改写国家区号。校验成功会一次性消费验证码。
  */
 public final class DefaultSmsVerificationFacade implements SmsVerificationFacade {
 
     private final SmsVerificationService verificationService;
 
     /**
-     * 使用底层短信验证码服务创建默认 Facade。
+     * 使用底层短信验证码服务创建默认门面。
      *
-     * <p>Creates the default facade with the underlying SMS verification service.</p>
      *
-     * @param verificationService 底层短信验证码服务 / underlying SMS verification service
+     * @param verificationService 底层短信验证码服务
      */
     public DefaultSmsVerificationFacade(SmsVerificationService verificationService) {
         this.verificationService = Objects.requireNonNull(verificationService, "verificationService must not be null");
