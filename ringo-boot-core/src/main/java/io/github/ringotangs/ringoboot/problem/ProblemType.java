@@ -3,35 +3,26 @@ package io.github.ringotangs.ringoboot.problem;
 import java.net.URI;
 
 /**
- * 描述符合 RFC 9457 Problem Details 规范的稳定业务问题类型。
+ * 描述符合 RFC 9457 Problem Details 规范的稳定问题类型。
  * 异常处理层可使用该接口提供的元数据构建 HTTP 错误响应；实现类应保持
  * {@code type}、{@code title} 和 HTTP 状态的语义稳定。
  *
- * <p>Describes a stable business problem type that follows RFC 9457 Problem Details.
- * Exception handlers can use this metadata to build HTTP error responses. Implementations
- * should keep the semantics of {@code type}, {@code title}, and the HTTP status stable.</p>
- *
  * @see <a href="https://www.rfc-editor.org/rfc/rfc9457.html">RFC 9457</a>
  */
-@SuppressWarnings("unused") // Public convenience accessors are consumed by downstream applications.
+@SuppressWarnings("unused") // 公开的便捷访问方法由下游应用调用。
 public interface ProblemType {
 
     /**
      * 返回该问题类型的不可变定义。
      *
-     * <p>Returns the immutable definition of this problem type.</p>
-     *
-     * @return 问题定义 / the problem definition
+     * @return 问题定义
      */
     ProblemDefinition getDefinition();
 
     /**
      * 返回供客户端识别问题类型的稳定 URI，建议使用绝对 URI 或 URN。
      *
-     * <p>Returns the stable URI that clients use to identify the problem type.
-     * An absolute URI or URN is recommended.</p>
-     *
-     * @return 问题类型 URI / the problem type URI
+     * @return 问题类型 URI
      */
     default URI getType() {
         return getDefinition().type();
@@ -40,10 +31,7 @@ public interface ProblemType {
     /**
      * 返回用于解析标题和详情的国际化消息基础键。
      *
-     * <p>Returns the base internationalization message code used to resolve the title
-     * and detail.</p>
-     *
-     * @return 国际化消息基础键 / the base internationalization message code
+     * @return 国际化消息基础键
      */
     default String getMessageCode() {
         return getDefinition().messageCode();
@@ -52,22 +40,16 @@ public interface ProblemType {
     /**
      * 返回简短且人类可读的问题标题；除本地化外，同一问题类型的标题应保持不变。
      *
-     * <p>Returns a short, human-readable problem title. Except for localization, the title
-     * should remain unchanged for the same problem type.</p>
-     *
-     * @return 问题标题 / the problem title
+     * @return 问题标题
      */
     default String getTitle() {
         return getDefinition().title();
     }
 
     /**
-     * 返回问题的默认详情，可由 {@link ProblemException} 中的自定义详情覆盖。
+     * 返回问题的默认详情。{@link ProblemException} 可以携带消息参数，对该详情中的占位符进行格式化。
      *
-     * <p>Returns the default problem detail, which a custom detail in
-     * {@link ProblemException} may override.</p>
-     *
-     * @return 默认问题详情 / the default problem detail
+     * @return 默认问题详情
      */
     default String getDefaultDetail() {
         return getDefinition().defaultDetail();
@@ -77,10 +59,7 @@ public interface ProblemType {
      * 返回实际 HTTP 响应使用的状态码，该值必须与 Problem Details 的
      * {@code status} 字段一致。
      *
-     * <p>Returns the status code used by the actual HTTP response. It must match the
-     * {@code status} member in the Problem Details response.</p>
-     *
-     * @return HTTP 状态码 / the HTTP status code
+     * @return HTTP 状态码
      */
     default int getHttpStatus() {
         return getDefinition().httpStatus();
