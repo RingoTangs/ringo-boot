@@ -39,7 +39,7 @@ class IssueRateLimitManagerTest {
     }
 
     @Test
-    void allowsWhenNoRulesMatchWithoutCallingStore() {
+    void rejectsWhenNoRulesMatchWithoutCallingStore() {
         AtomicInteger calls = new AtomicInteger();
         IssueRateLimitManager manager = new IssueRateLimitManager(
                 List.of(rule("registration-minute", context -> false, "registration")), (rules, time) -> {
@@ -47,7 +47,10 @@ class IssueRateLimitManagerTest {
                     return new IssueLimitResult.Throttled(Duration.ofSeconds(1));
                 });
 
-        assertInstanceOf(IssueLimitResult.Allowed.class, manager.acquire(KEY, NOW));
+        MissingIssueRateLimitRuleException exception =
+                assertThrows(MissingIssueRateLimitRuleException.class, () -> manager.acquire(KEY, NOW));
+        assertEquals("no issue rate limit rule matches namespace=account, purpose=login", exception.getMessage());
+        assertEquals(-1, exception.getMessage().indexOf(KEY.subject()));
         assertEquals(0, calls.get());
     }
 
@@ -102,6 +105,9 @@ class IssueRateLimitManagerTest {
                 NullPointerException.class,
                 () -> new IssueRateLimitManager(
                         Arrays.asList(rule, null), (rules, time) -> new IssueLimitResult.Allowed()));
+        assertThrows(
+                MissingIssueRateLimitRuleException.class,
+                () -> new IssueRateLimitManager(List.of(), (rules, time) -> new IssueLimitResult.Allowed()));
     }
 
     @Test

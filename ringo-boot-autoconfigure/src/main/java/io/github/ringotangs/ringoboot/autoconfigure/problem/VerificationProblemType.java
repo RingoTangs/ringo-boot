@@ -25,6 +25,12 @@ enum VerificationProblemType implements ProblemType {
             "Verification code generation failed",
             "The verification service encountered an internal error",
             HttpStatus.INTERNAL_SERVER_ERROR),
+    CONFIGURATION_ERROR(
+            ProblemTypeUri.of("verification", "configuration-error"),
+            "configuration-error",
+            "Verification configuration error",
+            "The verification service is not configured for this operation",
+            HttpStatus.INTERNAL_SERVER_ERROR),
     SERVICE_UNAVAILABLE(
             ProblemTypeUri.of("verification", "service-unavailable"),
             "service-unavailable",

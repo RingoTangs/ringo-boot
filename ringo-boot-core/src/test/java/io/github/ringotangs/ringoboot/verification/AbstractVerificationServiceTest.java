@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
+import io.github.ringotangs.ringoboot.verification.limit.MissingIssueRateLimitRuleException;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDeliveryRejectedException;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
@@ -178,6 +179,36 @@ class AbstractVerificationServiceTest {
 
         assertSame(LOGIN, captured.get());
         assertEquals(LOGIN, template.delivery().key());
+    }
+
+    @Test
+    void doesNotGenerateStoreOrDispatchWhenNoRateLimitRuleMatches() {
+        AtomicInteger generations = new AtomicInteger();
+        AtomicInteger stores = new AtomicInteger();
+        VerificationStore store = new StubVerificationStore() {
+            @Override
+            public StoreResult store(VerificationKey key, String code, VerificationPolicy policy, Instant issuedAt) {
+                stores.incrementAndGet();
+                return super.store(key, code, policy, issuedAt);
+            }
+        };
+        IssueRateLimiter limiter = (key, requestedAt) -> {
+            throw new MissingIssueRateLimitRuleException(key);
+        };
+        CapturingVerificationService template = new CapturingVerificationService(
+                length -> {
+                    generations.incrementAndGet();
+                    return "123456";
+                },
+                store,
+                limiter,
+                VerificationPolicy.defaults(),
+                Clock.fixed(NOW, ZoneOffset.UTC));
+
+        assertThrows(MissingIssueRateLimitRuleException.class, () -> template.issue(LOGIN));
+        assertEquals(0, generations.get());
+        assertEquals(0, stores.get());
+        assertEquals(0, template.dispatches());
     }
 
     @Test

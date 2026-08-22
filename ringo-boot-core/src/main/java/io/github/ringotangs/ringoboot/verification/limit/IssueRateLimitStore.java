@@ -19,13 +19,13 @@ public interface IssueRateLimitStore {
      * 原子获取全部配额对应的一次签发名额。
      *
      * <p>只有所有配额均允许时才能同时消费额度；任一配额受限时不得消费其他配额。多条规则同时受限时，应返回其中最大的剩余等待
-     * 时间。空配额集合应直接允许且不访问底层存储。
+     * 时间。空配额集合不代表有效的签发名额，必须拒绝。
      *
      * @param quotas 本次签发请求需要同时满足的不可变配额集合
      * @param requestedAt 请求签发的时间
      * @return 允许签发或受限结果
      * @throws NullPointerException 当配额集合、任一配额或请求时间为 {@code null} 时
-     * @throws IllegalArgumentException 当配额不受当前 Store 支持或同一规则的运行时定义发生变化时
+     * @throws IllegalArgumentException 当配额集合为空、配额不受当前 Store 支持或同一规则的运行时定义发生变化时
      * @throws IssueRateLimitException 当底层存储或原子操作失败时
      */
     IssueLimitResult acquire(List<IssueLimitQuota> quotas, Instant requestedAt) throws IssueRateLimitException;

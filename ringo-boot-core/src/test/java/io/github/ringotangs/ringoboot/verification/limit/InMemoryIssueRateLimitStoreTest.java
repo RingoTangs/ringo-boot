@@ -67,7 +67,7 @@ class InMemoryIssueRateLimitStoreTest {
                         List.of(quota("subject-limit", "user", 1, Duration.ofHours(1))), NOW.plusSeconds(1)));
         assertThrows(NullPointerException.class, () -> store.acquire(null, NOW));
         assertThrows(NullPointerException.class, () -> store.acquire(Arrays.asList(minute, null), NOW));
-        assertInstanceOf(IssueLimitResult.Allowed.class, store.acquire(List.of(), NOW));
+        assertThrows(IllegalArgumentException.class, () -> store.acquire(List.of(), NOW));
     }
 
     private IssueLimitQuota quota(String ruleId, String bucket, int maxIssues, Duration window) {

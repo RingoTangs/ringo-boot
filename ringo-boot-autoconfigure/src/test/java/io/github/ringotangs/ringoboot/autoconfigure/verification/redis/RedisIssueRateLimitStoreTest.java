@@ -68,10 +68,12 @@ class RedisIssueRateLimitStoreTest {
     }
 
     @Test
-    void emptyConstraintsBypassRedis() {
+    void emptyQuotasAreRejectedWithoutAccessingRedis() {
         StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
 
-        assertThat(store(redisTemplate).acquire(List.of(), NOW)).isInstanceOf(IssueLimitResult.Allowed.class);
+        assertThatThrownBy(() -> store(redisTemplate).acquire(List.of(), NOW))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("quotas must not be empty");
         verifyNoInteractions(redisTemplate);
     }
 

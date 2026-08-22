@@ -93,7 +93,7 @@ public final class RedisIssueRateLimitStore implements IssueRateLimitStore {
         Objects.requireNonNull(quotas, "quotas must not be null");
         Objects.requireNonNull(requestedAt, "requestedAt must not be null");
         if (quotas.isEmpty()) {
-            return ALLOWED;
+            throw new IllegalArgumentException("quotas must not be empty");
         }
 
         List<String> keys = new ArrayList<>(quotas.size());

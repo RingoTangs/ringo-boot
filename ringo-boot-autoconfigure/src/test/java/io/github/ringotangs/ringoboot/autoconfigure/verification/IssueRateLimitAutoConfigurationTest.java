@@ -1,6 +1,7 @@
 package io.github.ringotangs.ringoboot.autoconfigure.verification;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimitStore;
@@ -12,6 +13,7 @@ import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitManager;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitStore;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
+import io.github.ringotangs.ringoboot.verification.limit.MissingIssueRateLimitRuleException;
 import java.time.Duration;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
@@ -44,6 +46,9 @@ class IssueRateLimitAutoConfigurationTest {
             assertThat(context.getBean(IssueRateLimitStore.class)).isInstanceOf(InMemoryIssueRateLimitStore.class);
             assertThat(context).hasSingleBean(IssueRateLimiter.class);
             assertThat(context.getBean(IssueRateLimiter.class)).isInstanceOf(IssueRateLimitManager.class);
+            assertThat(context.getBean(IssueRateLimiter.class)
+                            .acquire(new VerificationKey("account", "login", "user@example.com"), Instant.EPOCH))
+                    .isInstanceOf(IssueLimitResult.Allowed.class);
         });
     }
 
@@ -84,6 +89,40 @@ class IssueRateLimitAutoConfigurationTest {
                     assertThat(context).hasSingleBean(IssueRateLimitRule.class);
                     assertThat(context.getBean(IssueRateLimitRule.class)).isSameAs(customRule);
                     assertThat(context).hasSingleBean(IssueRateLimiter.class);
+                });
+    }
+
+    @Test
+    void zeroIntervalWithoutAnyOtherRuleFailsFast() {
+        contextRunner
+                .withPropertyValues(
+                        "ringo.boot.verification.enabled=true", "ringo.boot.verification.issue-rate-limit.interval=0")
+                .run(context -> assertThat(context.getStartupFailure())
+                        .hasRootCauseInstanceOf(MissingIssueRateLimitRuleException.class)
+                        .hasRootCauseMessage("at least one issue rate limit rule is required"));
+    }
+
+    @Test
+    void configuredPartialRuleRejectsUncoveredVerificationKeys() {
+        VerificationKey uncovered = new VerificationKey("payment", "confirm", "+8613800000000");
+
+        contextRunner
+                .withPropertyValues(
+                        "ringo.boot.verification.enabled=true",
+                        "ringo.boot.verification.issue-rate-limit.interval=0",
+                        "ringo.boot.verification.issue-rate-limit.rules[0].id=account-login-hour",
+                        "ringo.boot.verification.issue-rate-limit.rules[0].scope=purpose",
+                        "ringo.boot.verification.issue-rate-limit.rules[0].namespace=account",
+                        "ringo.boot.verification.issue-rate-limit.rules[0].purpose=login",
+                        "ringo.boot.verification.issue-rate-limit.rules[0].max-issues=10",
+                        "ringo.boot.verification.issue-rate-limit.rules[0].window=1h")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThatThrownBy(() ->
+                                    context.getBean(IssueRateLimiter.class).acquire(uncovered, Instant.EPOCH))
+                            .isInstanceOf(MissingIssueRateLimitRuleException.class)
+                            .hasMessage("no issue rate limit rule matches namespace=payment, purpose=confirm")
+                            .hasMessageNotContaining(uncovered.subject());
                 });
     }
 

@@ -2,6 +2,7 @@ package io.github.ringotangs.ringoboot.verification.limit;
 
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import java.time.Instant;
+import java.util.Objects;
 
 /**
  * 验证码服务使用的签发频率限制入口。
@@ -22,6 +23,21 @@ import java.time.Instant;
 public interface IssueRateLimiter {
 
     /**
+     * 创建一个显式允许所有签发请求的限流器。
+     *
+     * <p>该实现不会创建或消费任何额度，只适用于应用明确决定关闭签发限流的场景。生产应用通常应配置实际限流规则。
+     *
+     * @return 显式允许所有签发请求的限流器
+     */
+    static IssueRateLimiter permitAll() {
+        return (key, requestedAt) -> {
+            Objects.requireNonNull(key, "key must not be null");
+            Objects.requireNonNull(requestedAt, "requestedAt must not be null");
+            return new IssueLimitResult.Allowed();
+        };
+    }
+
+    /**
      * 尝试获取一次验证码签发名额。
      *
      * @param key 验证码键
@@ -30,6 +46,7 @@ public interface IssueRateLimiter {
      * @throws NullPointerException 当任一参数为 {@code null} 时
      * @throws IllegalArgumentException 当规则声明或解析出的上下文数据非法时
      * @throws RuntimeException 当上下文解析失败或匹配规则无法解析额度桶时
+     * @throws MissingIssueRateLimitRuleException 当没有规则覆盖当前验证码键时
      * @throws IssueRateLimitException 当底层限流操作失败时
      */
     IssueLimitResult acquire(VerificationKey key, Instant requestedAt) throws IssueRateLimitException;

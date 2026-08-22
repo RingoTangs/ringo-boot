@@ -7,6 +7,7 @@ import io.github.ringotangs.ringoboot.verification.VerificationException;
 import io.github.ringotangs.ringoboot.verification.VerificationThrottledException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitException;
+import io.github.ringotangs.ringoboot.verification.limit.MissingIssueRateLimitRuleException;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
 import org.apache.commons.logging.Log;
@@ -58,13 +59,17 @@ public class VerificationExceptionHandler {
         CodeGenerationException.class,
         CodeSenderException.class,
         VerificationStoreException.class,
-        IssueRateLimitException.class
+        IssueRateLimitException.class,
+        MissingIssueRateLimitRuleException.class
     })
     public ProblemDetail handleVerificationException(VerificationException exception) {
         logger.error("Verification operation failed", exception);
-        ProblemType problemType = exception instanceof CodeGenerationException
-                ? VerificationProblemType.GENERATION_FAILED
-                : VerificationProblemType.SERVICE_UNAVAILABLE;
+        ProblemType problemType =
+                switch (exception) {
+                    case CodeGenerationException ignored -> VerificationProblemType.GENERATION_FAILED;
+                    case MissingIssueRateLimitRuleException ignored -> VerificationProblemType.CONFIGURATION_ERROR;
+                    default -> VerificationProblemType.SERVICE_UNAVAILABLE;
+                };
         return problemDetailFactory.create(ProblemException.withCause(problemType, exception));
     }
 

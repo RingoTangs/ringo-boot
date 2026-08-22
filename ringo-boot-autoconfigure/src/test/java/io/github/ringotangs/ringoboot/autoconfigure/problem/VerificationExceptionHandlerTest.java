@@ -4,9 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
+import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationThrottledException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitException;
+import io.github.ringotangs.ringoboot.verification.limit.MissingIssueRateLimitRuleException;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDeliveryRejectedException;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
@@ -85,6 +87,24 @@ class VerificationExceptionHandlerTest {
     }
 
     @Test
+    void returnsSafeInternalErrorForMissingRateLimitRule(CapturedOutput output) {
+        VerificationExceptionHandler handler = createDefaultHandler();
+        MissingIssueRateLimitRuleException exception =
+                new MissingIssueRateLimitRuleException(new VerificationKey("account", "login", "user@example.com"));
+
+        ProblemDetail problem = handler.handleVerificationException(exception);
+
+        assertProblem(
+                problem,
+                500,
+                "urn:problem:verification:configuration-error",
+                "Verification configuration error",
+                "The verification service is not configured for this operation");
+        assertThat(problem.getDetail()).doesNotContain("account", "login", "example.com");
+        assertLogged(output, MissingIssueRateLimitRuleException.class);
+    }
+
+    @Test
     void usesBuiltInLocalizedMessages() {
         StaticMessageSource messageSource = new StaticMessageSource();
         LocaleContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
@@ -93,11 +113,14 @@ class VerificationExceptionHandlerTest {
 
         ProblemDetail generation = handler.handleVerificationException(new CodeGenerationException("internal"));
         ProblemDetail unavailable = handler.handleVerificationException(new VerificationStoreException("internal"));
+        ProblemDetail configuration = handler.handleVerificationException(new MissingIssueRateLimitRuleException());
 
         assertEquals("验证码生成失败", generation.getTitle());
         assertEquals("验证码服务发生内部错误", generation.getDetail());
         assertEquals("验证码服务不可用", unavailable.getTitle());
         assertEquals("验证码服务暂时不可用", unavailable.getDetail());
+        assertEquals("验证码配置错误", configuration.getTitle());
+        assertEquals("验证码服务未配置当前操作", configuration.getDetail());
     }
 
     @Test

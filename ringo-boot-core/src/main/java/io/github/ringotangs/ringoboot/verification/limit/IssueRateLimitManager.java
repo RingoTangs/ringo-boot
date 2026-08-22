@@ -15,12 +15,10 @@ import java.util.Set;
  * {@link IssueRateLimitRule#matches(IssueContext)}，再为匹配规则解析 {@link IssueLimitBucket}。只有全部额度桶成功解析后，才会把
  * 不可变 {@link IssueLimitQuota} 集合一次性提交给 {@link IssueRateLimitStore}。
  *
- * <p>没有规则匹配时直接返回 {@link IssueLimitResult.Allowed}，不会访问状态存储。该类本身不可变；整体线程安全性还依赖规则实现和存储
- * 满足各自的线程安全契约。
+ * <p>规则集合为空或没有规则匹配当前验证码键时使用严格拒绝策略，抛出 {@link MissingIssueRateLimitRuleException}，不会访问状态
+ * 存储。该类本身不可变；整体线程安全性还依赖规则实现和存储满足各自的线程安全契约。
  */
 public final class IssueRateLimitManager implements IssueRateLimiter {
-
-    private static final IssueLimitResult.Allowed ALLOWED = new IssueLimitResult.Allowed();
 
     private final List<IssueRateLimitRule> rules;
     private final IssueRateLimitStore store;
@@ -31,10 +29,11 @@ public final class IssueRateLimitManager implements IssueRateLimiter {
      *
      * <p>规则的迭代顺序会被保留，便于获得稳定的匹配和诊断顺序，但所有匹配规则仍以 AND 关系原子执行，顺序不会改变限流结果。
      *
-     * @param rules 需要管理的签发限流规则；允许传入空集合
+     * @param rules 需要管理的非空签发限流规则集合
      * @param store 原子保存和消费已解析配额的限流状态存储
      * @throws NullPointerException 当规则集合、任一规则、规则定义字段或 Store 为 {@code null} 时
      * @throws IllegalArgumentException 当规则定义非法或存在重复规则 ID 时
+     * @throws MissingIssueRateLimitRuleException 当规则集合为空时
      */
     public IssueRateLimitManager(List<IssueRateLimitRule> rules, IssueRateLimitStore store) {
         this(rules, store, IssueContext::of);
@@ -45,11 +44,12 @@ public final class IssueRateLimitManager implements IssueRateLimiter {
      *
      * <p>规则的迭代顺序会被保留，便于获得稳定的匹配和诊断顺序，但所有匹配规则仍以 AND 关系原子执行，顺序不会改变限流结果。
      *
-     * @param rules 需要管理的签发限流规则；允许传入空集合
+     * @param rules 需要管理的非空签发限流规则集合
      * @param store 原子保存和消费已解析配额的限流状态存储
      * @param contextResolver 根据验证码键解析额外限流信号的上下文解析器
      * @throws NullPointerException 当规则集合、任一规则、规则定义字段、Store 或上下文解析器为 {@code null} 时
      * @throws IllegalArgumentException 当规则定义非法或存在重复规则 ID 时
+     * @throws MissingIssueRateLimitRuleException 当规则集合为空时
      */
     public IssueRateLimitManager(
             List<IssueRateLimitRule> rules, IssueRateLimitStore store, IssueContextResolver contextResolver) {
@@ -57,6 +57,9 @@ public final class IssueRateLimitManager implements IssueRateLimiter {
         this.store = Objects.requireNonNull(store, "store must not be null");
         this.contextResolver = Objects.requireNonNull(contextResolver, "contextResolver must not be null");
         this.rules = List.copyOf(rules);
+        if (this.rules.isEmpty()) {
+            throw new MissingIssueRateLimitRuleException();
+        }
         Set<String> ids = new HashSet<>();
         for (IssueRateLimitRule rule : this.rules) {
             Objects.requireNonNull(rule, "rule must not be null");
@@ -86,7 +89,7 @@ public final class IssueRateLimitManager implements IssueRateLimiter {
             }
         }
         if (quotas.isEmpty()) {
-            return ALLOWED;
+            throw new MissingIssueRateLimitRuleException(key);
         }
         return Objects.requireNonNull(
                 store.acquire(List.copyOf(quotas), requestedAt), "issue rate limit store result must not be null");

@@ -41,6 +41,8 @@ sample 已引入 `spring-boot-starter-data-redis`。Spring Boot 创建 `StringRe
 `rules` 声明的额度规则会与默认规则及应用提供的 `IssueRateLimitRule` Bean 同时生效。示例中的全局规则限制当前应用
 每小时签发 1000 次；`subject` 规则只匹配 `account/email-verification`，并分别统计每个邮箱的小时额度。
 邮箱或手机号不应写入 YAML，它来自运行时 `VerificationKey.subject`。
+限流采用严格拒绝策略：`interval=0` 且没有其他规则时应用启动失败，某个业务没有任何匹配规则时也不会签发验证码。
+确实需要完全关闭限流的应用应显式提供 `IssueRateLimiter.permitAll()` Bean。
 
 `VerificationService` 只定义签发和校验的业务契约。`AbstractVerificationService` 是该契约的抽象骨架实现，统一编排生成、
 存储、限流、派发、派发失败补偿和校验消费。core 已提供 `EmailVerificationService`

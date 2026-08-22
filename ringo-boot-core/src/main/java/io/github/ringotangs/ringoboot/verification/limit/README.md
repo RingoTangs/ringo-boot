@@ -125,7 +125,14 @@ account + login + user@example.com
 ```
 
 这表示同一个邮箱的登录验证码 60 秒内只能签发一次。将 `interval` 配置为 `0` 只会关闭这条默认规则，不会关闭应用注册的
-其他 Rule Bean。
+其他 Rule Bean。默认冷却规则属于有效额度配置，并覆盖全部验证码键。
+
+限流管理器采用严格拒绝策略：规则集合为空时无法创建；存在规则但没有任何规则匹配当前 `VerificationKey` 时，签发请求抛出
+`MissingIssueRateLimitRuleException`。因此关闭默认冷却规则后，应用必须提供能够覆盖全部预期业务的 YAML 或 Bean 规则。
+如果应用确实需要完全关闭限流，必须显式使用 `IssueRateLimiter.permitAll()`，不能通过遗漏配置隐式关闭。
+
+`IssueLimitBucket` 只是额度累计身份，`IssueLimitQuota` 才定义窗口和最大次数。Store 中尚不存在某个桶的历史记录表示这是新桶，
+第一次请求拥有完整初始额度；没有匹配出任何 `IssueLimitQuota` 才属于配置缺失。
 
 ### 内置全局规则
 
@@ -279,6 +286,9 @@ v2:login-ip-hour:{bucketDigest}
 6. 合并 YAML 规则与 Bean 规则，创建唯一默认 `IssueRateLimiter`。
 7. 邮件和短信验证码服务注入该 `IssueRateLimiter`。
 
+`interval=0` 且没有任何 YAML 或 Bean 规则时，应用会在创建限流管理器时启动失败。如果只配置了部分业务规则，应用可以启动，
+但未被任何规则覆盖的 `namespace + purpose` 会在首次签发时抛出配置异常，不会生成、存储或发送验证码。
+
 配置支持四种范围：
 
 | scope | 匹配条件 | 额度桶 |
@@ -324,7 +334,7 @@ YAML 规则、默认冷却规则和 Bean 规则）必须全局唯一，重复时
 | `IssueRateLimitRule` | 与 YAML 规则及默认规则叠加 |
 | `IssueContextResolver` | 替换默认解析器，为规则提供 IP、设备等应用信号 |
 | `IssueRateLimitStore` | 使用自定义限流状态存储，仍自动收集所有规则 |
-| `IssueRateLimiter` | 完全替换默认管理器和限流状态存储 |
+| `IssueRateLimiter` | 完全替换默认管理器和限流状态存储；显式关闭限流时使用 `IssueRateLimiter.permitAll()` |
 
 ## 八、推荐的初始规则
 
@@ -359,6 +369,7 @@ YAML 规则、默认冷却规则和 Bean 规则）必须全局唯一，重复时
 | --- | --- | --- |
 | 参数为 null | `NullPointerException` | 调用方或扩展实现违反非空契约 |
 | 规则、上下文或配额非法 | `IllegalArgumentException` | 配置或调用错误 |
+| 没有规则或当前业务未被规则覆盖 | `MissingIssueRateLimitRuleException` | 严格拒绝签发的限流配置错误 |
 | 正常达到签发上限 | `IssueLimitResult.Throttled` | 可预期的限流结果，不是异常 |
 | Redis、网络或原子操作失败 | `IssueRateLimitException` | 限流基础设施技术故障 |
 
