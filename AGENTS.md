@@ -2,9 +2,10 @@
 
 ## Project Structure & Module Organization
 
-This is a Java 21 multi-module Maven project. The root `pom.xml` manages shared versions and builds three modules:
+This is a Java 21 multi-module Maven project. The root `pom.xml` manages shared versions and builds four modules:
 
-- `ringo-boot-core/`: framework-neutral Problem Details and verification abstractions under `src/main/java/io/github/ringotangs/ringoboot`.
+- `ringo-boot-core/`: framework-neutral Problem Details foundations under `io.github.ringotangs.ringoboot.problem`.
+- `ringo-boot-verification/`: framework-neutral verification code services and extension points under `io.github.ringotangs.ringoboot.verification`.
 - `ringo-boot-autoconfigure/`: Spring Boot configuration, Web exception handling, and optional localization live under `io.github.ringotangs.ringoboot.autoconfigure.problem`.
 - `ringo-boot-sample/`: a Spring Boot example under `src/main/java/io/github/ringotangs/ringoboot/sample`; runtime settings live in `src/main/resources/application.yaml`.
 
@@ -19,13 +20,14 @@ Run commands from the repository root with Maven 3.9.x:
 - `mvn spotless:check`: verify Java formatting without modifying source files.
 - `mvn test`: run the full reactor test suite without packaging.
 - `mvn -pl ringo-boot-core -am test`: test the core module and required reactor dependencies.
+- `mvn -pl ringo-boot-verification -am test`: test verification code services and extension points.
 - `mvn -pl ringo-boot-autoconfigure -am test`: test the reusable Spring Boot auto-configuration.
 - `mvn -pl ringo-boot-sample -am spring-boot:run`: build dependencies and start the sample application locally.
 - `mvn -pl ringo-boot-sample -am package`: produce the runnable sample JAR.
 
 ## Coding Style & Naming Conventions
 
-Use four-space indentation, UTF-8, one public top-level type per file, and the existing `io.github.ringotangs` package hierarchy. Name classes and records in `PascalCase`, methods and fields in `camelCase`, and constants in `UPPER_SNAKE_CASE`. Keep controllers thin and place generally reusable behavior in `ringo-boot-core`. Lombok is available, but use it only where it improves readability. Java formatting is enforced by Spotless with Palantir Java Format; run `mvn spotless:apply` before committing.
+Use four-space indentation, UTF-8, one public top-level type per file, and the existing `io.github.ringotangs` package hierarchy. Name classes and records in `PascalCase`, methods and fields in `camelCase`, and constants in `UPPER_SNAKE_CASE`. Keep controllers thin and place reusable behavior in the matching framework-neutral module. Lombok is available, but use it only where it improves readability. Java formatting is enforced by Spotless with Palantir Java Format; run `mvn spotless:apply` before committing.
 
 ## Testing Guidelines
 

@@ -12,9 +12,9 @@
         <version>1.0.0</version>
     </parent>
 
-    <artifactId>ringo-boot-core</artifactId>
-    <name>Ringo Boot Core</name>
-    <description>Framework-neutral Problem Details foundations for Ringo Boot.</description>
+    <artifactId>ringo-boot-verification</artifactId>
+    <name>Ringo Boot Verification</name>
+    <description>Framework-neutral verification code services and extension points for Ringo Boot.</description>
 
     <dependencies>
         <dependency>

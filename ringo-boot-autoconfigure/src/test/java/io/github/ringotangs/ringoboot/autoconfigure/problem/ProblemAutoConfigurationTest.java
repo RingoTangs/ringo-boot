@@ -52,6 +52,22 @@ class ProblemAutoConfigurationTest {
     }
 
     @Test
+    void configuresProblemHandlingWhenVerificationModuleIsAbsent() {
+        contextRunner
+                .withClassLoader(new FilteredClassLoader("io.github.ringotangs.ringoboot.verification"))
+                .withPropertyValues(
+                        "ringo.boot.problem.enabled=true",
+                        "ringo.boot.problem.application-enabled=true",
+                        "ringo.boot.problem.verification-enabled=true",
+                        "ringo.boot.verification.enabled=true")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(ProblemExceptionHandler.class);
+                    assertThat(context).doesNotHaveBean("verificationExceptionHandler");
+                });
+    }
+
+    @Test
     void doesNotConfigureExceptionHandlingByDefault() {
         contextRunner.run(context -> {
             assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);
