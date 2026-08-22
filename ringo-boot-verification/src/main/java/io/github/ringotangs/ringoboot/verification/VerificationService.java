@@ -1,8 +1,5 @@
 package io.github.ringotangs.ringoboot.verification;
 
-import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitException;
-import io.github.ringotangs.ringoboot.verification.sender.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
 
 /**
@@ -20,14 +17,10 @@ public interface VerificationService {
      *
      * @param key 验证码键
      * @return 不包含明文验证码的签发结果
-     * @throws CodeGenerationException 当验证码生成失败时
-     * @throws CodeSenderException 当验证码渠道派发失败时
-     * @throws IssueRateLimitException 当签发限流操作失败时
+     * @throws VerificationException 当验证码生成、签发限流、存储或渠道派发失败时
      * @throws NullPointerException 当验证码键为 {@code null} 时
-     * @throws VerificationStoreException 当验证码存储操作失败时
      */
-    IssueResult issue(VerificationKey key)
-            throws CodeGenerationException, CodeSenderException, IssueRateLimitException, VerificationStoreException;
+    IssueResult issue(VerificationKey key) throws VerificationException;
 
     /**
      * 使用指定策略签发并派发验证码。
@@ -36,14 +29,10 @@ public interface VerificationService {
      * @param key 验证码键
      * @param policy 验证码策略
      * @return 不包含明文验证码的签发结果
-     * @throws CodeGenerationException 当验证码生成失败时
-     * @throws CodeSenderException 当验证码渠道派发失败时
-     * @throws IssueRateLimitException 当签发限流操作失败时
+     * @throws VerificationException 当验证码生成、签发限流、存储或渠道派发失败时
      * @throws NullPointerException 当验证码键或策略为 {@code null} 时
-     * @throws VerificationStoreException 当验证码存储操作失败时
      */
-    IssueResult issue(VerificationKey key, VerificationPolicy policy)
-            throws CodeGenerationException, CodeSenderException, IssueRateLimitException, VerificationStoreException;
+    IssueResult issue(VerificationKey key, VerificationPolicy policy) throws VerificationException;
 
     /**
      * 校验验证码，并根据结果原子地消费记录或扣减剩余尝试次数。

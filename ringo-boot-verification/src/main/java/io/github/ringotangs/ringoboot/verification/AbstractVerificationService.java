@@ -3,7 +3,6 @@ package io.github.ringotangs.ringoboot.verification;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitException;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDeliveryRejectedException;
@@ -99,15 +98,13 @@ public abstract class AbstractVerificationService implements VerificationService
 
     /** {@inheritDoc} */
     @Override
-    public final IssueResult issue(VerificationKey key)
-            throws CodeGenerationException, CodeSenderException, IssueRateLimitException, VerificationStoreException {
+    public final IssueResult issue(VerificationKey key) throws VerificationException {
         return issue(key, verificationPolicy);
     }
 
     /** {@inheritDoc} */
     @Override
-    public final IssueResult issue(VerificationKey key, VerificationPolicy policy)
-            throws CodeGenerationException, CodeSenderException, IssueRateLimitException, VerificationStoreException {
+    public final IssueResult issue(VerificationKey key, VerificationPolicy policy) throws VerificationException {
         Objects.requireNonNull(key, "key must not be null");
         Objects.requireNonNull(policy, "policy must not be null");
         Instant issuedAt = clock.instant();
