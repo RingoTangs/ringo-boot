@@ -75,8 +75,7 @@ class EmailVerificationControllerTest {
                 .andExpect(jsonPath("$.type").value("urn:problem:business:verification:throttled"))
                 .andExpect(jsonPath("$.status").value(429));
 
-        org.assertj.core.api.Assertions.assertThat(sender.latest(email).code())
-                .isEqualTo(originalCode);
+        org.assertj.core.api.Assertions.assertThat(sender.latest(email).code()).isEqualTo(originalCode);
     }
 
     @Test
