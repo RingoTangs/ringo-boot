@@ -99,23 +99,16 @@ public abstract class AbstractVerificationService implements VerificationService
     /** {@inheritDoc} */
     @Override
     public final IssueResult issue(VerificationKey key) throws VerificationException {
-        return issue(key, verificationPolicy);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public final IssueResult issue(VerificationKey key, VerificationPolicy policy) throws VerificationException {
         Objects.requireNonNull(key, "key must not be null");
-        Objects.requireNonNull(policy, "policy must not be null");
         Instant issuedAt = clock.instant();
         IssueLimitResult limitResult = Objects.requireNonNull(
                 issueRateLimiter.acquire(key, issuedAt), "issue rate limiter result must not be null");
         if (limitResult instanceof IssueLimitResult.Throttled throttled) {
             return new IssueResult.Throttled(throttled.retryAfter());
         }
-        String code = codeGenerator.generate(policy.length());
-        validateGeneratedCode(code, policy.length());
-        StoreResult stored = store.store(key, code, policy, issuedAt);
+        String code = codeGenerator.generate(verificationPolicy.length());
+        validateGeneratedCode(code, verificationPolicy.length());
+        StoreResult stored = store.store(key, code, verificationPolicy, issuedAt);
         return dispatchStored(key, code, stored.expiresAt());
     }
 

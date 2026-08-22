@@ -73,17 +73,17 @@ class AbstractVerificationServiceTest {
     }
 
     @Test
-    void usesSuppliedPolicy() {
+    void usesServiceVerificationPolicy() {
         AtomicInteger requestedLength = new AtomicInteger();
         CapturingVerificationService template = template(
                 length -> {
                     requestedLength.set(length);
                     return "1234";
                 },
-                new InMemoryVerificationStore());
-        VerificationPolicy policy = new VerificationPolicy(4, Duration.ofMinutes(1), 2);
+                new InMemoryVerificationStore(),
+                new VerificationPolicy(4, Duration.ofMinutes(1), 2));
 
-        IssueResult.Accepted issued = assertInstanceOf(IssueResult.Accepted.class, template.issue(LOGIN, policy));
+        IssueResult.Accepted issued = assertInstanceOf(IssueResult.Accepted.class, template.issue(LOGIN));
 
         assertEquals(4, requestedLength.get());
         assertEquals(NOW.plus(Duration.ofMinutes(1)), issued.expiresAt());
@@ -252,16 +252,16 @@ class AbstractVerificationServiceTest {
                         VerificationPolicy.defaults(),
                         Clock.fixed(NOW, ZoneOffset.UTC)));
         assertThrows(NullPointerException.class, () -> template.issue((VerificationKey) null));
-        assertThrows(NullPointerException.class, () -> template.issue(LOGIN, null));
     }
 
     private CapturingVerificationService template(CodeGenerator generator, VerificationStore store) {
+        return template(generator, store, VerificationPolicy.defaults());
+    }
+
+    private CapturingVerificationService template(
+            CodeGenerator generator, VerificationStore store, VerificationPolicy verificationPolicy) {
         return new CapturingVerificationService(
-                generator,
-                store,
-                testIssueRateLimiter(),
-                VerificationPolicy.defaults(),
-                Clock.fixed(NOW, ZoneOffset.UTC));
+                generator, store, testIssueRateLimiter(), verificationPolicy, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     private IssueRateLimiter testIssueRateLimiter() {

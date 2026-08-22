@@ -81,9 +81,9 @@ class AbstractVerificationServiceLifecycleTest {
 
     @Test
     void limitsAttemptsAndRemovesExhaustedCode() {
-        VerificationService service = service(length -> "123456");
         VerificationPolicy policy = new VerificationPolicy(6, Duration.ofMinutes(5), 2);
-        service.issue(LOGIN, policy);
+        VerificationService service = service(length -> "123456", policy);
+        service.issue(LOGIN);
 
         assertEquals(VerificationResult.MISMATCH, service.verify(LOGIN, ""));
         assertEquals(VerificationResult.ATTEMPTS_EXHAUSTED, service.verify(LOGIN, "000000"));
@@ -151,7 +151,6 @@ class AbstractVerificationServiceLifecycleTest {
     void rejectsNullInputsAndGeneratedCode() {
         VerificationService service = service(length -> "123456");
         assertThrows(NullPointerException.class, () -> service.issue((VerificationKey) null));
-        assertThrows(NullPointerException.class, () -> service.issue(LOGIN, null));
         assertThrows(NullPointerException.class, () -> service.verify(LOGIN, null));
         assertThrows(NullPointerException.class, () -> service(null).issue(LOGIN));
     }
@@ -180,8 +179,11 @@ class AbstractVerificationServiceLifecycleTest {
     }
 
     private TestVerificationService service(CodeGenerator generator) {
-        return new TestVerificationService(
-                generator, store, testIssueRateLimiter(), VerificationPolicy.defaults(), clock);
+        return service(generator, VerificationPolicy.defaults());
+    }
+
+    private TestVerificationService service(CodeGenerator generator, VerificationPolicy verificationPolicy) {
+        return new TestVerificationService(generator, store, testIssueRateLimiter(), verificationPolicy, clock);
     }
 
     private IssueRateLimiter testIssueRateLimiter() {
