@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
 import io.github.ringotangs.ringoboot.verification.VerificationThrottledException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitException;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDeliveryRejectedException;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
@@ -20,6 +21,7 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.context.support.StaticMessageSource;
 import org.springframework.http.ProblemDetail;
+import org.springframework.web.method.annotation.ExceptionHandlerMethodResolver;
 
 @ExtendWith(OutputCaptureExtension.class)
 class VerificationExceptionHandlerTest {
@@ -47,23 +49,39 @@ class VerificationExceptionHandlerTest {
     }
 
     @Test
-    void returnsSameSafeUnavailableProblemForSenderAndStoreFailures(CapturedOutput output) {
+    void returnsSameSafeUnavailableProblemForSenderStoreAndRateLimitFailures(CapturedOutput output) {
         VerificationExceptionHandler handler = createDefaultHandler();
 
         ProblemDetail senderProblem = handler.handleVerificationException(
                 new CodeSenderException("provider token=secret", new IllegalStateException("provider details")));
         ProblemDetail storeProblem = handler.handleVerificationException(
                 new VerificationStoreException("redis password=secret", new IllegalStateException("redis details")));
+        ProblemDetail rateLimitProblem = handler.handleVerificationException(new IssueRateLimitException(
+                "lua script secret diagnostics", new IllegalStateException("redis details")));
         ProblemDetail rejectedProblem = handler.handleVerificationException(new CodeDeliveryRejectedException());
 
         assertServiceUnavailable(senderProblem);
         assertServiceUnavailable(storeProblem);
+        assertServiceUnavailable(rateLimitProblem);
         assertServiceUnavailable(rejectedProblem);
         assertThat(senderProblem.getDetail()).doesNotContain("provider", "secret");
         assertThat(storeProblem.getDetail()).doesNotContain("redis", "secret");
+        assertThat(rateLimitProblem.getDetail()).doesNotContain("lua", "redis", "secret");
         assertLogged(output, CodeSenderException.class);
         assertLogged(output, VerificationStoreException.class);
+        assertLogged(output, IssueRateLimitException.class);
         assertLogged(output, CodeDeliveryRejectedException.class);
+    }
+
+    @Test
+    void declaresRateLimitInfrastructureFailureMapping() {
+        ExceptionHandlerMethodResolver resolver =
+                new ExceptionHandlerMethodResolver(VerificationExceptionHandler.class);
+
+        assertThat(resolver.resolveMethod(new IssueRateLimitException("internal")))
+                .isNotNull()
+                .extracting(java.lang.reflect.Method::getName)
+                .isEqualTo("handleVerificationException");
     }
 
     @Test

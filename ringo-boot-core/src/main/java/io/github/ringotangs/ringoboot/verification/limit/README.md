@@ -271,3 +271,15 @@ v2:login-ip-hour:{bucketDigest}
 - 多实例生产环境使用 Redis 状态存储或其他满足原子契约的自定义 `IssueRateLimitStore`。
 
 有关业界常见限流层次和建议阈值，参见同目录下的 `limt.md`。
+
+## 十、异常语义
+
+| 场景 | 表达方式 | 含义 |
+| --- | --- | --- |
+| 参数为 null | `NullPointerException` | 调用方或扩展实现违反非空契约 |
+| 规则、上下文或配额非法 | `IllegalArgumentException` | 配置或调用错误 |
+| 正常达到签发上限 | `IssueLimitResult.Throttled` | 可预期的限流结果，不是异常 |
+| Redis、网络或原子操作失败 | `IssueRateLimitException` | 限流基础设施技术故障 |
+
+不要捕获并统一包装所有 `RuntimeException`。自定义 Store 应只把底层基础设施故障包装成 `IssueRateLimitException`；规则实现
+缺少属性、返回空值或声明非法时应保留编程错误语义，便于开发阶段尽早发现问题。

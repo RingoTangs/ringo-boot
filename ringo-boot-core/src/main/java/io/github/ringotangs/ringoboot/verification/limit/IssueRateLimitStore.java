@@ -8,6 +8,9 @@ import java.util.List;
  *
  * <p>Store 只处理 {@link IssueLimitQuota} 和对应的滚动窗口状态，不保存验证码，也不理解验证码业务字段或执行规则匹配。
  * 单 JVM 实现至少应保证线程安全；分布式实现必须保证跨进程原子性。
+ *
+ * <p>实现应使用 {@link IssueRateLimitException} 包装 Redis、网络或其他基础设施故障，不应使用它包装参数错误、非法配额或实现违反
+ * 接口契约造成的编程错误。
  */
 @FunctionalInterface
 public interface IssueRateLimitStore {

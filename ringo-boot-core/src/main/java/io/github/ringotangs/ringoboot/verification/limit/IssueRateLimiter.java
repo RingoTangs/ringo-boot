@@ -13,6 +13,9 @@ import java.time.Instant;
  * 签发频率限制。分布式实现必须保证跨进程的原子获取语义。
  *
  * <p>当多条规则同时受限时，返回的剩余等待时间应为所有受限规则中的最大值，表示全部规则再次允许签发所需的时间。
+ *
+ * <p>参数、规则声明和上下文数据违反契约时使用 Java 标准运行时异常；只有底层存储或原子操作等技术故障才使用
+ * {@link IssueRateLimitException}。正常限流始终通过 {@link IssueLimitResult.Throttled} 返回。
  */
 @FunctionalInterface
 public interface IssueRateLimiter {

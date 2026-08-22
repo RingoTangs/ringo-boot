@@ -6,6 +6,7 @@ import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeExcept
 import io.github.ringotangs.ringoboot.verification.VerificationException;
 import io.github.ringotangs.ringoboot.verification.VerificationThrottledException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitException;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
 import org.apache.commons.logging.Log;
@@ -53,7 +54,12 @@ public class VerificationExceptionHandler {
      * @param exception 验证码技术异常 / the verification technical failure
      * @return 安全的 Problem Details 响应 / the safe Problem Details response
      */
-    @ExceptionHandler({CodeGenerationException.class, CodeSenderException.class, VerificationStoreException.class})
+    @ExceptionHandler({
+        CodeGenerationException.class,
+        CodeSenderException.class,
+        VerificationStoreException.class,
+        IssueRateLimitException.class
+    })
     public ProblemDetail handleVerificationException(VerificationException exception) {
         logger.error("Verification operation failed", exception);
         ProblemType problemType = exception instanceof CodeGenerationException
