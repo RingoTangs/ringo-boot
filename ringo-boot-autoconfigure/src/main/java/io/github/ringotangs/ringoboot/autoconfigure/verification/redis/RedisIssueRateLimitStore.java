@@ -2,9 +2,9 @@ package io.github.ringotangs.ringoboot.autoconfigure.verification.redis;
 
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitBackend;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitConstraint;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitException;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitStore;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -22,8 +22,8 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 
-/** 使用 Redis ZSET 和 Lua 脚本原子执行多条验证码签发限流规则。 */
-public final class RedisIssueRateLimitBackend implements IssueRateLimitBackend {
+/** 使用 Redis ZSET 和 Lua 脚本存储限流窗口状态，并原子执行多条验证码签发限流规则。 */
+public final class RedisIssueRateLimitStore implements IssueRateLimitStore {
 
     private static final String STORAGE_VERSION = "v2";
     private static final String KEY_DIGEST_DOMAIN = "issue-limit-bucket:v2";
@@ -71,8 +71,8 @@ public final class RedisIssueRateLimitBackend implements IssueRateLimitBackend {
     private final byte[] secret;
     private final String applicationName;
 
-    /** 创建 Redis 验证码签发限流后端。 */
-    public RedisIssueRateLimitBackend(StringRedisTemplate redisTemplate, byte[] secret, String applicationName) {
+    /** 创建 Redis 验证码签发限流状态存储。 */
+    public RedisIssueRateLimitStore(StringRedisTemplate redisTemplate, byte[] secret, String applicationName) {
         this.redisTemplate = Objects.requireNonNull(redisTemplate, "redisTemplate must not be null");
         Objects.requireNonNull(secret, "secret must not be null");
         this.applicationName = Objects.requireNonNull(applicationName, "applicationName must not be null");

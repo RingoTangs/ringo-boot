@@ -22,7 +22,7 @@ import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 
-class RedisIssueRateLimitBackendTest {
+class RedisIssueRateLimitStoreTest {
 
     private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
 
@@ -32,14 +32,14 @@ class RedisIssueRateLimitBackendTest {
         StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
         when(redisTemplate.execute(any(RedisScript.class), anyList(), any(Object[].class)))
                 .thenReturn(List.of(0L, 0L), List.of(1L, 42_000L));
-        RedisIssueRateLimitBackend backend = backend(redisTemplate);
+        RedisIssueRateLimitStore store = store(redisTemplate);
         List<IssueRateLimitConstraint> constraints = List.of(
                 constraint("subject-minute", "user@example.com", 1, Duration.ofMinutes(1)),
                 constraint("ip-hour", "203.0.113.10", 10, Duration.ofHours(1)));
 
-        assertThat(backend.acquire(constraints, NOW)).isInstanceOf(IssueLimitResult.Allowed.class);
+        assertThat(store.acquire(constraints, NOW)).isInstanceOf(IssueLimitResult.Allowed.class);
         IssueLimitResult.Throttled throttled =
-                (IssueLimitResult.Throttled) backend.acquire(constraints, NOW.plusSeconds(18));
+                (IssueLimitResult.Throttled) store.acquire(constraints, NOW.plusSeconds(18));
 
         assertThat(throttled.retryAfter()).isEqualTo(Duration.ofSeconds(42));
     }
@@ -50,9 +50,9 @@ class RedisIssueRateLimitBackendTest {
         StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
         when(redisTemplate.execute(any(RedisScript.class), anyList(), any(Object[].class)))
                 .thenReturn(List.of(0L, 0L));
-        RedisIssueRateLimitBackend backend = backend(redisTemplate);
+        RedisIssueRateLimitStore store = store(redisTemplate);
 
-        backend.acquire(
+        store.acquire(
                 List.of(
                         constraint("subject-minute", "user@example.com", 1, Duration.ofMinutes(1)),
                         constraint("ip-hour", "203.0.113.10", 10, Duration.ofHours(1))),
@@ -72,7 +72,7 @@ class RedisIssueRateLimitBackendTest {
     void emptyConstraintsBypassRedis() {
         StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
 
-        assertThat(backend(redisTemplate).acquire(List.of(), NOW)).isInstanceOf(IssueLimitResult.Allowed.class);
+        assertThat(store(redisTemplate).acquire(List.of(), NOW)).isInstanceOf(IssueLimitResult.Allowed.class);
         verifyNoInteractions(redisTemplate);
     }
 
@@ -83,7 +83,7 @@ class RedisIssueRateLimitBackendTest {
         when(redisTemplate.execute(any(RedisScript.class), anyList(), any(Object[].class)))
                 .thenThrow(new DataAccessResourceFailureException("unavailable"));
 
-        assertThatThrownBy(() -> backend(redisTemplate)
+        assertThatThrownBy(() -> store(redisTemplate)
                         .acquire(List.of(constraint("subject-minute", "user", 1, Duration.ofMinutes(1))), NOW))
                 .isInstanceOf(IssueRateLimitException.class)
                 .hasMessage("Redis issue rate limit operation failed");
@@ -93,17 +93,17 @@ class RedisIssueRateLimitBackendTest {
     void validatesArgumentsAndRedisResolution() {
         StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
 
-        assertThatThrownBy(() -> new RedisIssueRateLimitBackend(redisTemplate, new byte[31], "application"))
+        assertThatThrownBy(() -> new RedisIssueRateLimitStore(redisTemplate, new byte[31], "application"))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new RedisIssueRateLimitBackend(redisTemplate, new byte[32], "invalid application"))
+        assertThatThrownBy(() -> new RedisIssueRateLimitStore(redisTemplate, new byte[32], "invalid application"))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> backend(redisTemplate)
+        assertThatThrownBy(() -> store(redisTemplate)
                         .acquire(List.of(constraint("fast-rule", "user", 1, Duration.ofNanos(1))), NOW))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
-    private RedisIssueRateLimitBackend backend(StringRedisTemplate redisTemplate) {
-        return new RedisIssueRateLimitBackend(redisTemplate, new byte[32], "test-application");
+    private RedisIssueRateLimitStore store(StringRedisTemplate redisTemplate) {
+        return new RedisIssueRateLimitStore(redisTemplate, new byte[32], "test-application");
     }
 
     private IssueRateLimitConstraint constraint(String id, String bucket, int maxIssues, Duration window) {

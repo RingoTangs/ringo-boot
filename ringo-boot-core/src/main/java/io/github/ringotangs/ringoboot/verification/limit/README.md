@@ -5,7 +5,7 @@
 
 ## 一、整体结构
 
-限流体系分为三层：规则、管理器和存储后端。
+限流体系分为三层：规则、管理器和限流状态存储。
 
 ```mermaid
 flowchart LR
@@ -15,9 +15,9 @@ flowchart LR
     R2[IP 配额 Rule Bean] --> C
     R3[业务自定义 Rule Bean] --> C
     C --> D[IssueRateLimitConstraint 列表]
-    D --> E{IssueRateLimitBackend}
-    E --> F[InMemory backend]
-    E --> G[Redis backend]
+    D --> E{IssueRateLimitStore}
+    E --> F[InMemory store]
+    E --> G[Redis store]
     E --> H[Allowed / Throttled]
     H --> A
 ```
@@ -29,11 +29,14 @@ flowchart LR
 | `IssueLimitBucket` | 用多个字符串分段表达额度累计身份 | 不解释分段 |
 | `IssueRateLimitManager` | 收集、匹配、校验规则并生成不可变约束 | 只负责编排 |
 | `IssueRateLimitConstraint` | 保存已经解析完成的规则 ID、额度桶、配额和窗口 | 否 |
-| `IssueRateLimitBackend` | 原子检查并消费全部约束 | 否 |
+| `IssueRateLimitStore` | 保存限流窗口状态，原子检查并消费全部约束 | 否 |
 | `IssueRateLimiter` | 验证码服务依赖的顶层限流入口 | 否 |
 
 `IssueRateLimitManager` 实现了 `IssueRateLimiter`。验证码服务只依赖 `IssueRateLimiter`，因此不知道应用使用了哪些规则，
 也不知道额度保存在内存还是 Redis。
+
+`IssueRateLimitStore` 只保存签发限流的窗口和额度消费状态；`VerificationStore` 保存验证码摘要、过期时间和验证尝试次数。
+两者名称相似，但数据模型和生命周期不同，不应由同一个实现混合承担。
 
 ## 二、签发上下文
 
@@ -139,7 +142,7 @@ context -> IssueLimitBucket.of(
 ["a", "bc"]
 ```
 
-具体编码和 HMAC 由 backend 统一处理，Rule Bean 不应该生成 Redis key，也不应该自行散列敏感数据。
+具体编码和 HMAC 由 `IssueRateLimitStore` 统一处理，Rule Bean 不应该生成 Redis key，也不应该自行散列敏感数据。
 
 ## 四、一次签发的完整流程
 
@@ -149,8 +152,8 @@ sequenceDiagram
     participant Service as VerificationService
     participant Manager as IssueRateLimitManager
     participant Rule as Rule Beans
-    participant Backend as IssueRateLimitBackend
-    participant Store as VerificationStore
+    participant LimitStore as IssueRateLimitStore
+    participant CodeStore as VerificationStore
     participant Sender as CodeSender
 
     App->>Service: issue(IssueContext)
@@ -159,14 +162,14 @@ sequenceDiagram
     Rule-->>Manager: true / false
     Manager->>Rule: bucket(context)
     Rule-->>Manager: IssueLimitBucket
-    Manager->>Backend: acquire(all constraints, requestedAt)
+    Manager->>LimitStore: acquire(all constraints, requestedAt)
     alt 任一规则受限
-        Backend-->>Manager: Throttled(retryAfter)
+        LimitStore-->>Manager: Throttled(retryAfter)
         Manager-->>Service: Throttled
         Service-->>App: IssueResult.Throttled
     else 所有规则允许
-        Backend-->>Manager: Allowed
-        Service->>Store: store(code)
+        LimitStore-->>Manager: Allowed
+        Service->>CodeStore: store(code)
         Service->>Sender: send(code)
         Service-->>App: Accepted / Uncertain
     end
@@ -177,9 +180,9 @@ sequenceDiagram
 1. 业务层构造 `IssueContext` 并调用验证码服务。
 2. 管理器按照 Spring 的有序 Bean 顺序遍历所有规则。
 3. `matches=false` 的规则不参与本次签发。
-4. 管理器先解析所有匹配规则的 bucket，任何规则解析失败时都不会访问 backend。
+4. 管理器先解析所有匹配规则的 bucket，任何规则解析失败时都不会访问限流状态存储。
 5. 管理器将规则快照转换成 `IssueRateLimitConstraint` 列表。
-6. backend 在一个原子操作中检查所有约束。
+6. `IssueRateLimitStore` 在一个原子操作中检查所有约束。
 7. 任一规则超限时返回最大的 `retryAfter`，并且不能消费其他规则的额度。
 8. 所有规则允许时同时消费全部额度，然后验证码服务继续生成、存储和发送验证码。
 
@@ -199,16 +202,16 @@ sequenceDiagram
 
 `@Order` 只影响规则收集和诊断顺序，不影响最终结果，也不改变原子消费语义。
 
-## 六、内存与 Redis 后端
+## 六、内存与 Redis 状态存储
 
-### InMemoryIssueRateLimitBackend
+### InMemoryIssueRateLimitStore
 
 - 使用进程内 `Map` 和时间队列保存滚动窗口记录。
 - 通过同步方法保证单 JVM 内多规则原子执行。
 - 适合单元测试、本地开发和单实例应用。
 - 多实例部署时每个实例拥有独立额度，不能用于生产级分布式限流。
 
-### RedisIssueRateLimitBackend
+### RedisIssueRateLimitStore
 
 - 每个 `ruleId + bucket` 使用一个 Redis ZSET。
 - ZSET score 是签发时间戳，member 是本次请求的随机标识。
@@ -231,7 +234,7 @@ v2:login-ip-hour:{bucketDigest}
 
 启用验证码功能后，自动配置执行以下操作：
 
-1. 根据 `store=memory|redis` 注册对应的 `IssueRateLimitBackend`。
+1. 根据 `store=memory|redis` 注册对应的 `IssueRateLimitStore`。
 2. 当 `interval` 不为零时注册 `default-key-cooldown` Rule Bean。
 3. 收集容器内所有 `IssueRateLimitRule` Bean。
 4. 创建 `IssueRateLimitManager`，并将它作为唯一默认 `IssueRateLimiter`。
@@ -242,8 +245,8 @@ v2:login-ip-hour:{bucketDigest}
 | 应用提供的 Bean | 自动配置行为 |
 | --- | --- |
 | `IssueRateLimitRule` | 与默认规则叠加 |
-| `IssueRateLimitBackend` | 使用自定义 backend，仍自动收集所有规则 |
-| `IssueRateLimiter` | 完全替换默认管理器和 backend |
+| `IssueRateLimitStore` | 使用自定义限流状态存储，仍自动收集所有规则 |
+| `IssueRateLimiter` | 完全替换默认管理器和限流状态存储 |
 
 ## 八、推荐的初始规则
 
@@ -265,6 +268,6 @@ v2:login-ip-hour:{bucketDigest}
 - 不在 Rule Bean 中访问 Redis、数据库或远程服务。
 - Rule Bean 保持无状态、线程安全，启动后不动态改变窗口和配额。
 - 不在日志中输出 bucket 的原始分段。
-- 多实例生产环境使用 Redis backend 或其他满足原子契约的自定义 backend。
+- 多实例生产环境使用 Redis 状态存储或其他满足原子契约的自定义 `IssueRateLimitStore`。
 
 有关业界常见限流层次和建议阈值，参见同目录下的 `limt.md`。

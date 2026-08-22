@@ -9,7 +9,7 @@ import java.util.function.Predicate;
  *
  * <p>规则负责理解业务上下文：先通过 {@link #matches(IssueContext)} 判断是否适用，再通过
  * {@link #bucket(IssueContext)} 计算额度累计身份。规则不负责读写内存、Redis 或其他存储，额度检查和消费由
- * {@link IssueRateLimitBackend} 完成。
+ * {@link IssueRateLimitStore} 完成。
  *
  * <p>实现必须无状态、线程安全，并且在应用运行期间保持规则 ID、最大次数和窗口不变。Spring Boot 应用可以把实现注册为 Bean，
  * 由 {@link IssueRateLimitManager} 统一收集和执行。

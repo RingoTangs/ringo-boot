@@ -4,13 +4,13 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * 原子检查并消费一组已经解析的验证码签发限流约束。
+ * 原子保存和消费一组已经解析的验证码签发限流约束。
  *
- * <p>实现只处理 {@link IssueRateLimitConstraint}，不理解验证码业务字段，也不执行规则匹配。单 JVM 实现至少应保证线程安全；
- * 分布式实现必须保证跨进程原子性。
+ * <p>Store 只处理 {@link IssueRateLimitConstraint} 和对应的滚动窗口状态，不保存验证码，也不理解验证码业务字段或执行规则匹配。
+ * 单 JVM 实现至少应保证线程安全；分布式实现必须保证跨进程原子性。
  */
 @FunctionalInterface
-public interface IssueRateLimitBackend {
+public interface IssueRateLimitStore {
 
     /**
      * 原子获取全部约束对应的一次签发名额。
@@ -22,7 +22,7 @@ public interface IssueRateLimitBackend {
      * @param requestedAt 请求签发的时间
      * @return 允许签发或受限结果
      * @throws NullPointerException 当约束集合、任一约束或请求时间为 {@code null} 时
-     * @throws IllegalArgumentException 当约束不受当前后端支持或同一规则的运行时定义发生变化时
+     * @throws IllegalArgumentException 当约束不受当前 Store 支持或同一规则的运行时定义发生变化时
      * @throws IssueRateLimitException 当底层存储或原子操作失败时
      */
     IssueLimitResult acquire(List<IssueRateLimitConstraint> constraints, Instant requestedAt)

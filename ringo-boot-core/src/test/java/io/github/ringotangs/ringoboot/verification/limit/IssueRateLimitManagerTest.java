@@ -40,7 +40,7 @@ class IssueRateLimitManagerTest {
     }
 
     @Test
-    void allowsWhenNoRulesMatchWithoutCallingBackend() {
+    void allowsWhenNoRulesMatchWithoutCallingStore() {
         AtomicInteger calls = new AtomicInteger();
         IssueRateLimitManager manager = new IssueRateLimitManager(
                 List.of(rule("registration-minute", context -> false, "registration")), (rules, time) -> {
@@ -53,7 +53,7 @@ class IssueRateLimitManagerTest {
     }
 
     @Test
-    void resolvesAllBucketsBeforeCallingBackend() {
+    void resolvesAllBucketsBeforeCallingStore() {
         AtomicInteger calls = new AtomicInteger();
         IssueRateLimitRule missingIp = IssueRateLimitRule.of(
                 "ip-hour",
@@ -82,7 +82,7 @@ class IssueRateLimitManagerTest {
     }
 
     @Test
-    void rejectsNullBackendResult() {
+    void rejectsNullStoreResult() {
         IssueRateLimitManager manager = new IssueRateLimitManager(
                 List.of(rule("subject-minute", context -> true, "subject")), (rules, time) -> null);
 

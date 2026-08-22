@@ -2,7 +2,7 @@ package io.github.ringotangs.ringoboot.verification;
 
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
-import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimitBackend;
+import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimitStore;
 import io.github.ringotangs.ringoboot.verification.limit.IssueContext;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
@@ -198,6 +198,6 @@ public abstract class AbstractVerificationService implements VerificationService
                         context.key().subject()),
                 1,
                 Duration.ofSeconds(60));
-        return new IssueRateLimitManager(List.of(rule), new InMemoryIssueRateLimitBackend());
+        return new IssueRateLimitManager(List.of(rule), new InMemoryIssueRateLimitStore());
     }
 }

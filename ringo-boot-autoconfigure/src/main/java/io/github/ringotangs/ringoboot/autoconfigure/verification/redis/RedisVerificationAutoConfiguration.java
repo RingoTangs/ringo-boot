@@ -3,7 +3,7 @@ package io.github.ringotangs.ringoboot.autoconfigure.verification.redis;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.IssueRateLimitProperties;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationAutoConfiguration;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationProperties;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitBackend;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitStore;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.util.Base64;
@@ -41,18 +41,18 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 public class RedisVerificationAutoConfiguration {
 
     /**
-     * 使用 Redis 和共享 HMAC 密钥创建跨实例签发限流后端。
+     * 使用 Redis 和共享 HMAC 密钥创建跨实例签发限流状态存储。
      *
      * @param redisTemplate Redis 字符串操作模板
      * @param redisProperties Redis 验证码配置
      * @param environment Spring 环境
-     * @return Redis 验证码签发限流后端
+     * @return Redis 验证码签发限流状态存储
      */
     @Bean
-    @ConditionalOnMissingBean({IssueRateLimiter.class, IssueRateLimitBackend.class})
-    IssueRateLimitBackend redisIssueRateLimitBackend(
+    @ConditionalOnMissingBean({IssueRateLimiter.class, IssueRateLimitStore.class})
+    IssueRateLimitStore redisIssueRateLimitStore(
             StringRedisTemplate redisTemplate, RedisVerificationProperties redisProperties, Environment environment) {
-        return new RedisIssueRateLimitBackend(
+        return new RedisIssueRateLimitStore(
                 redisTemplate,
                 decodeSecret(redisProperties.getSecret()),
                 applicationName(redisProperties, environment));

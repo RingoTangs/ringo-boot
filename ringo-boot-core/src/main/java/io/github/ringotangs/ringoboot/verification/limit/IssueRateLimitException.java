@@ -5,7 +5,7 @@ import io.github.ringotangs.ringoboot.verification.VerificationException;
 /**
  * 表示验证码签发限流基础设施操作失败。
  *
- * <p>该异常用于包装 Redis、网络或其他存储后端故障，不表示正常的配额超限。正常超限应返回
+ * <p>该异常用于包装 Redis、网络或其他限流状态存储故障，不表示正常的配额超限。正常超限应返回
  * {@link IssueLimitResult.Throttled}。诊断消息可能包含内部基础设施信息，不应直接作为客户端错误详情返回。
  */
 public class IssueRateLimitException extends VerificationException {
