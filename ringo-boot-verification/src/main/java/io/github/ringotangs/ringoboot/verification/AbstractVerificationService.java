@@ -105,10 +105,14 @@ public abstract class AbstractVerificationService implements VerificationService
         if (limitResult instanceof IssueLimitResult.Throttled throttled) {
             return new IssueResult.Throttled(throttled.retryAfter());
         }
-        String code = codeGenerator.generate(verificationPolicy.length());
-        validateGeneratedCode(code, verificationPolicy.length());
+        int codeLength = verificationPolicy.length();
+        String code = codeGenerator.generate(codeLength);
+        //noinspection ConstantValue -- 第三方生成器可能在运行时违反 SPI 契约。
+        if (code == null || code.isBlank() || code.length() != codeLength) {
+            throw new CodeGenerationException("generated code must be non-blank and have length " + codeLength);
+        }
         StoreResult stored = store.store(key, code, verificationPolicy, issuedAt);
-        return dispatchStored(key, code, stored.expiresAt());
+        return dispatchStoredCode(key, code, stored.expiresAt());
     }
 
     /** {@inheritDoc} */
@@ -129,7 +133,7 @@ public abstract class AbstractVerificationService implements VerificationService
      */
     protected abstract CodeSendResult dispatch(CodeDelivery delivery) throws CodeSenderException;
 
-    private IssueResult dispatchStored(VerificationKey key, String code, Instant expiresAt) {
+    private IssueResult dispatchStoredCode(VerificationKey key, String code, Instant expiresAt) {
         try {
             CodeSendResult result = Objects.requireNonNull(
                     dispatch(new CodeDelivery(key, code, expiresAt)), "code sender result must not be null");
@@ -139,23 +143,12 @@ public abstract class AbstractVerificationService implements VerificationService
                 case REJECTED -> throw new CodeDeliveryRejectedException();
             };
         } catch (RuntimeException dispatchFailure) {
-            invalidateAfterFailure(key, code, dispatchFailure);
+            try {
+                store.invalidate(key, code);
+            } catch (RuntimeException invalidationFailure) {
+                dispatchFailure.addSuppressed(invalidationFailure);
+            }
             throw dispatchFailure;
-        }
-    }
-
-    private void validateGeneratedCode(String code, int expectedLength) {
-        //noinspection ConstantValue -- 第三方生成器可能在运行时违反 SPI 契约。
-        if (code == null || code.isBlank() || code.length() != expectedLength) {
-            throw new CodeGenerationException("generated code must be non-blank and have length " + expectedLength);
-        }
-    }
-
-    private void invalidateAfterFailure(VerificationKey key, String code, RuntimeException dispatchFailure) {
-        try {
-            store.invalidate(key, code);
-        } catch (RuntimeException invalidationFailure) {
-            dispatchFailure.addSuppressed(invalidationFailure);
         }
     }
 }
