@@ -28,7 +28,7 @@ import org.springframework.context.annotation.Bean;
  * corresponding sender port are available. Each channel service backs off when an application bean
  * of the same type exists, and both services share the global verification policy.</p>
  */
-@AutoConfiguration(after = VerificationAutoConfiguration.class)
+@AutoConfiguration(after = {VerificationAutoConfiguration.class, IssueRateLimitAutoConfiguration.class})
 @ConditionalOnClass(VerificationStore.class)
 @ConditionalOnSingleCandidate(IssueRateLimiter.class)
 @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "enabled", havingValue = "true")

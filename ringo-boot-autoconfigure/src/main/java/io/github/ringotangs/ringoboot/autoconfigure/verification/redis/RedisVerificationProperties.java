@@ -6,9 +6,10 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Redis 验证码状态存储的自动配置属性。
+ * Redis 验证码状态存储和签发限流的共享自动配置属性。
  *
- * <p>Auto-configuration properties for Redis verification state storage.</p>
+ * <p>Shared auto-configuration properties for Redis verification state storage and issue rate
+ * limiting.</p>
  */
 @ConfigurationProperties(RedisVerificationProperties.PREFIX)
 public class RedisVerificationProperties {

@@ -78,10 +78,10 @@ import org.springframework.data.redis.core.script.RedisScript;
  * property. A future incompatible key, hash-field, or digest protocol can use a new version to
  * isolate old data and prevent new code from interpreting it incorrectly.</p>
  *
- * @apiNote 所有共享 Redis 数据的应用实例必须使用同一 HMAC 密钥，否则相同验证键会映射到不同 Redis
- *     key，且验证码摘要无法匹配。 / Every application instance sharing Redis data must use the
- *     same HMAC secret; otherwise identical verification keys map to different Redis keys and code
- *     digests cannot match.
+ * <p><strong>API 注意事项：</strong> 所有共享 Redis 数据的应用实例必须使用同一 HMAC 密钥，否则相同验证键会映射到不同 Redis
+ * key，且验证码摘要无法匹配。 / Every application instance sharing Redis data must use the same
+ * HMAC secret; otherwise identical verification keys map to different Redis keys and code digests
+ * cannot match.</p>
  */
 public final class RedisVerificationStore implements VerificationStore {
 

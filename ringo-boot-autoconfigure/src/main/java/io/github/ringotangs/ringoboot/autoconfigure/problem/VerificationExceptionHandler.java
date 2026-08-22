@@ -22,9 +22,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * <p>Converts known verification business and technical failures into safe and stable Problem Details
  * responses.</p>
  *
- * @apiNote 原始异常仅写入服务端日志，响应不会暴露存储实现、发送渠道或供应商诊断信息。 / The
- *     original exception is written only to server logs; responses do not expose storage,
- *     delivery-channel, or provider diagnostics.
+ * <p><strong>API 注意事项：</strong> 原始异常仅写入服务端日志，响应不会暴露存储实现、发送渠道或供应商诊断信息。 / The
+ * original exception is written only to server logs; responses do not expose storage,
+ * delivery-channel, or provider diagnostics.</p>
  */
 @RestControllerAdvice
 @Order(0)
