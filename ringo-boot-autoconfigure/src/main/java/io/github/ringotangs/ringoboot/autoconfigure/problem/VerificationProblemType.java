@@ -1,7 +1,7 @@
 package io.github.ringotangs.ringoboot.autoconfigure.problem;
 
-import io.github.ringotangs.ringoboot.problem.ProblemDefinition;
 import io.github.ringotangs.ringoboot.problem.ProblemType;
+import io.github.ringotangs.ringoboot.problem.ProblemTypeDefinition;
 import io.github.ringotangs.ringoboot.problem.ProblemTypeUri;
 import org.springframework.http.HttpStatus;
 
@@ -38,16 +38,16 @@ enum VerificationProblemType implements ProblemType {
             "The verification service is temporarily unavailable",
             HttpStatus.SERVICE_UNAVAILABLE);
 
-    private final ProblemDefinition definition;
+    private final ProblemTypeDefinition definition;
 
     VerificationProblemType(java.net.URI type, String category, String title, String defaultDetail, HttpStatus status) {
-        this.definition =
-                ProblemDefinition.of(type, "problem.verification." + category, title, defaultDetail, status.value());
+        this.definition = ProblemTypeDefinition.of(
+                type, "problem.verification." + category, title, defaultDetail, status.value());
     }
 
     /** {@inheritDoc} */
     @Override
-    public ProblemDefinition getDefinition() {
+    public ProblemTypeDefinition getDefinition() {
         return definition;
     }
 }

@@ -11,9 +11,9 @@ import org.junit.jupiter.api.Test;
 class ProblemExceptionTest {
 
     private static final ProblemType PROBLEM_TYPE =
-            () -> ProblemDefinition.of("urn:problem:test", "problem.test", "Test problem", "Default detail", 400);
+            () -> ProblemTypeDefinition.of("urn:problem:test", "problem.test", "Test problem", "Default detail", 400);
 
-    private static final ProblemType PARAMETERIZED_PROBLEM_TYPE = () -> ProblemDefinition.of(
+    private static final ProblemType PARAMETERIZED_PROBLEM_TYPE = () -> ProblemTypeDefinition.of(
             "urn:problem:test:parameterized",
             "problem.test.parameterized",
             "Parameterized problem",

@@ -17,7 +17,7 @@ public interface ProblemType {
      *
      * @return 问题定义
      */
-    ProblemDefinition getDefinition();
+    ProblemTypeDefinition getDefinition();
 
     /**
      * 返回供客户端识别问题类型的稳定 URI，建议使用绝对 URI 或 URN。

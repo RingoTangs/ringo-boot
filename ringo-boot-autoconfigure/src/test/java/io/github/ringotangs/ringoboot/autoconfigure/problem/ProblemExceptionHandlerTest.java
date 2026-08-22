@@ -2,9 +2,9 @@ package io.github.ringotangs.ringoboot.autoconfigure.problem;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import io.github.ringotangs.ringoboot.problem.ProblemDefinition;
 import io.github.ringotangs.ringoboot.problem.ProblemException;
 import io.github.ringotangs.ringoboot.problem.ProblemType;
+import io.github.ringotangs.ringoboot.problem.ProblemTypeDefinition;
 import java.net.URI;
 import java.util.Locale;
 import org.junit.jupiter.api.AfterEach;
@@ -15,7 +15,7 @@ import org.springframework.http.ProblemDetail;
 
 class ProblemExceptionHandlerTest {
 
-    private static final ProblemType PROBLEM_TYPE = () -> ProblemDefinition.of(
+    private static final ProblemType PROBLEM_TYPE = () -> ProblemTypeDefinition.of(
             "urn:problem:test:not-found", "problem.test.not-found", "User not found", "User {0} does not exist", 404);
 
     private final StaticMessageSource messageSource = new StaticMessageSource();

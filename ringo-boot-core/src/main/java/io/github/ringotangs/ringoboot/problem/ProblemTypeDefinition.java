@@ -12,7 +12,7 @@ import java.util.Objects;
  * @param defaultDetail 默认问题详情
  * @param httpStatus HTTP 错误状态码
  */
-public record ProblemDefinition(URI type, String messageCode, String title, String defaultDetail, int httpStatus) {
+public record ProblemTypeDefinition(URI type, String messageCode, String title, String defaultDetail, int httpStatus) {
 
     private static final int MIN_HTTP_ERROR_STATUS = 400;
     private static final int MAX_HTTP_ERROR_STATUS = 599;
@@ -23,7 +23,7 @@ public record ProblemDefinition(URI type, String messageCode, String title, Stri
      * @throws NullPointerException 当问题类型 URI、国际化消息基础键、标题或默认详情为 {@code null} 时
      * @throws IllegalArgumentException 当国际化消息基础键为空白，或者 HTTP 状态码不在 {@code 400–599} 范围内时
      */
-    public ProblemDefinition {
+    public ProblemTypeDefinition {
         Objects.requireNonNull(type, "type must not be null");
         Objects.requireNonNull(messageCode, "messageCode must not be null");
         if (messageCode.isBlank()) {
@@ -54,7 +54,7 @@ public record ProblemDefinition(URI type, String messageCode, String title, Stri
      * @throws IllegalArgumentException 当 URI 字符串非法、国际化消息基础键为空白，或者 HTTP 状态码不在
      *     {@code 400–599} 范围内时
      */
-    public static ProblemDefinition of(
+    public static ProblemTypeDefinition of(
             String type, String messageCode, String title, String defaultDetail, int httpStatus) {
         return of(
                 URI.create(Objects.requireNonNull(type, "type must not be null")),
@@ -76,9 +76,9 @@ public record ProblemDefinition(URI type, String messageCode, String title, Stri
      * @throws NullPointerException 当任一必填参数为 {@code null} 时
      * @throws IllegalArgumentException 当国际化消息基础键为空白，或者 HTTP 状态码不在 {@code 400–599} 范围内时
      */
-    public static ProblemDefinition of(
+    public static ProblemTypeDefinition of(
             URI type, String messageCode, String title, String defaultDetail, int httpStatus) {
-        return new ProblemDefinition(type, messageCode, title, defaultDetail, httpStatus);
+        return new ProblemTypeDefinition(type, messageCode, title, defaultDetail, httpStatus);
     }
 
     private static boolean isErrorStatus(int httpStatus) {

@@ -1,7 +1,7 @@
 package io.github.ringotangs.ringoboot.autoconfigure.problem;
 
-import io.github.ringotangs.ringoboot.problem.ProblemDefinition;
 import io.github.ringotangs.ringoboot.problem.ProblemException;
+import io.github.ringotangs.ringoboot.problem.ProblemTypeDefinition;
 import java.util.Objects;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
@@ -21,7 +21,7 @@ final class ProblemDetailFactory {
 
     ProblemDetail create(ProblemException exception) {
         Objects.requireNonNull(exception, "exception must not be null");
-        ProblemDefinition definition = exception.getProblemType().getDefinition();
+        ProblemTypeDefinition definition = exception.getProblemType().getDefinition();
         ProblemMessageResolver.ProblemMessages messages = messageResolver.resolve(exception);
         ProblemDetail problem =
                 ProblemDetail.forStatusAndDetail(HttpStatusCode.valueOf(definition.httpStatus()), messages.detail());

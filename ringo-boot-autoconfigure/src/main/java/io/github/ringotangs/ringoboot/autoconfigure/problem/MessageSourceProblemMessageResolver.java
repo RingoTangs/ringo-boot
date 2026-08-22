@@ -1,7 +1,7 @@
 package io.github.ringotangs.ringoboot.autoconfigure.problem;
 
-import io.github.ringotangs.ringoboot.problem.ProblemDefinition;
 import io.github.ringotangs.ringoboot.problem.ProblemException;
+import io.github.ringotangs.ringoboot.problem.ProblemTypeDefinition;
 import java.util.Locale;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
@@ -30,7 +30,7 @@ final class MessageSourceProblemMessageResolver implements ProblemMessageResolve
 
     @Override
     public ProblemMessages resolve(ProblemException exception) {
-        ProblemDefinition definition = exception.getProblemType().getDefinition();
+        ProblemTypeDefinition definition = exception.getProblemType().getDefinition();
         Locale locale = LocaleContextHolder.getLocale();
         String title = resolveMessage(definition.messageCode() + TITLE_SUFFIX, null, definition.title(), locale);
         String detail = resolveMessage(

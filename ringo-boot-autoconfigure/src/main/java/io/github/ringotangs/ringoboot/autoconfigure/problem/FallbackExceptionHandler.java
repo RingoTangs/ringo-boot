@@ -1,8 +1,8 @@
 package io.github.ringotangs.ringoboot.autoconfigure.problem;
 
-import io.github.ringotangs.ringoboot.problem.ProblemDefinition;
 import io.github.ringotangs.ringoboot.problem.ProblemException;
 import io.github.ringotangs.ringoboot.problem.ProblemType;
+import io.github.ringotangs.ringoboot.problem.ProblemTypeDefinition;
 import io.github.ringotangs.ringoboot.problem.ProblemTypeUri;
 import java.util.Objects;
 import org.apache.commons.logging.Log;
@@ -32,7 +32,7 @@ public class FallbackExceptionHandler {
 
     private static final Log logger = LogFactory.getLog(FallbackExceptionHandler.class);
 
-    private static final ProblemDefinition INTERNAL_SERVER_ERROR_DEFINITION = ProblemDefinition.of(
+    private static final ProblemTypeDefinition INTERNAL_SERVER_ERROR_DEFINITION = ProblemTypeDefinition.of(
             ProblemTypeUri.of("fallback", "internal-server-error"),
             "problem.internal-server-error",
             "Internal server error",
