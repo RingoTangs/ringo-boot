@@ -102,8 +102,8 @@ public abstract class AbstractVerificationService implements VerificationService
         Instant issuedAt = clock.instant();
         IssueLimitResult limitResult = Objects.requireNonNull(
                 issueRateLimiter.acquire(key, issuedAt), "issue rate limiter result must not be null");
-        if (limitResult instanceof IssueLimitResult.Throttled throttled) {
-            return new IssueResult.Throttled(throttled.retryAfter());
+        if (limitResult instanceof IssueLimitResult.Throttled(java.time.Duration retryAfter)) {
+            return new IssueResult.Throttled(retryAfter);
         }
         int codeLength = verificationPolicy.length();
         String code = codeGenerator.generate(codeLength);
