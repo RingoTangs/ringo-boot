@@ -7,7 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
+import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimitStore;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitManager;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.limit.MissingIssueRateLimitRuleException;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
@@ -22,6 +26,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
@@ -54,6 +59,17 @@ class AbstractVerificationServiceTest {
 
         assertEquals(1, template.dispatches());
         assertEquals(Duration.ofSeconds(60), throttled.retryAfter());
+    }
+
+    @Test
+    void convenienceConstructorUsesPermitAllLimiter() {
+        CapturingVerificationService template =
+                new CapturingVerificationService(length -> "123456", new InMemoryVerificationStore());
+
+        assertInstanceOf(IssueResult.Accepted.class, template.issue(LOGIN));
+        assertInstanceOf(IssueResult.Accepted.class, template.issue(LOGIN));
+
+        assertEquals(2, template.dispatches());
     }
 
     @Test
@@ -222,13 +238,37 @@ class AbstractVerificationServiceTest {
                         new InMemoryVerificationStore(),
                         VerificationPolicy.defaults(),
                         Clock.fixed(NOW, ZoneOffset.UTC)));
+        assertThrows(
+                NullPointerException.class,
+                () -> new CapturingVerificationService(
+                        length -> "123456",
+                        new InMemoryVerificationStore(),
+                        null,
+                        VerificationPolicy.defaults(),
+                        Clock.fixed(NOW, ZoneOffset.UTC)));
         assertThrows(NullPointerException.class, () -> template.issue((VerificationKey) null));
         assertThrows(NullPointerException.class, () -> template.issue(LOGIN, null));
     }
 
     private CapturingVerificationService template(CodeGenerator generator, VerificationStore store) {
         return new CapturingVerificationService(
-                generator, store, VerificationPolicy.defaults(), Clock.fixed(NOW, ZoneOffset.UTC));
+                generator,
+                store,
+                testIssueRateLimiter(),
+                VerificationPolicy.defaults(),
+                Clock.fixed(NOW, ZoneOffset.UTC));
+    }
+
+    private IssueRateLimiter testIssueRateLimiter() {
+        IssueRateLimitRule rule = IssueRateLimitRule.of(
+                "test-key-cooldown",
+                context -> IssueLimitBucket.of(
+                        context.key().namespace(),
+                        context.key().purpose(),
+                        context.key().subject()),
+                1,
+                Duration.ofSeconds(60));
+        return new IssueRateLimitManager(List.of(rule), new InMemoryIssueRateLimitStore());
     }
 
     private static final class CapturingVerificationService extends AbstractVerificationService {
@@ -237,6 +277,10 @@ class AbstractVerificationServiceTest {
         private final AtomicInteger dispatches = new AtomicInteger();
         private RuntimeException failure;
         private CodeSendResult result = CodeSendResult.ACCEPTED;
+
+        private CapturingVerificationService(CodeGenerator generator, VerificationStore store) {
+            super(generator, store);
+        }
 
         private CapturingVerificationService(
                 CodeGenerator generator, VerificationStore store, VerificationPolicy policy, Clock clock) {

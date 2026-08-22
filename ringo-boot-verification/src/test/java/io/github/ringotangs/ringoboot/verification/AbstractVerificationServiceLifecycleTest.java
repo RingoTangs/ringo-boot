@@ -7,6 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
+import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimitStore;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitManager;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
@@ -18,6 +23,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -174,7 +180,20 @@ class AbstractVerificationServiceLifecycleTest {
     }
 
     private TestVerificationService service(CodeGenerator generator) {
-        return new TestVerificationService(generator, store, VerificationPolicy.defaults(), clock);
+        return new TestVerificationService(
+                generator, store, testIssueRateLimiter(), VerificationPolicy.defaults(), clock);
+    }
+
+    private IssueRateLimiter testIssueRateLimiter() {
+        IssueRateLimitRule rule = IssueRateLimitRule.of(
+                "test-key-cooldown",
+                context -> IssueLimitBucket.of(
+                        context.key().namespace(),
+                        context.key().purpose(),
+                        context.key().subject()),
+                1,
+                Duration.ofSeconds(60));
+        return new IssueRateLimitManager(List.of(rule), new InMemoryIssueRateLimitStore());
     }
 
     private static final class TestVerificationService extends AbstractVerificationService {
@@ -182,8 +201,12 @@ class AbstractVerificationServiceLifecycleTest {
         private String lastCode;
 
         private TestVerificationService(
-                CodeGenerator generator, VerificationStore store, VerificationPolicy policy, Clock clock) {
-            super(generator, store, policy, clock);
+                CodeGenerator generator,
+                VerificationStore store,
+                IssueRateLimiter issueRateLimiter,
+                VerificationPolicy policy,
+                Clock clock) {
+            super(generator, store, issueRateLimiter, policy, clock);
         }
 
         @Override

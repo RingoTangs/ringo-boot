@@ -20,8 +20,9 @@ public final class EmailVerificationService extends AbstractVerificationService 
     private final EmailCodeSender sender;
 
     /**
-     * 使用安全默认策略和 UTC 系统时钟创建邮件验证服务。
+     * 使用默认验证码策略、不限制签发的限流器和 UTC 系统时钟创建邮件验证服务。
      *
+     * <p>需要限制签发频率时，应使用接收 {@link IssueRateLimiter} 的构造器。
      *
      * @param codeGenerator 验证码生成器
      * @param store 验证码存储
@@ -33,8 +34,9 @@ public final class EmailVerificationService extends AbstractVerificationService 
     }
 
     /**
-     * 使用指定默认策略和 UTC 系统时钟创建邮件验证服务。
+     * 使用指定默认策略、不限制签发的限流器和 UTC 系统时钟创建邮件验证服务。
      *
+     * <p>需要限制签发频率时，应使用接收 {@link IssueRateLimiter} 的构造器。
      *
      * @param codeGenerator 验证码生成器
      * @param store 验证码存储
@@ -48,8 +50,9 @@ public final class EmailVerificationService extends AbstractVerificationService 
     }
 
     /**
-     * 使用指定默认策略和时钟创建邮件验证服务。
+     * 使用指定默认策略、时钟和不限制签发的限流器创建邮件验证服务。
      *
+     * <p>需要限制签发频率时，应使用接收 {@link IssueRateLimiter} 的构造器。
      *
      * @param codeGenerator 验证码生成器
      * @param store 验证码存储

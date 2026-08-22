@@ -2,12 +2,8 @@ package io.github.ringotangs.ringoboot.verification;
 
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
-import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimitStore;
-import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitException;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitManager;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDeliveryRejectedException;
@@ -17,9 +13,7 @@ import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -37,20 +31,22 @@ public abstract class AbstractVerificationService implements VerificationService
     private final Clock clock;
 
     /**
-     * 使用安全默认策略和 UTC 系统时钟创建渠道服务。
+     * 使用默认验证码策略、不限制签发的限流器和 UTC 系统时钟创建渠道服务。
      *
+     * <p>选择此构造器表示调用方明确不执行签发限流。需要限制签发频率时，应使用接收 {@link IssueRateLimiter} 的构造器。
      *
      * @param codeGenerator 验证码生成器
      * @param store 验证码状态存储
      * @throws NullPointerException 当生成器或存储为 {@code null} 时
      */
     protected AbstractVerificationService(CodeGenerator codeGenerator, VerificationStore store) {
-        this(codeGenerator, store, defaultIssueRateLimiter(), VerificationPolicy.defaults(), Clock.systemUTC());
+        this(codeGenerator, store, IssueRateLimiter.permitAll(), VerificationPolicy.defaults(), Clock.systemUTC());
     }
 
     /**
-     * 使用指定默认策略和 UTC 系统时钟创建渠道服务。
+     * 使用指定默认策略、不限制签发的限流器和 UTC 系统时钟创建渠道服务。
      *
+     * <p>选择此构造器表示调用方明确不执行签发限流。需要限制签发频率时，应使用接收 {@link IssueRateLimiter} 的构造器。
      *
      * @param codeGenerator 验证码生成器
      * @param store 验证码状态存储
@@ -59,12 +55,13 @@ public abstract class AbstractVerificationService implements VerificationService
      */
     protected AbstractVerificationService(
             CodeGenerator codeGenerator, VerificationStore store, VerificationPolicy defaultPolicy) {
-        this(codeGenerator, store, defaultIssueRateLimiter(), defaultPolicy, Clock.systemUTC());
+        this(codeGenerator, store, IssueRateLimiter.permitAll(), defaultPolicy, Clock.systemUTC());
     }
 
     /**
-     * 使用指定生成器、存储、默认策略和时钟创建渠道服务。
+     * 使用指定生成器、存储、默认策略、时钟和不限制签发的限流器创建渠道服务。
      *
+     * <p>选择此构造器表示调用方明确不执行签发限流。需要限制签发频率时，应使用接收 {@link IssueRateLimiter} 的构造器。
      *
      * @param codeGenerator 验证码生成器
      * @param store 验证码状态存储
@@ -74,7 +71,7 @@ public abstract class AbstractVerificationService implements VerificationService
      */
     protected AbstractVerificationService(
             CodeGenerator codeGenerator, VerificationStore store, VerificationPolicy defaultPolicy, Clock clock) {
-        this(codeGenerator, store, defaultIssueRateLimiter(), defaultPolicy, clock);
+        this(codeGenerator, store, IssueRateLimiter.permitAll(), defaultPolicy, clock);
     }
 
     /**
@@ -171,17 +168,5 @@ public abstract class AbstractVerificationService implements VerificationService
         } catch (RuntimeException invalidationFailure) {
             dispatchFailure.addSuppressed(invalidationFailure);
         }
-    }
-
-    private static IssueRateLimiter defaultIssueRateLimiter() {
-        IssueRateLimitRule rule = IssueRateLimitRule.of(
-                "default-key-cooldown",
-                context -> IssueLimitBucket.of(
-                        context.key().namespace(),
-                        context.key().purpose(),
-                        context.key().subject()),
-                1,
-                Duration.ofSeconds(60));
-        return new IssueRateLimitManager(List.of(rule), new InMemoryIssueRateLimitStore());
     }
 }
