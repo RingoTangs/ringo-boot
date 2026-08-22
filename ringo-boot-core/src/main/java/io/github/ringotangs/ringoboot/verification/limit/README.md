@@ -41,6 +41,9 @@ flowchart LR
 `IssueRateLimitStore` 只保存签发限流的窗口和额度消费状态；`VerificationStore` 保存验证码摘要、过期时间和验证尝试次数。
 两者名称相似，但数据模型和生命周期不同，不应由同一个实现混合承担。
 
+有关 Store 的职责、`InMemoryIssueRateLimitStore` 数据结构、滚动窗口算法和多配额原子消费的逐步说明，参见
+同目录下的 [`IssueRateLimitStore.md`](IssueRateLimitStore.md)。
+
 ## 二、签发上下文
 
 业务代码调用 `VerificationService.issue(key)` 时只需传递 `VerificationKey`，不负责构造限流上下文。
@@ -254,6 +257,8 @@ sequenceDiagram
 - 通过同步方法保证单 JVM 内多规则原子执行。
 - 适合单元测试、本地开发和单实例应用。
 - 多实例部署时每个实例拥有独立额度，不能用于生产级分布式限流。
+
+详细实现示例参见 [`IssueRateLimitStore.md`](IssueRateLimitStore.md)。
 
 ### RedisIssueRateLimitStore
 
