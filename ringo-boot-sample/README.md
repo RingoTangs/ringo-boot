@@ -15,6 +15,17 @@ ringo:
       max-attempts: 5
       issue-rate-limit:
         interval: 60s
+        rules:
+          - id: application-hour
+            scope: global
+            max-issues: 1000
+            window: 1h
+          - id: account-email-verification-subject-hour
+            scope: subject
+            namespace: account
+            purpose: email-verification
+            max-issues: 10
+            window: 1h
       redis:
         secret: ${VERIFICATION_HMAC_SECRET}
         expired-retention: 1m
@@ -25,6 +36,11 @@ sample 已引入 `spring-boot-starter-data-redis`。Spring Boot 创建 `StringRe
 `CodeGenerator`、`VerificationStore` 和 Sender 均可通过自定义 Bean 覆盖。
 渠道服务的默认 `VerificationPolicy` 由 `ringo.boot.verification.*` 配置直接创建，不注册为 Spring Bean；
 业务特定策略可通过 `VerificationService.issue(key, policy)` 在调用时传入。
+
+`issue-rate-limit.interval` 是完整验证码键的默认重发冷却时间，设置为 `0` 只关闭该默认规则。
+`rules` 声明的额度规则会与默认规则及应用提供的 `IssueRateLimitRule` Bean 同时生效。示例中的全局规则限制当前应用
+每小时签发 1000 次；`subject` 规则只匹配 `account/email-verification`，并分别统计每个邮箱的小时额度。
+邮箱或手机号不应写入 YAML，它来自运行时 `VerificationKey.subject`。
 
 `VerificationService` 只定义签发和校验的业务契约。`AbstractVerificationService` 是该契约的抽象骨架实现，统一编排生成、
 存储、限流、派发、派发失败补偿和校验消费。core 已提供 `EmailVerificationService`

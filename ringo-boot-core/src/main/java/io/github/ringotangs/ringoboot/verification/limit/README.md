@@ -13,8 +13,8 @@ flowchart LR
     C --> B[IssueContextResolver]
     B --> I[IssueContext]
     I --> C
-    R1[默认冷却 Rule Bean] --> C
-    R2[IP 配额 Rule Bean] --> C
+    R1[YAML 标准规则] --> C
+    R2[默认冷却 Rule Bean] --> C
     R3[业务自定义 Rule Bean] --> C
     C --> D[IssueLimitQuota 列表]
     D --> E{IssueRateLimitStore}
@@ -126,6 +126,17 @@ account + login + user@example.com
 
 这表示同一个邮箱的登录验证码 60 秒内只能签发一次。将 `interval` 配置为 `0` 只会关闭这条默认规则，不会关闭应用注册的
 其他 Rule Bean。
+
+### 内置全局规则
+
+`GlobalIssueRateLimitRule` 让当前 `IssueRateLimitStore` 隔离范围内的全部验证码签发共享一个额度桶。内存 Store 下它只覆盖
+当前 JVM；Redis Store 的 key 包含应用名称，因此默认覆盖同一应用名称的全部实例。它适合作为应用级突发流量兜底，不能替代
+短信或邮件供应商自己的发送配额和告警。
+
+```java
+IssueRateLimitRule applicationHourly =
+        new GlobalIssueRateLimitRule("application-hour", 1_000, Duration.ofHours(1));
+```
 
 ### 自定义 IP 规则
 
@@ -262,16 +273,55 @@ v2:login-ip-hour:{bucketDigest}
 
 1. 根据 `store=memory|redis` 注册对应的 `IssueRateLimitStore`。
 2. 在应用未提供时注册只包含 `VerificationKey` 的默认 `IssueContextResolver`。
-3. 当 `interval` 不为零时注册 `default-key-cooldown` Rule Bean。
-4. 收集容器内所有 `IssueRateLimitRule` Bean。
-5. 创建 `IssueRateLimitManager`，并将它作为唯一默认 `IssueRateLimiter`。
-6. 邮件和短信验证码服务注入该 `IssueRateLimiter`。
+3. 将 `issue-rate-limit.rules` 转换成标准额度规则。
+4. 当 `interval` 不为零时注册 `default-key-cooldown` Rule Bean。
+5. 收集容器内所有 `IssueRateLimitRule` Bean。
+6. 合并 YAML 规则与 Bean 规则，创建唯一默认 `IssueRateLimiter`。
+7. 邮件和短信验证码服务注入该 `IssueRateLimiter`。
+
+配置支持四种范围：
+
+| scope | 匹配条件 | 额度桶 |
+| --- | --- | --- |
+| `global` | 全部签发请求 | 当前 Store 隔离范围共享一个桶 |
+| `namespace` | 精确匹配 `namespace` | `namespace` |
+| `purpose` | 精确匹配 `namespace + purpose` | `namespace + purpose` |
+| `subject` | 精确匹配 `namespace + purpose` | `namespace + purpose + subject` |
+
+```yaml
+ringo:
+  boot:
+    verification:
+      issue-rate-limit:
+        interval: 60s
+        rules:
+          - id: application-hour
+            scope: global
+            max-issues: 1000
+            window: 1h
+          - id: account-login-hour
+            scope: purpose
+            namespace: account
+            purpose: login
+            max-issues: 500
+            window: 1h
+          - id: account-login-subject-hour
+            scope: subject
+            namespace: account
+            purpose: login
+            max-issues: 10
+            window: 1h
+```
+
+`subject` 表示运行时按每个 `VerificationKey.subject` 独立累计，YAML 中不配置具体邮箱或手机号。所有规则 ID（包括
+YAML 规则、默认冷却规则和 Bean 规则）必须全局唯一，重复时应用启动失败。YAML 适合声明只依赖验证码键的静态标准规则；
+依赖 IP、设备、租户或动态策略的规则仍应实现 `IssueRateLimitRule` Bean。
 
 扩展和回退规则：
 
 | 应用提供的 Bean | 自动配置行为 |
 | --- | --- |
-| `IssueRateLimitRule` | 与默认规则叠加 |
+| `IssueRateLimitRule` | 与 YAML 规则及默认规则叠加 |
 | `IssueContextResolver` | 替换默认解析器，为规则提供 IP、设备等应用信号 |
 | `IssueRateLimitStore` | 使用自定义限流状态存储，仍自动收集所有规则 |
 | `IssueRateLimiter` | 完全替换默认管理器和限流状态存储 |
@@ -282,11 +332,13 @@ v2:login-ip-hour:{bucketDigest}
 
 | 规则 | bucket | 示例阈值 |
 | --- | --- | --- |
+| 应用级兜底 | global | 1 小时按实际容量配置 |
 | 重发冷却 | namespace + purpose + subject | 60 秒 1 次 |
-| 接收方小时配额 | subject | 1 小时 10 次 |
+| 接收方小时配额 | namespace + purpose + subject | 1 小时 10 次 |
 | 来源小时配额 | IP + purpose | 1 小时 50 次 |
 
 不要把 IP 阈值设置得和单个邮箱或手机号一样低，公司、校园和移动网络可能有大量用户共享公网 IP。
+应用级规则应按自身容量设置；短信和邮件供应商的账户余额、日配额及服务异常仍应在 Sender 集成层监控和保护。
 
 ## 九、实现自定义规则时的检查清单
 

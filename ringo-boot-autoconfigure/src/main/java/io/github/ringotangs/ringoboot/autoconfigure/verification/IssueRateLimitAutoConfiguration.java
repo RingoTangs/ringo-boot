@@ -9,6 +9,8 @@ import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitManager;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitStore;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
+import java.util.ArrayList;
+import java.util.List;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -85,6 +87,7 @@ public class IssueRateLimitAutoConfiguration {
      * 收集容器内全部签发规则并创建统一限流管理器。
      *
      * @param rules 容器内的签发限流规则
+     * @param properties 签发限流配置属性
      * @param store 签发限流状态存储
      * @param contextResolver 签发上下文解析器
      * @return 统一签发限流入口
@@ -93,7 +96,14 @@ public class IssueRateLimitAutoConfiguration {
     @ConditionalOnBean(IssueRateLimitStore.class)
     @ConditionalOnMissingBean(IssueRateLimiter.class)
     IssueRateLimiter issueRateLimiter(
-            ObjectProvider<IssueRateLimitRule> rules, IssueRateLimitStore store, IssueContextResolver contextResolver) {
-        return new IssueRateLimitManager(rules.orderedStream().toList(), store, contextResolver);
+            ObjectProvider<IssueRateLimitRule> rules,
+            IssueRateLimitProperties properties,
+            IssueRateLimitStore store,
+            IssueContextResolver contextResolver) {
+        List<IssueRateLimitRule> configuredRules = properties.toRules();
+        List<IssueRateLimitRule> allRules = new ArrayList<>(configuredRules.size() + 1);
+        allRules.addAll(configuredRules);
+        rules.orderedStream().forEach(allRules::add);
+        return new IssueRateLimitManager(List.copyOf(allRules), store, contextResolver);
     }
 }
