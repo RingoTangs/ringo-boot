@@ -64,8 +64,8 @@ class AbstractVerificationServiceLifecycleTest {
         assertInstanceOf(IssueResult.Accepted.class, service.issue(LOGIN));
         String secondCode = service.lastCode();
 
-        assertEquals(VerificationResult.MISMATCH, service.verify(LOGIN, firstCode));
-        assertEquals(VerificationResult.SUCCESS, service.verify(LOGIN, secondCode));
+        assertEquals(VerifyResult.MISMATCH, service.verify(LOGIN, firstCode));
+        assertEquals(VerifyResult.SUCCESS, service.verify(LOGIN, secondCode));
     }
 
     @Test
@@ -75,8 +75,8 @@ class AbstractVerificationServiceLifecycleTest {
 
         clock.advance(Duration.ofMinutes(5));
 
-        assertEquals(VerificationResult.EXPIRED, service.verify(LOGIN, "123456"));
-        assertEquals(VerificationResult.NOT_FOUND, service.verify(LOGIN, "123456"));
+        assertEquals(VerifyResult.EXPIRED, service.verify(LOGIN, "123456"));
+        assertEquals(VerifyResult.NOT_FOUND, service.verify(LOGIN, "123456"));
     }
 
     @Test
@@ -85,9 +85,9 @@ class AbstractVerificationServiceLifecycleTest {
         VerificationService service = service(length -> "123456", policy);
         service.issue(LOGIN);
 
-        assertEquals(VerificationResult.MISMATCH, service.verify(LOGIN, ""));
-        assertEquals(VerificationResult.ATTEMPTS_EXHAUSTED, service.verify(LOGIN, "000000"));
-        assertEquals(VerificationResult.NOT_FOUND, service.verify(LOGIN, "123456"));
+        assertEquals(VerifyResult.MISMATCH, service.verify(LOGIN, ""));
+        assertEquals(VerifyResult.ATTEMPTS_EXHAUSTED, service.verify(LOGIN, "000000"));
+        assertEquals(VerifyResult.NOT_FOUND, service.verify(LOGIN, "123456"));
     }
 
     @Test
@@ -101,10 +101,10 @@ class AbstractVerificationServiceLifecycleTest {
         service.issue(registration);
         service.issue(otherUser);
 
-        assertEquals(VerificationResult.SUCCESS, service.verify(LOGIN, "123456"));
-        assertEquals(VerificationResult.SUCCESS, service.verify(paymentLogin, "123456"));
-        assertEquals(VerificationResult.SUCCESS, service.verify(registration, "123456"));
-        assertEquals(VerificationResult.SUCCESS, service.verify(otherUser, "123456"));
+        assertEquals(VerifyResult.SUCCESS, service.verify(LOGIN, "123456"));
+        assertEquals(VerifyResult.SUCCESS, service.verify(paymentLogin, "123456"));
+        assertEquals(VerifyResult.SUCCESS, service.verify(registration, "123456"));
+        assertEquals(VerifyResult.SUCCESS, service.verify(otherUser, "123456"));
     }
 
     @Test
@@ -115,7 +115,7 @@ class AbstractVerificationServiceLifecycleTest {
         CountDownLatch start = new CountDownLatch(1);
         try (var executor = Executors.newFixedThreadPool(threads)) {
             @SuppressWarnings("unchecked")
-            Future<VerificationResult>[] futures = new Future[threads];
+            Future<VerifyResult>[] futures = new Future[threads];
             for (int index = 0; index < threads; index++) {
                 futures[index] = executor.submit(() -> {
                     start.await();
@@ -125,8 +125,8 @@ class AbstractVerificationServiceLifecycleTest {
             start.countDown();
 
             int successes = 0;
-            for (Future<VerificationResult> future : futures) {
-                if (future.get() == VerificationResult.SUCCESS) {
+            for (Future<VerifyResult> future : futures) {
+                if (future.get() == VerifyResult.SUCCESS) {
                     successes++;
                 }
             }

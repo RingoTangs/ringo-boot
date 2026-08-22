@@ -7,8 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
-import io.github.ringotangs.ringoboot.verification.VerificationResult;
 import io.github.ringotangs.ringoboot.verification.VerificationThrottledException;
+import io.github.ringotangs.ringoboot.verification.VerifyResult;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.store.StoreResult;
@@ -57,11 +57,11 @@ class EmailVerificationFacadeTest {
     void acceptsSuccessAndHidesEveryUnsuccessfulResult() {
         StubStore store = new StubStore();
         DefaultEmailVerificationFacade facade = facade(store);
-        store.verificationResult = VerificationResult.SUCCESS;
+        store.verificationResult = VerifyResult.SUCCESS;
         assertDoesNotThrow(() -> facade.verify("account", "login", "user@example.com", "123456"));
 
-        for (VerificationResult result : VerificationResult.values()) {
-            if (result == VerificationResult.SUCCESS) {
+        for (VerifyResult result : VerifyResult.values()) {
+            if (result == VerifyResult.SUCCESS) {
                 continue;
             }
             store.verificationResult = result;
@@ -92,7 +92,7 @@ class EmailVerificationFacadeTest {
 
     private static final class StubStore implements VerificationStore {
 
-        private VerificationResult verificationResult = VerificationResult.SUCCESS;
+        private VerifyResult verificationResult = VerifyResult.SUCCESS;
         private VerificationKey lastKey;
 
         @Override
@@ -102,7 +102,7 @@ class EmailVerificationFacadeTest {
         }
 
         @Override
-        public VerificationResult verifyAndConsume(VerificationKey key, String code, Instant verifiedAt) {
+        public VerifyResult verifyAndConsume(VerificationKey key, String code, Instant verifiedAt) {
             lastKey = key;
             return verificationResult;
         }

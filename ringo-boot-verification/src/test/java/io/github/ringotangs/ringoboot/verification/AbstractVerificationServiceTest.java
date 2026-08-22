@@ -47,7 +47,7 @@ class AbstractVerificationServiceTest {
         assertEquals("123456", template.delivery().code());
         assertFalse(template.delivery().toString().contains("123456"));
         assertFalse(issued.toString().contains("123456"));
-        assertEquals(VerificationResult.SUCCESS, template.verify(LOGIN, "123456"));
+        assertEquals(VerifyResult.SUCCESS, template.verify(LOGIN, "123456"));
     }
 
     @Test
@@ -121,7 +121,7 @@ class AbstractVerificationServiceTest {
 
         assertInstanceOf(IssueResult.Uncertain.class, template.issue(LOGIN));
         assertInstanceOf(IssueResult.Throttled.class, template.issue(LOGIN));
-        assertEquals(VerificationResult.SUCCESS, template.verify(LOGIN, "123456"));
+        assertEquals(VerifyResult.SUCCESS, template.verify(LOGIN, "123456"));
     }
 
     @Test
@@ -166,7 +166,7 @@ class AbstractVerificationServiceTest {
         VerificationStoreException failure = new VerificationStoreException("storage unavailable");
         VerificationStore store = new StubVerificationStore() {
             @Override
-            public VerificationResult verifyAndConsume(VerificationKey key, String code, Instant verifiedAt) {
+            public VerifyResult verifyAndConsume(VerificationKey key, String code, Instant verifiedAt) {
                 throw failure;
             }
         };
@@ -336,8 +336,8 @@ class AbstractVerificationServiceTest {
         }
 
         @Override
-        public VerificationResult verifyAndConsume(VerificationKey key, String code, Instant verifiedAt) {
-            return VerificationResult.NOT_FOUND;
+        public VerifyResult verifyAndConsume(VerificationKey key, String code, Instant verifiedAt) {
+            return VerifyResult.NOT_FOUND;
         }
 
         @Override

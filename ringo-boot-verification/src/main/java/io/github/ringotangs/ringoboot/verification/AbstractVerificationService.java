@@ -10,7 +10,6 @@ import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
-import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Objects;
@@ -114,7 +113,7 @@ public abstract class AbstractVerificationService implements VerificationService
 
     /** {@inheritDoc} */
     @Override
-    public final VerificationResult verify(VerificationKey key, String code) throws VerificationStoreException {
+    public final VerifyResult verify(VerificationKey key, String code) throws VerificationException {
         Objects.requireNonNull(key, "key must not be null");
         Objects.requireNonNull(code, "code must not be null");
         return store.verifyAndConsume(key, code, clock.instant());

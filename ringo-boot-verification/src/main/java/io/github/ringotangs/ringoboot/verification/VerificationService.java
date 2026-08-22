@@ -1,7 +1,5 @@
 package io.github.ringotangs.ringoboot.verification;
 
-import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
-
 /**
  * 签发、派发并校验短期有效、成功后一次性消费的验证码。
  *
@@ -30,7 +28,7 @@ public interface VerificationService {
      * @param code 待校验的验证码
      * @return 校验结果
      * @throws NullPointerException 当验证码键或验证码为 {@code null} 时
-     * @throws VerificationStoreException 当验证码存储操作失败时
+     * @throws VerificationException 当验证码校验或存储操作失败时
      */
-    VerificationResult verify(VerificationKey key, String code) throws VerificationStoreException;
+    VerifyResult verify(VerificationKey key, String code) throws VerificationException;
 }

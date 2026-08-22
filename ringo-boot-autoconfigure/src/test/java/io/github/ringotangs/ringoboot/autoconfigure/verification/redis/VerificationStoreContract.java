@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
-import io.github.ringotangs.ringoboot.verification.VerificationResult;
+import io.github.ringotangs.ringoboot.verification.VerifyResult;
 import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.time.Duration;
@@ -34,8 +34,8 @@ abstract class VerificationStoreContract {
 
         assertEquals(now.plus(POLICY.ttl()), stored.expiresAt());
         assertEquals(now.plusSeconds(10).plus(POLICY.ttl()), overwritten.expiresAt());
-        assertEquals(VerificationResult.MISMATCH, store().verifyAndConsume(key, "123456", now.plusSeconds(11)));
-        assertEquals(VerificationResult.SUCCESS, store().verifyAndConsume(key, "654321", now.plusSeconds(12)));
+        assertEquals(VerifyResult.MISMATCH, store().verifyAndConsume(key, "123456", now.plusSeconds(11)));
+        assertEquals(VerifyResult.SUCCESS, store().verifyAndConsume(key, "654321", now.plusSeconds(12)));
     }
 
     @Test
@@ -44,10 +44,9 @@ abstract class VerificationStoreContract {
         Instant now = now();
         store().store(key, "123456", POLICY, now);
 
-        assertEquals(VerificationResult.MISMATCH, store().verifyAndConsume(key, "000000", now.plusSeconds(1)));
-        assertEquals(
-                VerificationResult.ATTEMPTS_EXHAUSTED, store().verifyAndConsume(key, "000000", now.plusSeconds(2)));
-        assertEquals(VerificationResult.NOT_FOUND, store().verifyAndConsume(key, "123456", now.plusSeconds(3)));
+        assertEquals(VerifyResult.MISMATCH, store().verifyAndConsume(key, "000000", now.plusSeconds(1)));
+        assertEquals(VerifyResult.ATTEMPTS_EXHAUSTED, store().verifyAndConsume(key, "000000", now.plusSeconds(2)));
+        assertEquals(VerifyResult.NOT_FOUND, store().verifyAndConsume(key, "123456", now.plusSeconds(3)));
     }
 
     @Test
@@ -56,9 +55,9 @@ abstract class VerificationStoreContract {
         Instant now = now();
         store().store(key, "123456", POLICY, now);
 
-        assertEquals(VerificationResult.EXPIRED, store().verifyAndConsume(key, "123456", now.plus(POLICY.ttl())));
+        assertEquals(VerifyResult.EXPIRED, store().verifyAndConsume(key, "123456", now.plus(POLICY.ttl())));
         assertEquals(
-                VerificationResult.NOT_FOUND,
+                VerifyResult.NOT_FOUND,
                 store().verifyAndConsume(key, "123456", now.plus(POLICY.ttl()).plusSeconds(1)));
     }
 
@@ -70,7 +69,7 @@ abstract class VerificationStoreContract {
 
         assertFalse(store().invalidate(key, "000000"));
         assertTrue(store().invalidate(key, "123456"));
-        assertEquals(VerificationResult.NOT_FOUND, store().verifyAndConsume(key, "123456", now.plusSeconds(1)));
+        assertEquals(VerifyResult.NOT_FOUND, store().verifyAndConsume(key, "123456", now.plusSeconds(1)));
     }
 
     @Test
@@ -82,8 +81,8 @@ abstract class VerificationStoreContract {
         store().store(account, "123456", POLICY, now);
         store().store(payment, "654321", POLICY, now);
 
-        assertEquals(VerificationResult.SUCCESS, store().verifyAndConsume(account, "123456", now.plusSeconds(1)));
-        assertEquals(VerificationResult.SUCCESS, store().verifyAndConsume(payment, "654321", now.plusSeconds(1)));
+        assertEquals(VerifyResult.SUCCESS, store().verifyAndConsume(account, "123456", now.plusSeconds(1)));
+        assertEquals(VerifyResult.SUCCESS, store().verifyAndConsume(payment, "654321", now.plusSeconds(1)));
     }
 
     @Test
@@ -95,7 +94,7 @@ abstract class VerificationStoreContract {
         CountDownLatch start = new CountDownLatch(1);
         try (var executor = Executors.newFixedThreadPool(threads)) {
             @SuppressWarnings("unchecked")
-            Future<VerificationResult>[] futures = new Future[threads];
+            Future<VerifyResult>[] futures = new Future[threads];
             for (int index = 0; index < threads; index++) {
                 futures[index] = executor.submit(() -> {
                     start.await();
@@ -105,8 +104,8 @@ abstract class VerificationStoreContract {
             start.countDown();
 
             int successes = 0;
-            for (Future<VerificationResult> future : futures) {
-                if (future.get() == VerificationResult.SUCCESS) {
+            for (Future<VerifyResult> future : futures) {
+                if (future.get() == VerifyResult.SUCCESS) {
                     successes++;
                 }
             }

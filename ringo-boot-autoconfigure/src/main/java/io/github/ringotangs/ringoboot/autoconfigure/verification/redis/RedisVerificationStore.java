@@ -2,7 +2,7 @@ package io.github.ringotangs.ringoboot.autoconfigure.verification.redis;
 
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
-import io.github.ringotangs.ringoboot.verification.VerificationResult;
+import io.github.ringotangs.ringoboot.verification.VerifyResult;
 import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
@@ -270,7 +270,7 @@ public final class RedisVerificationStore implements VerificationStore {
 
     /** {@inheritDoc} */
     @Override
-    public VerificationResult verifyAndConsume(VerificationKey key, String code, Instant verifiedAt)
+    public VerifyResult verifyAndConsume(VerificationKey key, String code, Instant verifiedAt)
             throws VerificationStoreException {
         Objects.requireNonNull(key, "key must not be null");
         Objects.requireNonNull(code, "code must not be null");
@@ -281,11 +281,11 @@ public final class RedisVerificationStore implements VerificationStore {
             throw new VerificationStoreException("Redis verify script returned no result");
         }
         return switch (result.intValue()) {
-            case 0 -> VerificationResult.NOT_FOUND;
-            case 1 -> VerificationResult.EXPIRED;
-            case 2 -> VerificationResult.SUCCESS;
-            case 3 -> VerificationResult.MISMATCH;
-            case 4 -> VerificationResult.ATTEMPTS_EXHAUSTED;
+            case 0 -> VerifyResult.NOT_FOUND;
+            case 1 -> VerifyResult.EXPIRED;
+            case 2 -> VerifyResult.SUCCESS;
+            case 3 -> VerifyResult.MISMATCH;
+            case 4 -> VerifyResult.ATTEMPTS_EXHAUSTED;
             case 5 -> throw new VerificationStoreException("Redis verification state is incomplete");
             default -> throw new VerificationStoreException("Redis verify script returned an unknown status");
         };

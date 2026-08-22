@@ -3,8 +3,8 @@ package io.github.ringotangs.ringoboot.verification.email;
 import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
 import io.github.ringotangs.ringoboot.verification.IssueResult;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
-import io.github.ringotangs.ringoboot.verification.VerificationResult;
 import io.github.ringotangs.ringoboot.verification.VerificationThrottledException;
+import io.github.ringotangs.ringoboot.verification.VerifyResult;
 import java.time.Instant;
 import java.util.Locale;
 import java.util.Objects;
@@ -42,8 +42,8 @@ public final class DefaultEmailVerificationFacade implements EmailVerificationFa
     /** {@inheritDoc} */
     @Override
     public void verify(String namespace, String purpose, String email, String code) {
-        VerificationResult result = verificationService.verify(key(namespace, purpose, email), code);
-        if (result != VerificationResult.SUCCESS) {
+        VerifyResult result = verificationService.verify(key(namespace, purpose, email), code);
+        if (result != VerifyResult.SUCCESS) {
             throw new InvalidVerificationCodeException();
         }
     }

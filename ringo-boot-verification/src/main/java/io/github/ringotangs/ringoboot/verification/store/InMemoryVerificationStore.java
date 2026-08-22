@@ -2,7 +2,7 @@ package io.github.ringotangs.ringoboot.verification.store;
 
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
-import io.github.ringotangs.ringoboot.verification.VerificationResult;
+import io.github.ringotangs.ringoboot.verification.VerifyResult;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -87,30 +87,30 @@ public final class InMemoryVerificationStore implements VerificationStore {
      * @throws NullPointerException 当任一参数为 {@code null} 时
      */
     @Override
-    public VerificationResult verifyAndConsume(VerificationKey key, String code, Instant verifiedAt) {
+    public VerifyResult verifyAndConsume(VerificationKey key, String code, Instant verifiedAt) {
         Objects.requireNonNull(key, "key must not be null");
         Objects.requireNonNull(code, "code must not be null");
         Objects.requireNonNull(verifiedAt, "verifiedAt must not be null");
-        AtomicReference<VerificationResult> result = new AtomicReference<>(VerificationResult.NOT_FOUND);
+        AtomicReference<VerifyResult> result = new AtomicReference<>(VerifyResult.NOT_FOUND);
         byte[] candidateDigest = digest(key, code);
         entries.compute(key, (ignored, existing) -> {
             if (existing == null) {
                 return null;
             }
             if (!verifiedAt.isBefore(existing.expiresAt())) {
-                result.set(VerificationResult.EXPIRED);
+                result.set(VerifyResult.EXPIRED);
                 return null;
             }
             if (MessageDigest.isEqual(existing.digest(), candidateDigest)) {
-                result.set(VerificationResult.SUCCESS);
+                result.set(VerifyResult.SUCCESS);
                 return null;
             }
             int remainingAttempts = existing.remainingAttempts() - 1;
             if (remainingAttempts <= 0) {
-                result.set(VerificationResult.ATTEMPTS_EXHAUSTED);
+                result.set(VerifyResult.ATTEMPTS_EXHAUSTED);
                 return null;
             }
-            result.set(VerificationResult.MISMATCH);
+            result.set(VerifyResult.MISMATCH);
             return existing.withRemainingAttempts(remainingAttempts);
         });
         return result.get();

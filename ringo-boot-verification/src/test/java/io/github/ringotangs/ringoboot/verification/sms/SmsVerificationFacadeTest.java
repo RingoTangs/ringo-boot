@@ -6,8 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
-import io.github.ringotangs.ringoboot.verification.VerificationResult;
 import io.github.ringotangs.ringoboot.verification.VerificationThrottledException;
+import io.github.ringotangs.ringoboot.verification.VerifyResult;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.store.StoreResult;
@@ -39,7 +39,7 @@ class SmsVerificationFacadeTest {
                         .issue("account", "login", "+8613800000000"));
         assertEquals(Duration.ofSeconds(4), throttled.retryAfter());
 
-        store.verificationResult = VerificationResult.EXPIRED;
+        store.verificationResult = VerifyResult.EXPIRED;
         assertThrows(
                 InvalidVerificationCodeException.class,
                 () -> facade(store).verify("account", "login", "+8613800000000", "123456"));
@@ -75,7 +75,7 @@ class SmsVerificationFacadeTest {
 
     private static final class StubStore implements VerificationStore {
 
-        private VerificationResult verificationResult = VerificationResult.SUCCESS;
+        private VerifyResult verificationResult = VerifyResult.SUCCESS;
         private VerificationKey lastKey;
 
         @Override
@@ -85,7 +85,7 @@ class SmsVerificationFacadeTest {
         }
 
         @Override
-        public VerificationResult verifyAndConsume(VerificationKey key, String code, Instant verifiedAt) {
+        public VerifyResult verifyAndConsume(VerificationKey key, String code, Instant verifiedAt) {
             lastKey = key;
             return verificationResult;
         }

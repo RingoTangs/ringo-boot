@@ -11,8 +11,8 @@ import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVeri
 import io.github.ringotangs.ringoboot.verification.VerificationFacade;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
-import io.github.ringotangs.ringoboot.verification.VerificationResult;
 import io.github.ringotangs.ringoboot.verification.VerificationService;
+import io.github.ringotangs.ringoboot.verification.VerifyResult;
 import io.github.ringotangs.ringoboot.verification.email.DefaultEmailVerificationFacade;
 import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.email.EmailVerificationFacade;
@@ -525,8 +525,8 @@ class VerificationAutoConfigurationTest {
         }
 
         @Override
-        public VerificationResult verifyAndConsume(VerificationKey key, String code, Instant verifiedAt) {
-            return VerificationResult.NOT_FOUND;
+        public VerifyResult verifyAndConsume(VerificationKey key, String code, Instant verifiedAt) {
+            return VerifyResult.NOT_FOUND;
         }
 
         @Override

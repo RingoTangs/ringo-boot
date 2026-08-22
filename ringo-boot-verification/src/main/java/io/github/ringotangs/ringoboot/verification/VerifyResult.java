@@ -4,7 +4,7 @@ package io.github.ringotangs.ringoboot.verification;
  * 表示一次验证码校验尝试的结果。
  *
  */
-public enum VerificationResult {
+public enum VerifyResult {
     /**
      * 验证码匹配并已成功消费。
      *

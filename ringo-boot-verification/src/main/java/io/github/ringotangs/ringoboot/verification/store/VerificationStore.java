@@ -2,7 +2,7 @@ package io.github.ringotangs.ringoboot.verification.store;
 
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
-import io.github.ringotangs.ringoboot.verification.VerificationResult;
+import io.github.ringotangs.ringoboot.verification.VerifyResult;
 import java.time.Instant;
 
 /**
@@ -43,7 +43,7 @@ public interface VerificationStore {
      * @throws NullPointerException 当任一参数为 {@code null} 时
      * @throws VerificationStoreException 当底层存储操作失败时
      */
-    VerificationResult verifyAndConsume(VerificationKey key, String code, Instant verifiedAt)
+    VerifyResult verifyAndConsume(VerificationKey key, String code, Instant verifiedAt)
             throws VerificationStoreException;
 
     /**
