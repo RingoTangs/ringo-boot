@@ -16,8 +16,7 @@ import org.junit.jupiter.api.Test;
 class IssueRateLimitManagerTest {
 
     private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
-    private static final IssueContext CONTEXT =
-            IssueContext.of(new VerificationKey("account", "login", "user@example.com"));
+    private static final VerificationKey KEY = new VerificationKey("account", "login", "user@example.com");
 
     @Test
     void selectsRulesAndSubmitsResolvedQuotas() {
@@ -30,7 +29,7 @@ class IssueRateLimitManagerTest {
             return new IssueLimitResult.Allowed();
         });
 
-        assertInstanceOf(IssueLimitResult.Allowed.class, manager.acquire(CONTEXT, NOW));
+        assertInstanceOf(IssueLimitResult.Allowed.class, manager.acquire(KEY, NOW));
         assertEquals(1, captured.get().size());
         assertEquals("subject-minute", captured.get().getFirst().ruleId());
         assertEquals(
@@ -48,7 +47,7 @@ class IssueRateLimitManagerTest {
                     return new IssueLimitResult.Throttled(Duration.ofSeconds(1));
                 });
 
-        assertInstanceOf(IssueLimitResult.Allowed.class, manager.acquire(CONTEXT, NOW));
+        assertInstanceOf(IssueLimitResult.Allowed.class, manager.acquire(KEY, NOW));
         assertEquals(0, calls.get());
     }
 
@@ -65,7 +64,7 @@ class IssueRateLimitManagerTest {
             return new IssueLimitResult.Allowed();
         });
 
-        assertThrows(RuntimeException.class, () -> manager.acquire(CONTEXT, NOW));
+        assertThrows(RuntimeException.class, () -> manager.acquire(KEY, NOW));
         assertEquals(0, calls.get());
     }
 
@@ -110,7 +109,47 @@ class IssueRateLimitManagerTest {
         IssueRateLimitManager manager = new IssueRateLimitManager(
                 List.of(rule("subject-minute", context -> true, "subject")), (rules, time) -> null);
 
-        assertThrows(NullPointerException.class, () -> manager.acquire(CONTEXT, NOW));
+        assertThrows(NullPointerException.class, () -> manager.acquire(KEY, NOW));
+    }
+
+    @Test
+    void resolvesContextAttributesBeforeEvaluatingRules() {
+        AtomicReference<IssueLimitQuota> captured = new AtomicReference<>();
+        IssueRateLimitRule ipRule = IssueRateLimitRule.of(
+                "ip-hour",
+                context -> IssueLimitBucket.of(context.attribute("ip-address").orElseThrow()),
+                10,
+                Duration.ofHours(1));
+        IssueContext expected = IssueContext.of(KEY).with("ip-address", "203.0.113.10");
+        IssueRateLimitManager manager = new IssueRateLimitManager(
+                List.of(ipRule),
+                (quotas, requestedAt) -> {
+                    captured.set(quotas.getFirst());
+                    return new IssueLimitResult.Allowed();
+                },
+                key -> expected);
+
+        assertInstanceOf(IssueLimitResult.Allowed.class, manager.acquire(KEY, NOW));
+        assertEquals(IssueLimitBucket.of("203.0.113.10"), captured.get().bucket());
+    }
+
+    @Test
+    void rejectsInvalidResolverResultsBeforeCallingStore() {
+        AtomicInteger calls = new AtomicInteger();
+        IssueRateLimitStore store = (quotas, requestedAt) -> {
+            calls.incrementAndGet();
+            return new IssueLimitResult.Allowed();
+        };
+        IssueRateLimitRule rule = rule("subject-minute", context -> true, "subject");
+        IssueRateLimitManager nullContext = new IssueRateLimitManager(List.of(rule), store, key -> null);
+        IssueRateLimitManager changedKey = new IssueRateLimitManager(
+                List.of(rule),
+                store,
+                key -> IssueContext.of(new VerificationKey("account", "login", "another@example.com")));
+
+        assertThrows(NullPointerException.class, () -> nullContext.acquire(KEY, NOW));
+        assertThrows(IllegalArgumentException.class, () -> changedKey.acquire(KEY, NOW));
+        assertEquals(0, calls.get());
     }
 
     private IssueRateLimitRule rule(

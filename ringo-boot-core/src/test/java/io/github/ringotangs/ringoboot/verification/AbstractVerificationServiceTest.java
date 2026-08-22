@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
-import io.github.ringotangs.ringoboot.verification.limit.IssueContext;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
@@ -163,10 +162,10 @@ class AbstractVerificationServiceTest {
     }
 
     @Test
-    void passesIssueContextToRateLimiter() {
-        AtomicReference<IssueContext> captured = new AtomicReference<>();
-        IssueRateLimiter limiter = (context, requestedAt) -> {
-            captured.set(context);
+    void passesVerificationKeyToRateLimiter() {
+        AtomicReference<VerificationKey> captured = new AtomicReference<>();
+        IssueRateLimiter limiter = (key, requestedAt) -> {
+            captured.set(key);
             return new IssueLimitResult.Allowed();
         };
         CapturingVerificationService template = new CapturingVerificationService(
@@ -175,12 +174,9 @@ class AbstractVerificationServiceTest {
                 limiter,
                 VerificationPolicy.defaults(),
                 Clock.fixed(NOW, ZoneOffset.UTC));
-        IssueContext context =
-                IssueContext.of(LOGIN).with("ip-address", "203.0.113.10").with("device-id", "device-123");
+        assertInstanceOf(IssueResult.Accepted.class, template.issue(LOGIN));
 
-        assertInstanceOf(IssueResult.Accepted.class, template.issue(context));
-
-        assertSame(context, captured.get());
+        assertSame(LOGIN, captured.get());
         assertEquals(LOGIN, template.delivery().key());
     }
 
@@ -196,7 +192,6 @@ class AbstractVerificationServiceTest {
                         VerificationPolicy.defaults(),
                         Clock.fixed(NOW, ZoneOffset.UTC)));
         assertThrows(NullPointerException.class, () -> template.issue((VerificationKey) null));
-        assertThrows(NullPointerException.class, () -> template.issue((IssueContext) null));
         assertThrows(NullPointerException.class, () -> template.issue(LOGIN, null));
     }
 

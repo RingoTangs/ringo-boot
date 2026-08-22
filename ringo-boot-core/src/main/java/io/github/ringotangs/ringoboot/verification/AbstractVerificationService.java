@@ -3,7 +3,6 @@ package io.github.ringotangs.ringoboot.verification;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimitStore;
-import io.github.ringotangs.ringoboot.verification.limit.IssueContext;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitException;
@@ -105,33 +104,18 @@ public abstract class AbstractVerificationService implements VerificationService
     @Override
     public final IssueResult issue(VerificationKey key)
             throws CodeGenerationException, CodeSenderException, IssueRateLimitException, VerificationStoreException {
-        return issue(IssueContext.of(key), defaultPolicy);
+        return issue(key, defaultPolicy);
     }
 
     /** {@inheritDoc} */
     @Override
     public final IssueResult issue(VerificationKey key, VerificationPolicy policy)
             throws CodeGenerationException, CodeSenderException, IssueRateLimitException, VerificationStoreException {
-        return issue(IssueContext.of(key), policy);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public final IssueResult issue(IssueContext context)
-            throws CodeGenerationException, CodeSenderException, IssueRateLimitException, VerificationStoreException {
-        return issue(context, defaultPolicy);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public final IssueResult issue(IssueContext context, VerificationPolicy policy)
-            throws CodeGenerationException, CodeSenderException, IssueRateLimitException, VerificationStoreException {
-        Objects.requireNonNull(context, "context must not be null");
+        Objects.requireNonNull(key, "key must not be null");
         Objects.requireNonNull(policy, "policy must not be null");
-        VerificationKey key = context.key();
         Instant issuedAt = clock.instant();
         IssueLimitResult limitResult = Objects.requireNonNull(
-                issueRateLimiter.acquire(context, issuedAt), "issue rate limiter result must not be null");
+                issueRateLimiter.acquire(key, issuedAt), "issue rate limiter result must not be null");
         if (limitResult instanceof IssueLimitResult.Throttled throttled) {
             return new IssueResult.Throttled(throttled.retryAfter());
         }

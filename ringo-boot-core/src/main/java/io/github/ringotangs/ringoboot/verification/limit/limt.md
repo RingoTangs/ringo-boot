@@ -164,9 +164,14 @@ Twilio 支持业务传入自定义限流键，例如用户 IP；Firebase 同时�
    - 租户、供应商、地区及成本配额。
    - 告警、审计和动态黑名单。
 
-当前 IssueRateLimiter.acquire(VerificationKey, Instant) 只能看到 VerificationKey，适合“接收方 + 业务用途”的规则，但无
-法表达 IP、设备、账号和租户维度。若下一步扩展，比较合理的是引入签发上下文，例如：
+当前 `IssueRateLimiter.acquire(VerificationKey, Instant)` 保持业务调用入口简单。`IssueRateLimitManager` 在内部通过
+`IssueContextResolver` 把验证码键解析为 `IssueContext`，因此规则仍可使用 IP、设备、账号和租户维度：
 
-IssueLimitResult acquire(IssueContext context, Instant requestedAt);
+```java
+IssueContextResolver resolver = key -> IssueContext.of(key)
+        .with("ip-address", resolveTrustedClientIp())
+        .with("device-id", resolveTrustedDeviceId());
+```
 
-其中 IssueContext 可以携带 VerificationKey、IP、设备、账号和租户信息，再由多个限流规则组合判断。
+Spring Boot 默认解析器只提供 `VerificationKey`。需要环境维度的应用应注册自定义 Resolver Bean；HTTP 请求提取和可信代理策略属于
+应用层职责，限流规则本身只读取上下文，不直接依赖 Web API。

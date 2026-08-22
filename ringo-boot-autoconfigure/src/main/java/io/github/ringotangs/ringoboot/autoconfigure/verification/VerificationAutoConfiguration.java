@@ -5,6 +5,8 @@ import io.github.ringotangs.ringoboot.verification.email.StdoutEmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.generator.NumericCodeGenerator;
 import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimitStore;
+import io.github.ringotangs.ringoboot.verification.limit.IssueContext;
+import io.github.ringotangs.ringoboot.verification.limit.IssueContextResolver;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitManager;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
@@ -38,6 +40,17 @@ import org.springframework.context.annotation.Conditional;
 @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "enabled", havingValue = "true")
 @EnableConfigurationProperties({VerificationProperties.class, IssueRateLimitProperties.class})
 public class VerificationAutoConfiguration {
+
+    /**
+     * 在应用未提供上下文解析器时，仅使用验证码键创建签发上下文。
+     *
+     * @return 不包含 IP、设备等环境属性的默认上下文解析器
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    IssueContextResolver issueContextResolver() {
+        return IssueContext::of;
+    }
 
     /**
      * 在内存模式且用户未提供存储时创建进程内签发限流状态存储。
@@ -74,8 +87,9 @@ public class VerificationAutoConfiguration {
     @Bean
     @ConditionalOnBean(IssueRateLimitStore.class)
     @ConditionalOnMissingBean(IssueRateLimiter.class)
-    IssueRateLimiter issueRateLimiter(ObjectProvider<IssueRateLimitRule> rules, IssueRateLimitStore store) {
-        return new IssueRateLimitManager(rules.orderedStream().toList(), store);
+    IssueRateLimiter issueRateLimiter(
+            ObjectProvider<IssueRateLimitRule> rules, IssueRateLimitStore store, IssueContextResolver contextResolver) {
+        return new IssueRateLimitManager(rules.orderedStream().toList(), store, contextResolver);
     }
 
     /**

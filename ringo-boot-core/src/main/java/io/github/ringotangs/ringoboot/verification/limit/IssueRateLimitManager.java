@@ -1,5 +1,6 @@
 package io.github.ringotangs.ringoboot.verification.limit;
 
+import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -23,6 +24,7 @@ public final class IssueRateLimitManager implements IssueRateLimiter {
 
     private final List<IssueRateLimitRule> rules;
     private final IssueRateLimitStore store;
+    private final IssueContextResolver contextResolver;
 
     /**
      * 使用规则集合和限流状态存储创建管理器。
@@ -35,8 +37,25 @@ public final class IssueRateLimitManager implements IssueRateLimiter {
      * @throws IllegalArgumentException 当规则定义非法或存在重复规则 ID 时
      */
     public IssueRateLimitManager(List<IssueRateLimitRule> rules, IssueRateLimitStore store) {
+        this(rules, store, IssueContext::of);
+    }
+
+    /**
+     * 使用规则集合、限流状态存储和上下文解析器创建管理器。
+     *
+     * <p>规则的迭代顺序会被保留，便于获得稳定的匹配和诊断顺序，但所有匹配规则仍以 AND 关系原子执行，顺序不会改变限流结果。
+     *
+     * @param rules 需要管理的签发限流规则；允许传入空集合
+     * @param store 原子保存和消费已解析配额的限流状态存储
+     * @param contextResolver 根据验证码键解析额外限流信号的上下文解析器
+     * @throws NullPointerException 当规则集合、任一规则、规则定义字段、Store 或上下文解析器为 {@code null} 时
+     * @throws IllegalArgumentException 当规则定义非法或存在重复规则 ID 时
+     */
+    public IssueRateLimitManager(
+            List<IssueRateLimitRule> rules, IssueRateLimitStore store, IssueContextResolver contextResolver) {
         Objects.requireNonNull(rules, "rules must not be null");
         this.store = Objects.requireNonNull(store, "store must not be null");
+        this.contextResolver = Objects.requireNonNull(contextResolver, "contextResolver must not be null");
         this.rules = List.copyOf(rules);
         Set<String> ids = new HashSet<>();
         for (IssueRateLimitRule rule : this.rules) {
@@ -50,9 +69,14 @@ public final class IssueRateLimitManager implements IssueRateLimiter {
 
     /** {@inheritDoc} */
     @Override
-    public IssueLimitResult acquire(IssueContext context, Instant requestedAt) throws IssueRateLimitException {
-        Objects.requireNonNull(context, "context must not be null");
+    public IssueLimitResult acquire(VerificationKey key, Instant requestedAt) throws IssueRateLimitException {
+        Objects.requireNonNull(key, "key must not be null");
         Objects.requireNonNull(requestedAt, "requestedAt must not be null");
+        IssueContext context =
+                Objects.requireNonNull(contextResolver.resolve(key), "issue context resolver result must not be null");
+        if (!context.key().equals(key)) {
+            throw new IllegalArgumentException("issue context resolver must preserve the verification key");
+        }
         List<IssueLimitQuota> quotas = new ArrayList<>();
         for (IssueRateLimitRule rule : rules) {
             if (rule.matches(context)) {

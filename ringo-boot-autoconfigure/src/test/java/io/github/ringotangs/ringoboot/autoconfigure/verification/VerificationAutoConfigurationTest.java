@@ -19,6 +19,8 @@ import io.github.ringotangs.ringoboot.verification.email.EmailVerificationServic
 import io.github.ringotangs.ringoboot.verification.email.StdoutEmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimitStore;
+import io.github.ringotangs.ringoboot.verification.limit.IssueContext;
+import io.github.ringotangs.ringoboot.verification.limit.IssueContextResolver;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitManager;
@@ -133,7 +135,32 @@ class VerificationAutoConfigurationTest {
                     .isInstanceOf(DefaultEmailVerificationFacade.class);
             assertThat(context.getBean(SmsVerificationFacade.class)).isInstanceOf(DefaultSmsVerificationFacade.class);
             assertThat(context).getBeans(VerificationFacade.class).hasSize(2);
+            assertThat(context).hasSingleBean(IssueContextResolver.class);
+            VerificationKey key = new VerificationKey("account", "login", "user@example.com");
+            assertThat(context.getBean(IssueContextResolver.class).resolve(key)).isEqualTo(IssueContext.of(key));
         });
+    }
+
+    @Test
+    void customIssueContextResolverOverridesDefaultAndSuppliesRuleAttributes() {
+        VerificationKey key = new VerificationKey("account", "login", "user@example.com");
+        IssueContextResolver resolver = candidate -> IssueContext.of(candidate).with("ip-address", "203.0.113.10");
+        IssueRateLimitRule ipRule = IssueRateLimitRule.of(
+                "login-ip-hour",
+                context -> IssueLimitBucket.of(context.attribute("ip-address").orElseThrow()),
+                10,
+                Duration.ofHours(1));
+
+        contextRunner
+                .withPropertyValues("ringo.boot.verification.enabled=true")
+                .withBean(IssueContextResolver.class, () -> resolver)
+                .withBean("ipRule", IssueRateLimitRule.class, () -> ipRule)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context.getBean(IssueContextResolver.class)).isSameAs(resolver);
+                    assertThat(context.getBean(IssueRateLimiter.class).acquire(key, Instant.EPOCH))
+                            .isInstanceOf(IssueLimitResult.Allowed.class);
+                });
     }
 
     @Test
