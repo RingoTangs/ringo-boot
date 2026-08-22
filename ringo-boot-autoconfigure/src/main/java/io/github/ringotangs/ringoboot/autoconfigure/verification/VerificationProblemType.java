@@ -1,4 +1,4 @@
-package io.github.ringotangs.ringoboot.autoconfigure.problem;
+package io.github.ringotangs.ringoboot.autoconfigure.verification;
 
 import io.github.ringotangs.ringoboot.problem.ProblemType;
 import io.github.ringotangs.ringoboot.problem.ProblemTypeDefinition;

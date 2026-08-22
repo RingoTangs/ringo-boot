@@ -1,4 +1,5 @@
 io.github.ringotangs.ringoboot.autoconfigure.problem.ProblemAutoConfiguration
+io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationProblemAutoConfiguration
 io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationAutoConfiguration
 io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisIssueRateLimitAutoConfiguration
 io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationAutoConfiguration

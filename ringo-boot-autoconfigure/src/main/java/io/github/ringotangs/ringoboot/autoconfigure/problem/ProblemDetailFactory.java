@@ -11,15 +11,28 @@ import org.springframework.http.ProblemDetail;
  *
  * <p>Creates Problem Details from {@link ProblemException} instances.</p>
  */
-final class ProblemDetailFactory {
+public final class ProblemDetailFactory {
 
     private final ProblemMessageResolver messageResolver;
 
-    ProblemDetailFactory(ProblemMessageResolver messageResolver) {
+    /**
+     * 使用指定消息解析器创建 Problem Details 工厂。
+     *
+     * @param messageResolver 问题消息解析器
+     * @throws NullPointerException 当消息解析器为 {@code null} 时
+     */
+    public ProblemDetailFactory(ProblemMessageResolver messageResolver) {
         this.messageResolver = Objects.requireNonNull(messageResolver, "messageResolver must not be null");
     }
 
-    ProblemDetail create(ProblemException exception) {
+    /**
+     * 根据问题异常创建 Problem Details。
+     *
+     * @param exception 问题异常
+     * @return 包含类型、状态、标题和详情的 Problem Details
+     * @throws NullPointerException 当问题异常为 {@code null} 时
+     */
+    public ProblemDetail create(ProblemException exception) {
         Objects.requireNonNull(exception, "exception must not be null");
         ProblemTypeDefinition definition = exception.getProblemType().getDefinition();
         ProblemMessageResolver.ProblemMessages messages = messageResolver.resolve(exception);

@@ -1,5 +1,7 @@
-package io.github.ringotangs.ringoboot.autoconfigure.problem;
+package io.github.ringotangs.ringoboot.autoconfigure.verification;
 
+import io.github.ringotangs.ringoboot.autoconfigure.problem.ProblemDetailFactory;
+import io.github.ringotangs.ringoboot.autoconfigure.problem.ProblemMessageResolver;
 import io.github.ringotangs.ringoboot.problem.ProblemException;
 import io.github.ringotangs.ringoboot.problem.ProblemType;
 import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;

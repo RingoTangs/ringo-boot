@@ -1,8 +1,9 @@
-package io.github.ringotangs.ringoboot.autoconfigure.problem;
+package io.github.ringotangs.ringoboot.autoconfigure.verification;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import io.github.ringotangs.ringoboot.autoconfigure.problem.ProblemMessageResolver;
 import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationThrottledException;
@@ -14,24 +15,15 @@ import io.github.ringotangs.ringoboot.verification.sender.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
 import java.net.URI;
 import java.time.Duration;
-import java.util.Locale;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
-import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.context.support.StaticMessageSource;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.method.annotation.ExceptionHandlerMethodResolver;
 
 @ExtendWith(OutputCaptureExtension.class)
 class VerificationExceptionHandlerTest {
-
-    @AfterEach
-    void resetLocale() {
-        LocaleContextHolder.resetLocaleContext();
-    }
 
     @Test
     void returnsSafeInternalErrorForGenerationFailure(CapturedOutput output) {
@@ -105,52 +97,6 @@ class VerificationExceptionHandlerTest {
     }
 
     @Test
-    void usesBuiltInLocalizedMessages() {
-        StaticMessageSource messageSource = new StaticMessageSource();
-        LocaleContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
-        VerificationExceptionHandler handler =
-                new VerificationExceptionHandler(new MessageSourceProblemMessageResolver(messageSource));
-
-        ProblemDetail generation = handler.handleVerificationException(new CodeGenerationException("internal"));
-        ProblemDetail unavailable = handler.handleVerificationException(new VerificationStoreException("internal"));
-        ProblemDetail configuration = handler.handleVerificationException(new MissingIssueRateLimitRuleException());
-
-        assertEquals("验证码生成失败", generation.getTitle());
-        assertEquals("验证码服务发生内部错误", generation.getDetail());
-        assertEquals("验证码服务不可用", unavailable.getTitle());
-        assertEquals("验证码服务暂时不可用", unavailable.getDetail());
-        assertEquals("验证码配置错误", configuration.getTitle());
-        assertEquals("验证码服务未配置当前操作", configuration.getDetail());
-    }
-
-    @Test
-    void usesBuiltInEnglishMessages() {
-        LocaleContextHolder.setLocale(Locale.ENGLISH);
-        VerificationExceptionHandler handler =
-                new VerificationExceptionHandler(new MessageSourceProblemMessageResolver(new StaticMessageSource()));
-
-        ProblemDetail problem = handler.handleVerificationException(new VerificationStoreException("internal"));
-
-        assertEquals("Verification service unavailable", problem.getTitle());
-        assertEquals("The verification service is temporarily unavailable", problem.getDetail());
-    }
-
-    @Test
-    void applicationMessagesOverrideBuiltInMessagesPerKey() {
-        StaticMessageSource messageSource = new StaticMessageSource();
-        messageSource.addMessage(
-                "problem.verification.generation-failed.title", Locale.SIMPLIFIED_CHINESE, "自定义验证码生成失败");
-        LocaleContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
-        VerificationExceptionHandler handler =
-                new VerificationExceptionHandler(new MessageSourceProblemMessageResolver(messageSource));
-
-        ProblemDetail problem = handler.handleVerificationException(new CodeGenerationException("internal"));
-
-        assertEquals("自定义验证码生成失败", problem.getTitle());
-        assertEquals("验证码服务发生内部错误", problem.getDetail());
-    }
-
-    @Test
     void mapsExpectedBusinessFailuresWithoutErrorLogging(CapturedOutput output) {
         VerificationExceptionHandler handler = createDefaultHandler();
 
@@ -173,24 +119,12 @@ class VerificationExceptionHandlerTest {
         assertThat(output).doesNotContain("Verification operation failed");
     }
 
-    @Test
-    void localizesExpectedBusinessFailures() {
-        LocaleContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
-        VerificationExceptionHandler handler =
-                new VerificationExceptionHandler(new MessageSourceProblemMessageResolver(new StaticMessageSource()));
-
-        ProblemDetail throttled =
-                handler.handleVerificationThrottled(new VerificationThrottledException(Duration.ofSeconds(3)));
-        ProblemDetail invalid = handler.handleInvalidVerificationCode(new InvalidVerificationCodeException());
-
-        assertEquals("验证码请求过于频繁", throttled.getTitle());
-        assertEquals("请在 3 秒后重试", throttled.getDetail());
-        assertEquals("验证码无效", invalid.getTitle());
-        assertEquals("验证码无效", invalid.getDetail());
-    }
-
     private VerificationExceptionHandler createDefaultHandler() {
-        return new VerificationExceptionHandler(new DefaultProblemMessageResolver());
+        ProblemMessageResolver resolver = exception -> {
+            var definition = exception.getProblemType().getDefinition();
+            return new ProblemMessageResolver.ProblemMessages(definition.title(), exception.getMessage());
+        };
+        return new VerificationExceptionHandler(resolver);
     }
 
     private void assertServiceUnavailable(ProblemDetail problem) {

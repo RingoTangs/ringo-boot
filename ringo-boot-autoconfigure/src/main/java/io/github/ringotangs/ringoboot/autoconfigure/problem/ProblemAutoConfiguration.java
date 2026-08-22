@@ -1,8 +1,6 @@
 package io.github.ringotangs.ringoboot.autoconfigure.problem;
 
-import io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationProperties;
 import io.github.ringotangs.ringoboot.problem.ProblemException;
-import io.github.ringotangs.ringoboot.verification.VerificationException;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.*;
 import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
@@ -97,30 +95,6 @@ public class ProblemAutoConfiguration {
                 ApplicationContext applicationContext,
                 ProblemProperties properties) {
             return new FallbackExceptionHandler(messageResolver, applicationContext, properties);
-        }
-    }
-
-    /**
-     * 在验证码功能和验证码异常处理开关均开启时装配验证码技术异常处理器。
-     *
-     * <p>Configures verification technical exception handling when both verification and
-     * verification exception handling are enabled.</p>
-     */
-    @Configuration(proxyBeanMethods = false)
-    @ConditionalOnClass(VerificationException.class)
-    @ConditionalOnProperty(prefix = ProblemProperties.PREFIX, name = "verification-enabled", havingValue = "true")
-    @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "enabled", havingValue = "true")
-    static class VerificationConfiguration {
-
-        /**
-         * 用户提供自定义 VerificationExceptionHandler 时不创建默认实现。
-         *
-         * <p>Backs off when a custom VerificationExceptionHandler is available.</p>
-         */
-        @Bean
-        @ConditionalOnMissingBean
-        VerificationExceptionHandler verificationExceptionHandler(ProblemMessageResolver messageResolver) {
-            return new VerificationExceptionHandler(messageResolver);
         }
     }
 

@@ -29,7 +29,6 @@ class ProblemAutoConfigurationTest {
                     assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);
                     assertThat(context).doesNotHaveBean(FallbackExceptionHandler.class);
                     assertThat(context).doesNotHaveBean(SpringMvcExceptionHandler.class);
-                    assertThat(context).doesNotHaveBean(VerificationExceptionHandler.class);
                     assertThat(context).doesNotHaveBean(ProblemMessageResolver.class);
                 });
     }
@@ -74,7 +73,6 @@ class ProblemAutoConfigurationTest {
             assertThat(context).doesNotHaveBean(ProblemMessageResolver.class);
             assertThat(context).doesNotHaveBean(FallbackExceptionHandler.class);
             assertThat(context).doesNotHaveBean(SpringMvcExceptionHandler.class);
-            assertThat(context).doesNotHaveBean(VerificationExceptionHandler.class);
             assertThat(context).doesNotHaveBean(ProblemProperties.class);
         });
     }
@@ -201,68 +199,6 @@ class ProblemAutoConfigurationTest {
             assertThat(context).doesNotHaveBean(ProblemMessageResolver.class);
             assertThat(context).doesNotHaveBean(ProblemProperties.class);
         });
-    }
-
-    @Test
-    void configuresVerificationHandlingIndependently() {
-        contextRunner
-                .withPropertyValues(
-                        "ringo.boot.problem.enabled=true",
-                        "ringo.boot.problem.verification-enabled=true",
-                        "ringo.boot.verification.enabled=true")
-                .run(context -> {
-                    assertThat(context).hasSingleBean(VerificationExceptionHandler.class);
-                    assertThat(context).hasSingleBean(ProblemMessageResolver.class);
-                    assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);
-                    assertThat(context).doesNotHaveBean(FallbackExceptionHandler.class);
-                    assertThat(context.getBean(ProblemProperties.class).isVerificationEnabled())
-                            .isTrue();
-                });
-    }
-
-    @Test
-    void doesNotConfigureVerificationHandlingWithoutItsSwitch() {
-        contextRunner
-                .withPropertyValues(
-                        "ringo.boot.problem.enabled=true",
-                        "ringo.boot.problem.application-enabled=true",
-                        "ringo.boot.problem.fallback-enabled=true",
-                        "ringo.boot.verification.enabled=true")
-                .run(context -> assertThat(context).doesNotHaveBean(VerificationExceptionHandler.class));
-    }
-
-    @Test
-    void doesNotConfigureVerificationHandlingWhenVerificationIsDisabled() {
-        contextRunner
-                .withPropertyValues("ringo.boot.problem.enabled=true", "ringo.boot.problem.verification-enabled=true")
-                .run(context -> assertThat(context).doesNotHaveBean(VerificationExceptionHandler.class));
-    }
-
-    @Test
-    void doesNotConfigureVerificationHandlingForMvcHandlingAlone() {
-        contextRunner
-                .withPropertyValues(
-                        "ringo.boot.problem.enabled=true",
-                        "ringo.boot.problem.mvc-enabled=true",
-                        "ringo.boot.problem.verification-enabled=false",
-                        "ringo.boot.verification.enabled=true")
-                .run(context -> assertThat(context).doesNotHaveBean(VerificationExceptionHandler.class));
-    }
-
-    @Test
-    void backsOffForCustomVerificationExceptionHandler() {
-        ProblemMessageResolver resolver =
-                exception -> new ProblemMessageResolver.ProblemMessages("Custom title", "Custom detail");
-        VerificationExceptionHandler customHandler = new VerificationExceptionHandler(resolver);
-
-        contextRunner
-                .withPropertyValues(
-                        "ringo.boot.problem.enabled=true",
-                        "ringo.boot.problem.verification-enabled=true",
-                        "ringo.boot.verification.enabled=true")
-                .withBean(VerificationExceptionHandler.class, () -> customHandler)
-                .run(context -> assertThat(context.getBean(VerificationExceptionHandler.class))
-                        .isSameAs(customHandler));
     }
 
     @Test
