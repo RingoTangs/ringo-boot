@@ -1,8 +1,8 @@
 package io.github.ringotangs.ringoboot.autoconfigure.verification.redis;
 
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitQuota;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitConstraint;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitException;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitStore;
 import java.nio.ByteBuffer;
@@ -89,28 +89,27 @@ public final class RedisIssueRateLimitStore implements IssueRateLimitStore {
 
     /** {@inheritDoc} */
     @Override
-    public IssueLimitResult acquire(List<IssueRateLimitConstraint> constraints, Instant requestedAt)
-            throws IssueRateLimitException {
-        Objects.requireNonNull(constraints, "constraints must not be null");
+    public IssueLimitResult acquire(List<IssueLimitQuota> quotas, Instant requestedAt) throws IssueRateLimitException {
+        Objects.requireNonNull(quotas, "quotas must not be null");
         Objects.requireNonNull(requestedAt, "requestedAt must not be null");
-        if (constraints.isEmpty()) {
+        if (quotas.isEmpty()) {
             return ALLOWED;
         }
 
-        List<String> keys = new ArrayList<>(constraints.size());
-        List<String> arguments = new ArrayList<>(2 + constraints.size() * 2);
+        List<String> keys = new ArrayList<>(quotas.size());
+        List<String> arguments = new ArrayList<>(2 + quotas.size() * 2);
         arguments.add(Long.toString(requestedAt.toEpochMilli()));
         arguments.add(UUID.randomUUID().toString());
-        for (IssueRateLimitConstraint constraint : constraints) {
-            Objects.requireNonNull(constraint, "constraint must not be null");
-            long windowMillis = constraint.window().toMillis();
+        for (IssueLimitQuota quota : quotas) {
+            Objects.requireNonNull(quota, "quota must not be null");
+            long windowMillis = quota.window().toMillis();
             if (windowMillis <= 0) {
                 throw new IllegalArgumentException(
-                        "Redis issue rate limit window must be at least one millisecond: " + constraint.window());
+                        "Redis issue rate limit window must be at least one millisecond: " + quota.window());
             }
-            keys.add(redisKey(constraint.ruleId(), constraint.bucket()));
+            keys.add(redisKey(quota.ruleId(), quota.bucket()));
             arguments.add(Long.toString(windowMillis));
-            arguments.add(Integer.toString(constraint.maxIssues()));
+            arguments.add(Integer.toString(quota.maxIssues()));
         }
 
         List<?> result;

@@ -4,7 +4,7 @@
  * <p>限流流程分为三层：应用通过 {@link io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule}
  * 声明业务匹配条件和额度桶；{@link io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitManager}
  * 收集并解析所有匹配规则；{@link io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitStore}
- * 原子检查和消费解析后的约束。验证码服务只依赖顶层
+ * 原子检查和消费解析后的签发配额。验证码服务只依赖顶层
  * {@link io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter}。
  *
  * <p>{@link io.github.ringotangs.ringoboot.verification.limit.IssueContext} 支持应用自定义 IP、设备、账号和租户等属性，core

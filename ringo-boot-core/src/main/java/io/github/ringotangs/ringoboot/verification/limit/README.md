@@ -14,7 +14,7 @@ flowchart LR
     R1[默认冷却 Rule Bean] --> C
     R2[IP 配额 Rule Bean] --> C
     R3[业务自定义 Rule Bean] --> C
-    C --> D[IssueRateLimitConstraint 列表]
+    C --> D[IssueLimitQuota 列表]
     D --> E{IssueRateLimitStore}
     E --> F[InMemory store]
     E --> G[Redis store]
@@ -27,9 +27,9 @@ flowchart LR
 | `IssueContext` | 保存 `VerificationKey` 和应用提供的扩展属性 | 只保存数据，不解释属性 |
 | `IssueRateLimitRule` | 判断规则是否适用，并计算本次请求属于哪个额度桶 | 是 |
 | `IssueLimitBucket` | 用多个字符串分段表达额度累计身份 | 不解释分段 |
-| `IssueRateLimitManager` | 收集、匹配、校验规则并生成不可变约束 | 只负责编排 |
-| `IssueRateLimitConstraint` | 保存已经解析完成的规则 ID、额度桶、配额和窗口 | 否 |
-| `IssueRateLimitStore` | 保存限流窗口状态，原子检查并消费全部约束 | 否 |
+| `IssueRateLimitManager` | 收集、匹配、校验规则并生成不可变签发配额 | 只负责编排 |
+| `IssueLimitQuota` | 保存已经解析完成的规则 ID、额度桶、最大次数和窗口 | 否 |
+| `IssueRateLimitStore` | 保存限流窗口状态，原子检查并消费全部签发配额 | 否 |
 | `IssueRateLimiter` | 验证码服务依赖的顶层限流入口 | 否 |
 
 `IssueRateLimitManager` 实现了 `IssueRateLimiter`。验证码服务只依赖 `IssueRateLimiter`，因此不知道应用使用了哪些规则，
@@ -162,7 +162,7 @@ sequenceDiagram
     Rule-->>Manager: true / false
     Manager->>Rule: bucket(context)
     Rule-->>Manager: IssueLimitBucket
-    Manager->>LimitStore: acquire(all constraints, requestedAt)
+    Manager->>LimitStore: acquire(all quotas, requestedAt)
     alt 任一规则受限
         LimitStore-->>Manager: Throttled(retryAfter)
         Manager-->>Service: Throttled
@@ -181,8 +181,8 @@ sequenceDiagram
 2. 管理器按照 Spring 的有序 Bean 顺序遍历所有规则。
 3. `matches=false` 的规则不参与本次签发。
 4. 管理器先解析所有匹配规则的 bucket，任何规则解析失败时都不会访问限流状态存储。
-5. 管理器将规则快照转换成 `IssueRateLimitConstraint` 列表。
-6. `IssueRateLimitStore` 在一个原子操作中检查所有约束。
+5. 管理器将规则快照转换成 `IssueLimitQuota` 列表。
+6. `IssueRateLimitStore` 在一个原子操作中检查所有签发配额。
 7. 任一规则超限时返回最大的 `retryAfter`，并且不能消费其他规则的额度。
 8. 所有规则允许时同时消费全部额度，然后验证码服务继续生成、存储和发送验证码。
 

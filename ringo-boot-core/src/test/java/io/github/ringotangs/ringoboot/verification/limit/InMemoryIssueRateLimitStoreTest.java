@@ -17,8 +17,8 @@ class InMemoryIssueRateLimitStoreTest {
     @Test
     void enforcesRollingWindowAndSeparatesBuckets() {
         InMemoryIssueRateLimitStore store = new InMemoryIssueRateLimitStore();
-        IssueRateLimitConstraint first = constraint("subject-minute", "first", 2, Duration.ofMinutes(1));
-        IssueRateLimitConstraint second = constraint("subject-minute", "second", 2, Duration.ofMinutes(1));
+        IssueLimitQuota first = quota("subject-minute", "first", 2, Duration.ofMinutes(1));
+        IssueLimitQuota second = quota("subject-minute", "second", 2, Duration.ofMinutes(1));
 
         assertInstanceOf(IssueLimitResult.Allowed.class, store.acquire(List.of(first), NOW));
         assertInstanceOf(IssueLimitResult.Allowed.class, store.acquire(List.of(first), NOW.plusSeconds(10)));
@@ -32,8 +32,8 @@ class InMemoryIssueRateLimitStoreTest {
     @Test
     void doesNotPartiallyConsumeWhenOneConstraintIsThrottled() {
         InMemoryIssueRateLimitStore store = new InMemoryIssueRateLimitStore();
-        IssueRateLimitConstraint hourly = constraint("subject-hour", "user", 2, Duration.ofHours(1));
-        IssueRateLimitConstraint minute = constraint("subject-minute", "user", 1, Duration.ofMinutes(1));
+        IssueLimitQuota hourly = quota("subject-hour", "user", 2, Duration.ofHours(1));
+        IssueLimitQuota minute = quota("subject-minute", "user", 1, Duration.ofMinutes(1));
 
         assertInstanceOf(IssueLimitResult.Allowed.class, store.acquire(List.of(hourly, minute), NOW));
         assertInstanceOf(IssueLimitResult.Throttled.class, store.acquire(List.of(hourly, minute), NOW.plusSeconds(10)));
@@ -44,8 +44,8 @@ class InMemoryIssueRateLimitStoreTest {
     @Test
     void returnsLargestRetryAfterAcrossConstraints() {
         InMemoryIssueRateLimitStore store = new InMemoryIssueRateLimitStore();
-        IssueRateLimitConstraint minute = constraint("ip-minute", "ip", 1, Duration.ofMinutes(1));
-        IssueRateLimitConstraint hour = constraint("subject-hour", "user", 1, Duration.ofHours(1));
+        IssueLimitQuota minute = quota("ip-minute", "ip", 1, Duration.ofMinutes(1));
+        IssueLimitQuota hour = quota("subject-hour", "user", 1, Duration.ofHours(1));
         store.acquire(List.of(minute), NOW);
         store.acquire(List.of(hour), NOW.plusSeconds(10));
 
@@ -58,19 +58,19 @@ class InMemoryIssueRateLimitStoreTest {
     @Test
     void validatesInputsAndStableRuleWindow() {
         InMemoryIssueRateLimitStore store = new InMemoryIssueRateLimitStore();
-        IssueRateLimitConstraint minute = constraint("subject-limit", "user", 1, Duration.ofMinutes(1));
+        IssueLimitQuota minute = quota("subject-limit", "user", 1, Duration.ofMinutes(1));
         store.acquire(List.of(minute), NOW);
 
         assertThrows(
                 IllegalArgumentException.class,
                 () -> store.acquire(
-                        List.of(constraint("subject-limit", "user", 1, Duration.ofHours(1))), NOW.plusSeconds(1)));
+                        List.of(quota("subject-limit", "user", 1, Duration.ofHours(1))), NOW.plusSeconds(1)));
         assertThrows(NullPointerException.class, () -> store.acquire(null, NOW));
         assertThrows(NullPointerException.class, () -> store.acquire(Arrays.asList(minute, null), NOW));
         assertInstanceOf(IssueLimitResult.Allowed.class, store.acquire(List.of(), NOW));
     }
 
-    private IssueRateLimitConstraint constraint(String ruleId, String bucket, int maxIssues, Duration window) {
-        return new IssueRateLimitConstraint(ruleId, IssueLimitBucket.of(bucket), maxIssues, window);
+    private IssueLimitQuota quota(String ruleId, String bucket, int maxIssues, Duration window) {
+        return new IssueLimitQuota(ruleId, IssueLimitBucket.of(bucket), maxIssues, window);
     }
 }

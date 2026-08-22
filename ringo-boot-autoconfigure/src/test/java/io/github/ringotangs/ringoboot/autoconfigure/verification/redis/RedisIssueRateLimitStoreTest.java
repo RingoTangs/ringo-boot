@@ -10,8 +10,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitQuota;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitConstraint;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitException;
 import java.time.Duration;
 import java.time.Instant;
@@ -33,13 +33,12 @@ class RedisIssueRateLimitStoreTest {
         when(redisTemplate.execute(any(RedisScript.class), anyList(), any(Object[].class)))
                 .thenReturn(List.of(0L, 0L), List.of(1L, 42_000L));
         RedisIssueRateLimitStore store = store(redisTemplate);
-        List<IssueRateLimitConstraint> constraints = List.of(
-                constraint("subject-minute", "user@example.com", 1, Duration.ofMinutes(1)),
-                constraint("ip-hour", "203.0.113.10", 10, Duration.ofHours(1)));
+        List<IssueLimitQuota> quotas = List.of(
+                quota("subject-minute", "user@example.com", 1, Duration.ofMinutes(1)),
+                quota("ip-hour", "203.0.113.10", 10, Duration.ofHours(1)));
 
-        assertThat(store.acquire(constraints, NOW)).isInstanceOf(IssueLimitResult.Allowed.class);
-        IssueLimitResult.Throttled throttled =
-                (IssueLimitResult.Throttled) store.acquire(constraints, NOW.plusSeconds(18));
+        assertThat(store.acquire(quotas, NOW)).isInstanceOf(IssueLimitResult.Allowed.class);
+        IssueLimitResult.Throttled throttled = (IssueLimitResult.Throttled) store.acquire(quotas, NOW.plusSeconds(18));
 
         assertThat(throttled.retryAfter()).isEqualTo(Duration.ofSeconds(42));
     }
@@ -54,8 +53,8 @@ class RedisIssueRateLimitStoreTest {
 
         store.acquire(
                 List.of(
-                        constraint("subject-minute", "user@example.com", 1, Duration.ofMinutes(1)),
-                        constraint("ip-hour", "203.0.113.10", 10, Duration.ofHours(1))),
+                        quota("subject-minute", "user@example.com", 1, Duration.ofMinutes(1)),
+                        quota("ip-hour", "203.0.113.10", 10, Duration.ofHours(1))),
                 NOW);
 
         ArgumentCaptor<List<String>> keys = ArgumentCaptor.forClass(List.class);
@@ -84,7 +83,7 @@ class RedisIssueRateLimitStoreTest {
                 .thenThrow(new DataAccessResourceFailureException("unavailable"));
 
         assertThatThrownBy(() -> store(redisTemplate)
-                        .acquire(List.of(constraint("subject-minute", "user", 1, Duration.ofMinutes(1))), NOW))
+                        .acquire(List.of(quota("subject-minute", "user", 1, Duration.ofMinutes(1))), NOW))
                 .isInstanceOf(IssueRateLimitException.class)
                 .hasMessage("Redis issue rate limit operation failed");
     }
@@ -97,8 +96,8 @@ class RedisIssueRateLimitStoreTest {
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new RedisIssueRateLimitStore(redisTemplate, new byte[32], "invalid application"))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> store(redisTemplate)
-                        .acquire(List.of(constraint("fast-rule", "user", 1, Duration.ofNanos(1))), NOW))
+        assertThatThrownBy(() ->
+                        store(redisTemplate).acquire(List.of(quota("fast-rule", "user", 1, Duration.ofNanos(1))), NOW))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -106,7 +105,7 @@ class RedisIssueRateLimitStoreTest {
         return new RedisIssueRateLimitStore(redisTemplate, new byte[32], "test-application");
     }
 
-    private IssueRateLimitConstraint constraint(String id, String bucket, int maxIssues, Duration window) {
-        return new IssueRateLimitConstraint(id, IssueLimitBucket.of(bucket), maxIssues, window);
+    private IssueLimitQuota quota(String id, String bucket, int maxIssues, Duration window) {
+        return new IssueLimitQuota(id, IssueLimitBucket.of(bucket), maxIssues, window);
     }
 }

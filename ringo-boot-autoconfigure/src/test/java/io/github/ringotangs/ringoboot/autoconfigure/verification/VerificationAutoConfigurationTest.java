@@ -532,7 +532,7 @@ class VerificationAutoConfigurationTest {
 
     @Test
     void usesCustomStoreWithAutoDiscoveredRules() {
-        IssueRateLimitStore store = (constraints, requestedAt) -> new IssueLimitResult.Allowed();
+        IssueRateLimitStore store = (quotas, requestedAt) -> new IssueLimitResult.Allowed();
 
         contextRunner
                 .withPropertyValues("ringo.boot.verification.enabled=true")

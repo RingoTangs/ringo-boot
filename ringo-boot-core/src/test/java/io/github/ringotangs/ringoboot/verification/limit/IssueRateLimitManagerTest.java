@@ -20,10 +20,10 @@ class IssueRateLimitManagerTest {
             IssueContext.of(new VerificationKey("account", "login", "user@example.com"));
 
     @Test
-    void selectsRulesAndSubmitsResolvedConstraints() {
+    void selectsRulesAndSubmitsResolvedQuotas() {
         IssueRateLimitRule subjectRule = rule("subject-minute", context -> true, "user@example.com");
         IssueRateLimitRule skipped = rule("registration-minute", context -> false, "registration");
-        AtomicReference<List<IssueRateLimitConstraint>> captured = new AtomicReference<>();
+        AtomicReference<List<IssueLimitQuota>> captured = new AtomicReference<>();
         IssueRateLimitManager manager = new IssueRateLimitManager(List.of(subjectRule, skipped), (rules, time) -> {
             captured.set(rules);
             assertEquals(NOW, time);

@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitQuota;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitConstraint;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.security.SecureRandom;
@@ -75,7 +75,7 @@ class RedisVerificationStoreIT extends VerificationStoreContract {
     void limitsConcurrentIssuanceAtomically() throws Exception {
         VerificationKey key =
                 new VerificationKey("account", "login", UUID.randomUUID().toString());
-        IssueRateLimitConstraint constraint = constraint(key);
+        IssueLimitQuota quota = quota(key);
         Instant requestedAt = Instant.now();
         int threads = 16;
         CountDownLatch start = new CountDownLatch(1);
@@ -85,7 +85,7 @@ class RedisVerificationStoreIT extends VerificationStoreContract {
             for (int index = 0; index < threads; index++) {
                 futures[index] = executor.submit(() -> {
                     start.await();
-                    return issueRateLimitStore.acquire(java.util.List.of(constraint), requestedAt);
+                    return issueRateLimitStore.acquire(java.util.List.of(quota), requestedAt);
                 });
             }
             start.countDown();
@@ -104,23 +104,20 @@ class RedisVerificationStoreIT extends VerificationStoreContract {
     void allowsIssuanceAfterRedisTtlExpires() throws Exception {
         VerificationKey key =
                 new VerificationKey("account", "registration", UUID.randomUUID().toString());
-        IssueRateLimitConstraint constraint = constraint(key);
+        IssueLimitQuota quota = quota(key);
 
         assertInstanceOf(
-                IssueLimitResult.Allowed.class,
-                issueRateLimitStore.acquire(java.util.List.of(constraint), Instant.now()));
+                IssueLimitResult.Allowed.class, issueRateLimitStore.acquire(java.util.List.of(quota), Instant.now()));
         assertInstanceOf(
-                IssueLimitResult.Throttled.class,
-                issueRateLimitStore.acquire(java.util.List.of(constraint), Instant.now()));
+                IssueLimitResult.Throttled.class, issueRateLimitStore.acquire(java.util.List.of(quota), Instant.now()));
         Thread.sleep(600);
 
         assertInstanceOf(
-                IssueLimitResult.Allowed.class,
-                issueRateLimitStore.acquire(java.util.List.of(constraint), Instant.now()));
+                IssueLimitResult.Allowed.class, issueRateLimitStore.acquire(java.util.List.of(quota), Instant.now()));
     }
 
-    private static IssueRateLimitConstraint constraint(VerificationKey key) {
-        return new IssueRateLimitConstraint(
+    private static IssueLimitQuota quota(VerificationKey key) {
+        return new IssueLimitQuota(
                 "default-key-cooldown",
                 IssueLimitBucket.of(key.namespace(), key.purpose(), key.subject()),
                 1,

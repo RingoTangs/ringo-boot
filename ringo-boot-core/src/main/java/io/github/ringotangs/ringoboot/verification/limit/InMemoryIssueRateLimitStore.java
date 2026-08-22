@@ -30,28 +30,28 @@ public final class InMemoryIssueRateLimitStore implements IssueRateLimitStore {
 
     /** {@inheritDoc} */
     @Override
-    public synchronized IssueLimitResult acquire(List<IssueRateLimitConstraint> constraints, Instant requestedAt) {
-        Objects.requireNonNull(constraints, "constraints must not be null");
+    public synchronized IssueLimitResult acquire(List<IssueLimitQuota> quotas, Instant requestedAt) {
+        Objects.requireNonNull(quotas, "quotas must not be null");
         Objects.requireNonNull(requestedAt, "requestedAt must not be null");
-        if (constraints.isEmpty()) {
+        if (quotas.isEmpty()) {
             return ALLOWED;
         }
 
         Map<HistoryKey, ArrayDeque<Instant>> evaluated = new HashMap<>();
         Duration retryAfter = Duration.ZERO;
-        for (IssueRateLimitConstraint constraint : constraints) {
-            Objects.requireNonNull(constraint, "constraint must not be null");
-            HistoryKey key = new HistoryKey(constraint.ruleId(), constraint.bucket());
-            History stored = histories.computeIfAbsent(key, ignored -> new History(constraint.window()));
-            if (!stored.window().equals(constraint.window())) {
-                throw new IllegalArgumentException("window changed for issue rate limit rule: " + constraint.ruleId());
+        for (IssueLimitQuota quota : quotas) {
+            Objects.requireNonNull(quota, "quota must not be null");
+            HistoryKey key = new HistoryKey(quota.ruleId(), quota.bucket());
+            History stored = histories.computeIfAbsent(key, ignored -> new History(quota.window()));
+            if (!stored.window().equals(quota.window())) {
+                throw new IllegalArgumentException("window changed for issue rate limit rule: " + quota.ruleId());
             }
             ArrayDeque<Instant> history = stored.timestamps();
-            removeExpired(history, requestedAt.minus(constraint.window()));
+            removeExpired(history, requestedAt.minus(quota.window()));
             evaluated.put(key, history);
-            if (history.size() >= constraint.maxIssues()) {
+            if (history.size() >= quota.maxIssues()) {
                 Duration current =
-                        Duration.between(requestedAt, history.getFirst().plus(constraint.window()));
+                        Duration.between(requestedAt, history.getFirst().plus(quota.window()));
                 if (current.compareTo(retryAfter) > 0) {
                     retryAfter = current;
                 }
