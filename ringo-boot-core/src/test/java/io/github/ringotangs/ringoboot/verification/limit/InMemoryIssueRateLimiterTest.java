@@ -69,8 +69,68 @@ class InMemoryIssueRateLimiterTest {
     }
 
     @Test
+    void appliesSubjectQuotaAcrossNamespacesAndPurposes() {
+        InMemoryIssueRateLimiter limiter = InMemoryIssueRateLimiter.withPolicy(IssueRateLimitPolicy.of(
+                new IssueRateLimitRule(IssueLimitScope.VERIFICATION_KEY, 1, Duration.ofSeconds(60)),
+                new IssueRateLimitRule(IssueLimitScope.SUBJECT, 2, Duration.ofHours(1))));
+        VerificationKey registration = new VerificationKey("account", "registration", KEY.subject());
+        VerificationKey payment = new VerificationKey("payment", "confirmation", KEY.subject());
+        VerificationKey otherSubject = new VerificationKey("account", "login", "other@example.com");
+
+        assertInstanceOf(IssueLimitResult.Allowed.class, limiter.acquire(KEY, NOW));
+        assertInstanceOf(IssueLimitResult.Allowed.class, limiter.acquire(registration, NOW.plusSeconds(60)));
+        IssueLimitResult.Throttled throttled =
+                assertInstanceOf(IssueLimitResult.Throttled.class, limiter.acquire(payment, NOW.plusSeconds(120)));
+        assertEquals(Duration.ofMinutes(58), throttled.retryAfter());
+        assertInstanceOf(IssueLimitResult.Allowed.class, limiter.acquire(otherSubject, NOW.plusSeconds(120)));
+    }
+
+    @Test
+    void usesRollingWindowAndExpiresLeftBoundary() {
+        InMemoryIssueRateLimiter limiter = InMemoryIssueRateLimiter.withPolicy(
+                IssueRateLimitPolicy.of(new IssueRateLimitRule(IssueLimitScope.SUBJECT, 2, Duration.ofHours(1))));
+        VerificationKey registration = new VerificationKey("account", "registration", KEY.subject());
+        VerificationKey payment = new VerificationKey("payment", "confirmation", KEY.subject());
+
+        assertInstanceOf(IssueLimitResult.Allowed.class, limiter.acquire(KEY, NOW));
+        assertInstanceOf(IssueLimitResult.Allowed.class, limiter.acquire(registration, NOW.plusSeconds(1_800)));
+        IssueLimitResult.Throttled throttled =
+                assertInstanceOf(IssueLimitResult.Throttled.class, limiter.acquire(payment, NOW.plusSeconds(3_540)));
+        assertEquals(Duration.ofMinutes(1), throttled.retryAfter());
+        assertInstanceOf(IssueLimitResult.Allowed.class, limiter.acquire(payment, NOW.plusSeconds(3_600)));
+    }
+
+    @Test
+    void consumesNoRulesWhenAnyRuleRejectsRequest() {
+        InMemoryIssueRateLimiter limiter = InMemoryIssueRateLimiter.withPolicy(IssueRateLimitPolicy.of(
+                new IssueRateLimitRule(IssueLimitScope.VERIFICATION_KEY, 1, Duration.ofHours(1)),
+                new IssueRateLimitRule(IssueLimitScope.SUBJECT, 2, Duration.ofDays(1))));
+        VerificationKey registration = new VerificationKey("account", "registration", KEY.subject());
+        VerificationKey payment = new VerificationKey("payment", "confirmation", KEY.subject());
+
+        assertInstanceOf(IssueLimitResult.Allowed.class, limiter.acquire(KEY, NOW));
+        assertInstanceOf(IssueLimitResult.Throttled.class, limiter.acquire(KEY, NOW.plusSeconds(10)));
+        assertInstanceOf(IssueLimitResult.Allowed.class, limiter.acquire(registration, NOW.plusSeconds(20)));
+        assertInstanceOf(IssueLimitResult.Throttled.class, limiter.acquire(payment, NOW.plusSeconds(30)));
+    }
+
+    @Test
+    void returnsLongestRetryAfterWhenMultipleRulesReject() {
+        InMemoryIssueRateLimiter limiter = InMemoryIssueRateLimiter.withPolicy(IssueRateLimitPolicy.of(
+                new IssueRateLimitRule(IssueLimitScope.VERIFICATION_KEY, 1, Duration.ofMinutes(10)),
+                new IssueRateLimitRule(IssueLimitScope.SUBJECT, 1, Duration.ofHours(1))));
+
+        assertInstanceOf(IssueLimitResult.Allowed.class, limiter.acquire(KEY, NOW));
+        IssueLimitResult.Throttled throttled =
+                assertInstanceOf(IssueLimitResult.Throttled.class, limiter.acquire(KEY, NOW.plusSeconds(60)));
+
+        assertEquals(Duration.ofMinutes(59), throttled.retryAfter());
+    }
+
+    @Test
     void rejectsInvalidArguments() {
         assertThrows(NullPointerException.class, () -> new InMemoryIssueRateLimiter(null));
+        assertThrows(NullPointerException.class, () -> InMemoryIssueRateLimiter.withPolicy(null));
         assertThrows(IllegalArgumentException.class, () -> new InMemoryIssueRateLimiter(Duration.ofSeconds(-1)));
         InMemoryIssueRateLimiter limiter = new InMemoryIssueRateLimiter();
         assertThrows(NullPointerException.class, () -> limiter.acquire(null, NOW));
