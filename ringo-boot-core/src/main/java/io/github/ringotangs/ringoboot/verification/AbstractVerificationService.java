@@ -2,10 +2,13 @@ package io.github.ringotangs.ringoboot.verification;
 
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
-import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimiter;
+import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimitBackend;
 import io.github.ringotangs.ringoboot.verification.limit.IssueContext;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitException;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitManager;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDeliveryRejectedException;
@@ -15,7 +18,9 @@ import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -41,7 +46,7 @@ public abstract class AbstractVerificationService implements VerificationService
      * @throws NullPointerException 当生成器或存储为 {@code null} 时
      */
     protected AbstractVerificationService(CodeGenerator codeGenerator, VerificationStore store) {
-        this(codeGenerator, store, new InMemoryIssueRateLimiter(), VerificationPolicy.defaults(), Clock.systemUTC());
+        this(codeGenerator, store, defaultIssueRateLimiter(), VerificationPolicy.defaults(), Clock.systemUTC());
     }
 
     /**
@@ -55,7 +60,7 @@ public abstract class AbstractVerificationService implements VerificationService
      */
     protected AbstractVerificationService(
             CodeGenerator codeGenerator, VerificationStore store, VerificationPolicy defaultPolicy) {
-        this(codeGenerator, store, new InMemoryIssueRateLimiter(), defaultPolicy, Clock.systemUTC());
+        this(codeGenerator, store, defaultIssueRateLimiter(), defaultPolicy, Clock.systemUTC());
     }
 
     /**
@@ -70,7 +75,7 @@ public abstract class AbstractVerificationService implements VerificationService
      */
     protected AbstractVerificationService(
             CodeGenerator codeGenerator, VerificationStore store, VerificationPolicy defaultPolicy, Clock clock) {
-        this(codeGenerator, store, new InMemoryIssueRateLimiter(), defaultPolicy, clock);
+        this(codeGenerator, store, defaultIssueRateLimiter(), defaultPolicy, clock);
     }
 
     /**
@@ -182,5 +187,17 @@ public abstract class AbstractVerificationService implements VerificationService
         } catch (RuntimeException invalidationFailure) {
             dispatchFailure.addSuppressed(invalidationFailure);
         }
+    }
+
+    private static IssueRateLimiter defaultIssueRateLimiter() {
+        IssueRateLimitRule rule = IssueRateLimitRule.of(
+                "default-key-cooldown",
+                context -> IssueLimitBucket.of(
+                        context.key().namespace(),
+                        context.key().purpose(),
+                        context.key().subject()),
+                1,
+                Duration.ofSeconds(60));
+        return new IssueRateLimitManager(List.of(rule), new InMemoryIssueRateLimitBackend());
     }
 }

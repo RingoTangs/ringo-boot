@@ -4,18 +4,25 @@ import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.email.StdoutEmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.generator.NumericCodeGenerator;
-import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimiter;
+import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimitBackend;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitBackend;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitManager;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.sms.SmsCodeSender;
 import io.github.ringotangs.ringoboot.verification.sms.StdoutSmsCodeSender;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
 
 /**
  * 自动配置验证码生成器、状态存储和渠道发送器。
@@ -33,20 +40,42 @@ import org.springframework.context.annotation.Bean;
 public class VerificationAutoConfiguration {
 
     /**
-     * 在内存模式且用户未提供限流器时创建进程内签发限流器。
+     * 在内存模式且用户未提供后端时创建进程内签发限流后端。
      *
-     * @param properties 签发限流配置属性
-     * @return 进程内验证码签发限流器
+     * @return 进程内验证码签发限流后端
      */
     @Bean
-    @ConditionalOnMissingBean(IssueRateLimiter.class)
+    @ConditionalOnMissingBean({IssueRateLimiter.class, IssueRateLimitBackend.class})
     @ConditionalOnProperty(
             prefix = VerificationProperties.PREFIX,
             name = "store",
             havingValue = "memory",
             matchIfMissing = true)
-    IssueRateLimiter inMemoryIssueRateLimiter(IssueRateLimitProperties properties) {
-        return new InMemoryIssueRateLimiter(properties.getInterval());
+    IssueRateLimitBackend inMemoryIssueRateLimitBackend() {
+        return new InMemoryIssueRateLimitBackend();
+    }
+
+    /** 使用配置的签发间隔创建完整验证码键默认冷却规则。 */
+    @Bean
+    @Conditional(OnPositiveIssueRateLimitIntervalCondition.class)
+    @ConditionalOnMissingBean(IssueRateLimiter.class)
+    IssueRateLimitRule defaultKeyCooldownIssueRateLimitRule(IssueRateLimitProperties properties) {
+        return IssueRateLimitRule.of(
+                "default-key-cooldown",
+                context -> IssueLimitBucket.of(
+                        context.key().namespace(),
+                        context.key().purpose(),
+                        context.key().subject()),
+                1,
+                properties.getInterval());
+    }
+
+    /** 收集容器内全部签发规则并创建统一限流管理器。 */
+    @Bean
+    @ConditionalOnBean(IssueRateLimitBackend.class)
+    @ConditionalOnMissingBean(IssueRateLimiter.class)
+    IssueRateLimiter issueRateLimiter(ObjectProvider<IssueRateLimitRule> rules, IssueRateLimitBackend backend) {
+        return new IssueRateLimitManager(rules.orderedStream().toList(), backend);
     }
 
     /**

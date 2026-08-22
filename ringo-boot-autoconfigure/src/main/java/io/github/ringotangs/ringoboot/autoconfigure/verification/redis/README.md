@@ -275,6 +275,12 @@ ringo:
 摘要计算，因此不同应用即使业务维度、验证主体和验证码完全相同，也不会共享 Redis 状态。修改应用名称会使
 旧名称下尚未过期的验证码不可访问。
 
+签发限流使用 Redis ZSET，key 格式为
+`identity-service:verification:issue-limit:{identity-service:verification:issue-limit}:v2:{ruleId}:{bucketDigest}`。
+花括号中的应用级 hash tag 使同一次签发涉及的所有规则 key 位于同一个 Redis Cluster slot，从而可以通过一个
+Lua 脚本原子检查和消费额度。ZSET score 是签发时间戳，member 是每次请求生成的随机标识；规则生成的手机号、
+邮箱、IP 等额度桶分段只参与 HMAC 摘要，不会以明文写入 key 或 value。
+
 其中 `v1` 是由框架维护的 Redis 存储协议版本，用于隔离未来不兼容的 key、Hash 字段或摘要协议变更，
 不是可由应用修改的运行时配置。摘要计算中的 `key:v1` 和 `code:v1` 分别隔离 key 摘要与验证码摘要用途，
 同样由框架内部维护。

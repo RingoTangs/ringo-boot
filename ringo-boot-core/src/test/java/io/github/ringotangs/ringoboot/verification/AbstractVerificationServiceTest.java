@@ -7,9 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
-import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.limit.IssueContext;
-import io.github.ringotangs.ringoboot.verification.limit.IssueLimitDimension;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
@@ -177,9 +175,8 @@ class AbstractVerificationServiceTest {
                 limiter,
                 VerificationPolicy.defaults(),
                 Clock.fixed(NOW, ZoneOffset.UTC));
-        IssueContext context = IssueContext.of(LOGIN)
-                .with(IssueLimitDimension.IP_ADDRESS, "203.0.113.10")
-                .with(IssueLimitDimension.DEVICE_ID, "device-123");
+        IssueContext context =
+                IssueContext.of(LOGIN).with("ip-address", "203.0.113.10").with("device-id", "device-123");
 
         assertInstanceOf(IssueResult.Accepted.class, template.issue(context));
 
@@ -217,7 +214,7 @@ class AbstractVerificationServiceTest {
 
         private CapturingVerificationService(
                 CodeGenerator generator, VerificationStore store, VerificationPolicy policy, Clock clock) {
-            super(generator, store, new InMemoryIssueRateLimiter(Duration.ofSeconds(60)), policy, clock);
+            super(generator, store, policy, clock);
         }
 
         private CapturingVerificationService(

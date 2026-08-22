@@ -3,7 +3,7 @@ package io.github.ringotangs.ringoboot.autoconfigure.verification;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisIssueRateLimiter;
+import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisIssueRateLimitBackend;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationAutoConfiguration;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationProperties;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationStore;
@@ -18,8 +18,12 @@ import io.github.ringotangs.ringoboot.verification.email.EmailVerificationFacade
 import io.github.ringotangs.ringoboot.verification.email.EmailVerificationService;
 import io.github.ringotangs.ringoboot.verification.email.StdoutEmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
-import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimiter;
+import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimitBackend;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitBackend;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitManager;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSender;
@@ -189,7 +193,10 @@ class VerificationAutoConfigurationTest {
                     assertThat(context).hasSingleBean(VerificationStore.class);
                     assertThat(context.getBean(VerificationStore.class)).isInstanceOf(RedisVerificationStore.class);
                     assertThat(context).hasSingleBean(IssueRateLimiter.class);
-                    assertThat(context.getBean(IssueRateLimiter.class)).isInstanceOf(RedisIssueRateLimiter.class);
+                    assertThat(context.getBean(IssueRateLimiter.class)).isInstanceOf(IssueRateLimitManager.class);
+                    assertThat(context).hasSingleBean(IssueRateLimitBackend.class);
+                    assertThat(context.getBean(IssueRateLimitBackend.class))
+                            .isInstanceOf(RedisIssueRateLimitBackend.class);
                     assertThat(context).hasSingleBean(RedisVerificationProperties.class);
                     assertThat(context.getBean(RedisVerificationProperties.class)
                                     .getExpiredRetention())
@@ -338,7 +345,9 @@ class VerificationAutoConfigurationTest {
                     assertThat(context).doesNotHaveBean(VerificationPolicy.class);
                     assertThat(context).hasSingleBean(VerificationStore.class);
                     assertThat(context.getBean(VerificationStore.class)).isInstanceOf(InMemoryVerificationStore.class);
-                    assertThat(context.getBean(IssueRateLimiter.class)).isInstanceOf(InMemoryIssueRateLimiter.class);
+                    assertThat(context.getBean(IssueRateLimiter.class)).isInstanceOf(IssueRateLimitManager.class);
+                    assertThat(context.getBean(IssueRateLimitBackend.class))
+                            .isInstanceOf(InMemoryIssueRateLimitBackend.class);
                     assertThat(context).getBeans(VerificationService.class).hasSize(2);
 
                     VerificationPolicy policy =
@@ -381,7 +390,7 @@ class VerificationAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context.getBean(IssueRateLimiter.class)).isSameAs(limiter);
-                    assertThat(context.getBeansOfType(InMemoryIssueRateLimiter.class))
+                    assertThat(context.getBeansOfType(InMemoryIssueRateLimitBackend.class))
                             .isEmpty();
                     assertThat(context).getBeans(VerificationService.class).hasSize(2);
                 });
@@ -482,6 +491,58 @@ class VerificationAutoConfigurationTest {
                     assertThat(context.getBeansOfType(InMemoryVerificationStore.class))
                             .isEmpty();
                     assertThat(context).doesNotHaveBean(VerificationService.class);
+                });
+    }
+
+    @Test
+    void discoversCustomRuleBeansAlongsideDefaultRule() {
+        IssueRateLimitRule customRule = IssueRateLimitRule.of(
+                "login-ip-hour",
+                context -> context.key().purpose().equals("login"),
+                context -> IssueLimitBucket.of(context.attribute("ip-address").orElseThrow()),
+                10,
+                Duration.ofHours(1));
+
+        contextRunner
+                .withPropertyValues("ringo.boot.verification.enabled=true")
+                .withBean("customRule", IssueRateLimitRule.class, () -> customRule)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).getBeans(IssueRateLimitRule.class).hasSize(2);
+                    assertThat(context.getBean("customRule")).isSameAs(customRule);
+                    assertThat(context.getBean(IssueRateLimiter.class)).isInstanceOf(IssueRateLimitManager.class);
+                });
+    }
+
+    @Test
+    void zeroIntervalDisablesOnlyDefaultRule() {
+        IssueRateLimitRule customRule = IssueRateLimitRule.of(
+                "subject-hour", context -> IssueLimitBucket.of(context.key().subject()), 1, Duration.ofHours(1));
+
+        contextRunner
+                .withPropertyValues(
+                        "ringo.boot.verification.enabled=true", "ringo.boot.verification.issue-rate-limit.interval=0")
+                .withBean("customRule", IssueRateLimitRule.class, () -> customRule)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(IssueRateLimitRule.class);
+                    assertThat(context.getBean(IssueRateLimitRule.class)).isSameAs(customRule);
+                    assertThat(context).hasSingleBean(IssueRateLimiter.class);
+                });
+    }
+
+    @Test
+    void usesCustomBackendWithAutoDiscoveredRules() {
+        IssueRateLimitBackend backend = (constraints, requestedAt) -> new IssueLimitResult.Allowed();
+
+        contextRunner
+                .withPropertyValues("ringo.boot.verification.enabled=true")
+                .withBean(IssueRateLimitBackend.class, () -> backend)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context.getBean(IssueRateLimitBackend.class)).isSameAs(backend);
+                    assertThat(context.getBean(IssueRateLimiter.class)).isInstanceOf(IssueRateLimitManager.class);
+                    assertThat(context).hasSingleBean(IssueRateLimitRule.class);
                 });
     }
 

@@ -4,8 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitBackend;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitConstraint;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -31,7 +33,7 @@ class RedisVerificationStoreIT extends VerificationStoreContract {
 
     private static LettuceConnectionFactory connectionFactory;
     private static VerificationStore store;
-    private static IssueRateLimiter issueRateLimiter;
+    private static IssueRateLimitBackend issueRateLimitBackend;
 
     @BeforeAll
     static void createStore() {
@@ -56,8 +58,7 @@ class RedisVerificationStoreIT extends VerificationStoreContract {
         byte[] secret = new byte[32];
         new SecureRandom().nextBytes(secret);
         store = new RedisVerificationStore(redisTemplate, secret, Duration.ofMinutes(1), "ringo-boot-redis-it");
-        issueRateLimiter =
-                new RedisIssueRateLimiter(redisTemplate, secret, Duration.ofMillis(500), "ringo-boot-redis-it");
+        issueRateLimitBackend = new RedisIssueRateLimitBackend(redisTemplate, secret, "ringo-boot-redis-it");
     }
 
     @AfterAll
@@ -74,6 +75,7 @@ class RedisVerificationStoreIT extends VerificationStoreContract {
     void limitsConcurrentIssuanceAtomically() throws Exception {
         VerificationKey key =
                 new VerificationKey("account", "login", UUID.randomUUID().toString());
+        IssueRateLimitConstraint constraint = constraint(key);
         Instant requestedAt = Instant.now();
         int threads = 16;
         CountDownLatch start = new CountDownLatch(1);
@@ -83,7 +85,7 @@ class RedisVerificationStoreIT extends VerificationStoreContract {
             for (int index = 0; index < threads; index++) {
                 futures[index] = executor.submit(() -> {
                     start.await();
-                    return issueRateLimiter.acquire(key, requestedAt);
+                    return issueRateLimitBackend.acquire(java.util.List.of(constraint), requestedAt);
                 });
             }
             start.countDown();
@@ -102,12 +104,27 @@ class RedisVerificationStoreIT extends VerificationStoreContract {
     void allowsIssuanceAfterRedisTtlExpires() throws Exception {
         VerificationKey key =
                 new VerificationKey("account", "registration", UUID.randomUUID().toString());
+        IssueRateLimitConstraint constraint = constraint(key);
 
-        assertInstanceOf(IssueLimitResult.Allowed.class, issueRateLimiter.acquire(key, Instant.now()));
-        assertInstanceOf(IssueLimitResult.Throttled.class, issueRateLimiter.acquire(key, Instant.now()));
+        assertInstanceOf(
+                IssueLimitResult.Allowed.class,
+                issueRateLimitBackend.acquire(java.util.List.of(constraint), Instant.now()));
+        assertInstanceOf(
+                IssueLimitResult.Throttled.class,
+                issueRateLimitBackend.acquire(java.util.List.of(constraint), Instant.now()));
         Thread.sleep(600);
 
-        assertInstanceOf(IssueLimitResult.Allowed.class, issueRateLimiter.acquire(key, Instant.now()));
+        assertInstanceOf(
+                IssueLimitResult.Allowed.class,
+                issueRateLimitBackend.acquire(java.util.List.of(constraint), Instant.now()));
+    }
+
+    private static IssueRateLimitConstraint constraint(VerificationKey key) {
+        return new IssueRateLimitConstraint(
+                "default-key-cooldown",
+                IssueLimitBucket.of(key.namespace(), key.purpose(), key.subject()),
+                1,
+                Duration.ofMillis(500));
     }
 
     private static void assertConnectionAvailable() {
