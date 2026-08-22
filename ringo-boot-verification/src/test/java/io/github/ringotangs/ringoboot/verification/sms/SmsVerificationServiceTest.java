@@ -37,11 +37,11 @@ class SmsVerificationServiceTest {
 
         IssueResult.Accepted result = assertInstanceOf(IssueResult.Accepted.class, service.issue(key));
 
-        assertEquals("account", captured.get().getNamespace());
-        assertEquals("login", captured.get().getPurpose());
-        assertEquals("+8613800000000", captured.get().getPhoneNumber());
-        assertEquals("123456", captured.get().getCode());
-        assertEquals(result.expiresAt(), captured.get().getExpiresAt());
+        assertEquals("account", captured.get().namespace());
+        assertEquals("login", captured.get().purpose());
+        assertEquals("+8613800000000", captured.get().phoneNumber());
+        assertEquals("123456", captured.get().code());
+        assertEquals(result.expiresAt(), captured.get().expiresAt());
     }
 
     @Test

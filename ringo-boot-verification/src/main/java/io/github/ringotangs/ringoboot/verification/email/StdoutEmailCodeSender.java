@@ -23,15 +23,15 @@ public final class StdoutEmailCodeSender implements EmailCodeSender {
     @Override
     public CodeSendResult send(EmailCodeDelivery delivery) {
         System.out.println("DEVELOPMENT ONLY - Email verification code: namespace="
-                + delivery.getNamespace()
+                + delivery.namespace()
                 + ", purpose="
-                + delivery.getPurpose()
+                + delivery.purpose()
                 + ", email="
-                + mask(delivery.getEmail())
+                + mask(delivery.email())
                 + ", code="
-                + delivery.getCode()
+                + delivery.code()
                 + ", expiresAt="
-                + delivery.getExpiresAt());
+                + delivery.expiresAt());
         return CodeSendResult.ACCEPTED;
     }
 

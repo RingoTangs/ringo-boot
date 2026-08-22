@@ -16,11 +16,11 @@ class EmailCodeDeliveryTest {
     void exposesSemanticFieldsAndSafeStringRepresentation() {
         EmailCodeDelivery delivery = delivery("account", "login", "user@example.com", "123456", EXPIRES_AT);
 
-        assertEquals("account", delivery.getNamespace());
-        assertEquals("login", delivery.getPurpose());
-        assertEquals("user@example.com", delivery.getEmail());
-        assertEquals("123456", delivery.getCode());
-        assertEquals(EXPIRES_AT, delivery.getExpiresAt());
+        assertEquals("account", delivery.namespace());
+        assertEquals("login", delivery.purpose());
+        assertEquals("user@example.com", delivery.email());
+        assertEquals("123456", delivery.code());
+        assertEquals(EXPIRES_AT, delivery.expiresAt());
         assertTrue(delivery.toString().contains("email=<redacted>"));
         assertTrue(delivery.toString().contains("code=<redacted>"));
         assertFalse(delivery.toString().contains("user@example.com"));

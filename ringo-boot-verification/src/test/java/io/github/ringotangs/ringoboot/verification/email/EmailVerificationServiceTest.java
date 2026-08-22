@@ -37,11 +37,11 @@ class EmailVerificationServiceTest {
 
         IssueResult.Accepted result = assertInstanceOf(IssueResult.Accepted.class, service.issue(key));
 
-        assertEquals("account", captured.get().getNamespace());
-        assertEquals("login", captured.get().getPurpose());
-        assertEquals("user@example.com", captured.get().getEmail());
-        assertEquals("123456", captured.get().getCode());
-        assertEquals(result.expiresAt(), captured.get().getExpiresAt());
+        assertEquals("account", captured.get().namespace());
+        assertEquals("login", captured.get().purpose());
+        assertEquals("user@example.com", captured.get().email());
+        assertEquals("123456", captured.get().code());
+        assertEquals(result.expiresAt(), captured.get().expiresAt());
     }
 
     @Test

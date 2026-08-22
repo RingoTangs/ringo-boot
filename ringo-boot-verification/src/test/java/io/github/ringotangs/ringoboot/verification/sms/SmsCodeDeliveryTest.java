@@ -16,11 +16,11 @@ class SmsCodeDeliveryTest {
     void exposesSemanticFieldsAndSafeStringRepresentation() {
         SmsCodeDelivery delivery = delivery("account", "login", "+8613800000000", "123456", EXPIRES_AT);
 
-        assertEquals("account", delivery.getNamespace());
-        assertEquals("login", delivery.getPurpose());
-        assertEquals("+8613800000000", delivery.getPhoneNumber());
-        assertEquals("123456", delivery.getCode());
-        assertEquals(EXPIRES_AT, delivery.getExpiresAt());
+        assertEquals("account", delivery.namespace());
+        assertEquals("login", delivery.purpose());
+        assertEquals("+8613800000000", delivery.phoneNumber());
+        assertEquals("123456", delivery.code());
+        assertEquals(EXPIRES_AT, delivery.expiresAt());
         assertTrue(delivery.toString().contains("phoneNumber=<redacted>"));
         assertTrue(delivery.toString().contains("code=<redacted>"));
         assertFalse(delivery.toString().contains("+8613800000000"));

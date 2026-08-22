@@ -51,22 +51,22 @@ class EmailVerificationControllerTest {
                 .andExpect(jsonPath("$.code").doesNotExist());
 
         EmailCodeDelivery delivery = sender.latest(email);
-        org.assertj.core.api.Assertions.assertThat(delivery.getCode()).matches("\\d{6}");
+        org.assertj.core.api.Assertions.assertThat(delivery.code()).matches("\\d{6}");
 
         mockMvc.perform(post("/verification/email/verify")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(verifyRequest("  " + email.toUpperCase(Locale.ROOT) + "  ", delivery.getCode())))
+                        .content(verifyRequest("  " + email.toUpperCase(Locale.ROOT) + "  ", delivery.code())))
                 .andExpect(status().isNoContent())
                 .andExpect(content().string(""));
 
-        assertInvalidCode(email, delivery.getCode());
+        assertInvalidCode(email, delivery.code());
     }
 
     @Test
     void throttlesRepeatedIssuanceWithoutReplacingDeliveredCode() throws Exception {
         String email = uniqueEmail();
         issue(email);
-        String originalCode = sender.latest(email).getCode();
+        String originalCode = sender.latest(email).code();
 
         mockMvc.perform(post("/verification/email/code")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -75,7 +75,7 @@ class EmailVerificationControllerTest {
                 .andExpect(jsonPath("$.type").value("urn:problem:business:verification:throttled"))
                 .andExpect(jsonPath("$.status").value(429));
 
-        org.assertj.core.api.Assertions.assertThat(sender.latest(email).getCode())
+        org.assertj.core.api.Assertions.assertThat(sender.latest(email).code())
                 .isEqualTo(originalCode);
     }
 
@@ -83,7 +83,7 @@ class EmailVerificationControllerTest {
     void hidesInternalReasonForWrongAndUnknownCodes() throws Exception {
         String issuedEmail = uniqueEmail();
         issue(issuedEmail);
-        String issuedCode = sender.latest(issuedEmail).getCode();
+        String issuedCode = sender.latest(issuedEmail).code();
         String wrongCode = issuedCode.startsWith("0") ? "1" + issuedCode.substring(1) : "0" + issuedCode.substring(1);
 
         assertInvalidCode(issuedEmail, wrongCode);
@@ -171,7 +171,7 @@ class EmailVerificationControllerTest {
 
         @Override
         public CodeSendResult send(EmailCodeDelivery delivery) {
-            deliveries.put(delivery.getEmail(), delivery);
+            deliveries.put(delivery.email(), delivery);
             return CodeSendResult.ACCEPTED;
         }
 

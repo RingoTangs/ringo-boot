@@ -23,15 +23,15 @@ public final class StdoutSmsCodeSender implements SmsCodeSender {
     @Override
     public CodeSendResult send(SmsCodeDelivery delivery) {
         System.out.println("DEVELOPMENT ONLY - SMS verification code: namespace="
-                + delivery.getNamespace()
+                + delivery.namespace()
                 + ", purpose="
-                + delivery.getPurpose()
+                + delivery.purpose()
                 + ", phoneNumber="
-                + mask(delivery.getPhoneNumber())
+                + mask(delivery.phoneNumber())
                 + ", code="
-                + delivery.getCode()
+                + delivery.code()
                 + ", expiresAt="
-                + delivery.getExpiresAt());
+                + delivery.expiresAt());
         return CodeSendResult.ACCEPTED;
     }
 
