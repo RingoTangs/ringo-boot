@@ -1,5 +1,6 @@
 package io.github.ringotangs.ringoboot.verification;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -254,6 +255,22 @@ class AbstractVerificationServiceTest {
         assertThrows(NullPointerException.class, () -> template.issue((VerificationKey) null));
     }
 
+    @Test
+    void declaresOnlyCompleteDependencyConstructor() {
+        var constructors = AbstractVerificationService.class.getDeclaredConstructors();
+
+        assertEquals(1, constructors.length);
+        assertArrayEquals(
+                new Class<?>[] {
+                    CodeGenerator.class,
+                    VerificationStore.class,
+                    IssueRateLimiter.class,
+                    VerificationPolicy.class,
+                    Clock.class
+                },
+                constructors[0].getParameterTypes());
+    }
+
     private CapturingVerificationService template(CodeGenerator generator, VerificationStore store) {
         return template(generator, store, VerificationPolicy.defaults());
     }
@@ -284,12 +301,12 @@ class AbstractVerificationServiceTest {
         private CodeSendResult result = CodeSendResult.ACCEPTED;
 
         private CapturingVerificationService(CodeGenerator generator, VerificationStore store) {
-            super(generator, store);
+            this(generator, store, IssueRateLimiter.permitAll(), VerificationPolicy.defaults(), Clock.systemUTC());
         }
 
         private CapturingVerificationService(
                 CodeGenerator generator, VerificationStore store, VerificationPolicy verificationPolicy, Clock clock) {
-            super(generator, store, verificationPolicy, clock);
+            this(generator, store, IssueRateLimiter.permitAll(), verificationPolicy, clock);
         }
 
         private CapturingVerificationService(

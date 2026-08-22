@@ -29,50 +29,6 @@ public abstract class AbstractVerificationService implements VerificationService
     private final Clock clock;
 
     /**
-     * 使用默认验证码策略、不限制签发的限流器和 UTC 系统时钟创建渠道服务。
-     *
-     * <p>选择此构造器表示调用方明确不执行签发限流。需要限制签发频率时，应使用接收 {@link IssueRateLimiter} 的构造器。
-     *
-     * @param codeGenerator 验证码生成器
-     * @param store 验证码状态存储
-     * @throws NullPointerException 当生成器或存储为 {@code null} 时
-     */
-    protected AbstractVerificationService(CodeGenerator codeGenerator, VerificationStore store) {
-        this(codeGenerator, store, IssueRateLimiter.permitAll(), VerificationPolicy.defaults(), Clock.systemUTC());
-    }
-
-    /**
-     * 使用指定服务级验证码策略、不限制签发的限流器和 UTC 系统时钟创建渠道服务。
-     *
-     * <p>选择此构造器表示调用方明确不执行签发限流。需要限制签发频率时，应使用接收 {@link IssueRateLimiter} 的构造器。
-     *
-     * @param codeGenerator 验证码生成器
-     * @param store 验证码状态存储
-     * @param verificationPolicy 服务级验证码策略
-     * @throws NullPointerException 当任一参数为 {@code null} 时
-     */
-    protected AbstractVerificationService(
-            CodeGenerator codeGenerator, VerificationStore store, VerificationPolicy verificationPolicy) {
-        this(codeGenerator, store, IssueRateLimiter.permitAll(), verificationPolicy, Clock.systemUTC());
-    }
-
-    /**
-     * 使用指定生成器、存储、服务级验证码策略、时钟和不限制签发的限流器创建渠道服务。
-     *
-     * <p>选择此构造器表示调用方明确不执行签发限流。需要限制签发频率时，应使用接收 {@link IssueRateLimiter} 的构造器。
-     *
-     * @param codeGenerator 验证码生成器
-     * @param store 验证码状态存储
-     * @param verificationPolicy 服务级验证码策略
-     * @param clock 提供签发和校验时间的时钟
-     * @throws NullPointerException 当任一参数为 {@code null} 时
-     */
-    protected AbstractVerificationService(
-            CodeGenerator codeGenerator, VerificationStore store, VerificationPolicy verificationPolicy, Clock clock) {
-        this(codeGenerator, store, IssueRateLimiter.permitAll(), verificationPolicy, clock);
-    }
-
-    /**
      * 使用指定生成器、存储、签发限流器、服务级验证码策略和时钟创建渠道服务。
      *
      * @param codeGenerator 验证码生成器

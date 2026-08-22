@@ -29,8 +29,7 @@ public final class SmsVerificationService extends AbstractVerificationService {
      * @param sender 短信发送器
      */
     public SmsVerificationService(CodeGenerator codeGenerator, VerificationStore store, SmsCodeSender sender) {
-        super(codeGenerator, store);
-        this.sender = Objects.requireNonNull(sender, "sender must not be null");
+        this(codeGenerator, store, VerificationPolicy.defaults(), sender);
     }
 
     /**
@@ -48,8 +47,7 @@ public final class SmsVerificationService extends AbstractVerificationService {
             VerificationStore store,
             VerificationPolicy verificationPolicy,
             SmsCodeSender sender) {
-        super(codeGenerator, store, verificationPolicy);
-        this.sender = Objects.requireNonNull(sender, "sender must not be null");
+        this(codeGenerator, store, verificationPolicy, Clock.systemUTC(), sender);
     }
 
     /**
@@ -69,8 +67,7 @@ public final class SmsVerificationService extends AbstractVerificationService {
             VerificationPolicy verificationPolicy,
             Clock clock,
             SmsCodeSender sender) {
-        super(codeGenerator, store, verificationPolicy, clock);
-        this.sender = Objects.requireNonNull(sender, "sender must not be null");
+        this(codeGenerator, store, IssueRateLimiter.permitAll(), verificationPolicy, clock, sender);
     }
 
     /**

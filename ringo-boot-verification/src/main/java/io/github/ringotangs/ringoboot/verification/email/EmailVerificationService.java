@@ -29,8 +29,7 @@ public final class EmailVerificationService extends AbstractVerificationService 
      * @param sender 邮件发送器
      */
     public EmailVerificationService(CodeGenerator codeGenerator, VerificationStore store, EmailCodeSender sender) {
-        super(codeGenerator, store);
-        this.sender = Objects.requireNonNull(sender, "sender must not be null");
+        this(codeGenerator, store, VerificationPolicy.defaults(), sender);
     }
 
     /**
@@ -48,8 +47,7 @@ public final class EmailVerificationService extends AbstractVerificationService 
             VerificationStore store,
             VerificationPolicy verificationPolicy,
             EmailCodeSender sender) {
-        super(codeGenerator, store, verificationPolicy);
-        this.sender = Objects.requireNonNull(sender, "sender must not be null");
+        this(codeGenerator, store, verificationPolicy, Clock.systemUTC(), sender);
     }
 
     /**
@@ -69,8 +67,7 @@ public final class EmailVerificationService extends AbstractVerificationService 
             VerificationPolicy verificationPolicy,
             Clock clock,
             EmailCodeSender sender) {
-        super(codeGenerator, store, verificationPolicy, clock);
-        this.sender = Objects.requireNonNull(sender, "sender must not be null");
+        this(codeGenerator, store, IssueRateLimiter.permitAll(), verificationPolicy, clock, sender);
     }
 
     /**
