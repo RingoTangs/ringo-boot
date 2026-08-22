@@ -34,67 +34,70 @@ public final class SmsVerificationService extends AbstractVerificationService {
     }
 
     /**
-     * 使用指定默认策略、不限制签发的限流器和 UTC 系统时钟创建短信验证服务。
+     * 使用指定服务级验证码策略、不限制签发的限流器和 UTC 系统时钟创建短信验证服务。
      *
      * <p>需要限制签发频率时，应使用接收 {@link IssueRateLimiter} 的构造器。
      *
      * @param codeGenerator 验证码生成器
      * @param store 验证码存储
-     * @param policy 默认验证码策略
+     * @param verificationPolicy 服务级验证码策略
      * @param sender 短信发送器
      */
     public SmsVerificationService(
-            CodeGenerator codeGenerator, VerificationStore store, VerificationPolicy policy, SmsCodeSender sender) {
-        super(codeGenerator, store, policy);
+            CodeGenerator codeGenerator,
+            VerificationStore store,
+            VerificationPolicy verificationPolicy,
+            SmsCodeSender sender) {
+        super(codeGenerator, store, verificationPolicy);
         this.sender = Objects.requireNonNull(sender, "sender must not be null");
     }
 
     /**
-     * 使用指定默认策略、时钟和不限制签发的限流器创建短信验证服务。
+     * 使用指定服务级验证码策略、时钟和不限制签发的限流器创建短信验证服务。
      *
      * <p>需要限制签发频率时，应使用接收 {@link IssueRateLimiter} 的构造器。
      *
      * @param codeGenerator 验证码生成器
      * @param store 验证码存储
-     * @param policy 默认验证码策略
+     * @param verificationPolicy 服务级验证码策略
      * @param clock 提供签发和校验时间的时钟
      * @param sender 短信发送器
      */
     public SmsVerificationService(
             CodeGenerator codeGenerator,
             VerificationStore store,
-            VerificationPolicy policy,
+            VerificationPolicy verificationPolicy,
             Clock clock,
             SmsCodeSender sender) {
-        super(codeGenerator, store, policy, clock);
+        super(codeGenerator, store, verificationPolicy, clock);
         this.sender = Objects.requireNonNull(sender, "sender must not be null");
     }
 
     /**
-     * 使用指定签发限流器、默认策略和 UTC 系统时钟创建短信验证服务。
+     * 使用指定签发限流器、服务级验证码策略和 UTC 系统时钟创建短信验证服务。
      *
      * @param codeGenerator 验证码生成器
      * @param store 验证码存储
      * @param issueRateLimiter 验证码签发限流器
-     * @param policy 默认验证码策略
+     * @param verificationPolicy 服务级验证码策略
      * @param sender 短信发送器
      */
     public SmsVerificationService(
             CodeGenerator codeGenerator,
             VerificationStore store,
             IssueRateLimiter issueRateLimiter,
-            VerificationPolicy policy,
+            VerificationPolicy verificationPolicy,
             SmsCodeSender sender) {
-        this(codeGenerator, store, issueRateLimiter, policy, Clock.systemUTC(), sender);
+        this(codeGenerator, store, issueRateLimiter, verificationPolicy, Clock.systemUTC(), sender);
     }
 
     /**
-     * 使用指定签发限流器、默认策略和时钟创建短信验证服务。
+     * 使用指定签发限流器、服务级验证码策略和时钟创建短信验证服务。
      *
      * @param codeGenerator 验证码生成器
      * @param store 验证码存储
      * @param issueRateLimiter 验证码签发限流器
-     * @param policy 默认验证码策略
+     * @param verificationPolicy 服务级验证码策略
      * @param clock 提供签发和校验时间的时钟
      * @param sender 短信发送器
      */
@@ -102,10 +105,10 @@ public final class SmsVerificationService extends AbstractVerificationService {
             CodeGenerator codeGenerator,
             VerificationStore store,
             IssueRateLimiter issueRateLimiter,
-            VerificationPolicy policy,
+            VerificationPolicy verificationPolicy,
             Clock clock,
             SmsCodeSender sender) {
-        super(codeGenerator, store, issueRateLimiter, policy, clock);
+        super(codeGenerator, store, issueRateLimiter, verificationPolicy, clock);
         this.sender = Objects.requireNonNull(sender, "sender must not be null");
     }
 

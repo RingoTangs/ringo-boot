@@ -238,6 +238,11 @@ class AbstractVerificationServiceTest {
                         new InMemoryVerificationStore(),
                         VerificationPolicy.defaults(),
                         Clock.fixed(NOW, ZoneOffset.UTC)));
+        NullPointerException nullPolicy = assertThrows(
+                NullPointerException.class,
+                () -> new CapturingVerificationService(
+                        length -> "123456", new InMemoryVerificationStore(), null, Clock.fixed(NOW, ZoneOffset.UTC)));
+        assertEquals("verificationPolicy must not be null", nullPolicy.getMessage());
         assertThrows(
                 NullPointerException.class,
                 () -> new CapturingVerificationService(
@@ -283,17 +288,17 @@ class AbstractVerificationServiceTest {
         }
 
         private CapturingVerificationService(
-                CodeGenerator generator, VerificationStore store, VerificationPolicy policy, Clock clock) {
-            super(generator, store, policy, clock);
+                CodeGenerator generator, VerificationStore store, VerificationPolicy verificationPolicy, Clock clock) {
+            super(generator, store, verificationPolicy, clock);
         }
 
         private CapturingVerificationService(
                 CodeGenerator generator,
                 VerificationStore store,
                 IssueRateLimiter issueRateLimiter,
-                VerificationPolicy policy,
+                VerificationPolicy verificationPolicy,
                 Clock clock) {
-            super(generator, store, issueRateLimiter, policy, clock);
+            super(generator, store, issueRateLimiter, verificationPolicy, clock);
         }
 
         @Override
