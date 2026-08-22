@@ -471,8 +471,12 @@ class VerificationAutoConfigurationTest {
     @Test
     void backsOffForCustomEmailService() {
         EmailCodeSender sender = delivery -> CodeSendResult.ACCEPTED;
-        EmailVerificationService service =
-                new EmailVerificationService(length -> "1".repeat(length), new TestVerificationStore(), sender);
+        EmailVerificationService service = new EmailVerificationService(
+                length -> "1".repeat(length),
+                new TestVerificationStore(),
+                IssueRateLimiter.permitAll(),
+                VerificationPolicy.defaults(),
+                sender);
 
         contextRunner
                 .withPropertyValues("ringo.boot.verification.enabled=true")

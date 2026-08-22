@@ -3,8 +3,6 @@ package io.github.ringotangs.ringoboot.verification.sms;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.ringotangs.ringoboot.verification.VerificationKey;
-import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
@@ -16,15 +14,13 @@ class StdoutSmsCodeSenderTest {
     @Test
     void writesCodeWithDevelopmentWarningAndMaskedPhoneNumber() {
         String output = captureOutput(() -> new StdoutSmsCodeSender()
-                .send(new CodeDelivery(
-                        new VerificationKey("account", "sms-login", "+8613800000000"),
-                        "654321",
-                        Instant.parse("2026-01-01T00:05:00Z"))));
+                .send(new SmsCodeDelivery(
+                        "account", "sms-login", "+8613800000000", "654321", Instant.parse("2026-01-01T00:05:00Z"))));
 
         assertTrue(output.contains("DEVELOPMENT ONLY"));
         assertTrue(output.contains("namespace=account"));
         assertTrue(output.contains("purpose=sms-login"));
-        assertTrue(output.contains("subject=***0000"));
+        assertTrue(output.contains("phoneNumber=***0000"));
         assertTrue(output.contains("code=654321"));
         assertTrue(output.contains("expiresAt=2026-01-01T00:05:00Z"));
         assertFalse(output.contains("+8613800000000"));

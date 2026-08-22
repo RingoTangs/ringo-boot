@@ -11,15 +11,15 @@ package io.github.ringotangs.ringoboot.verification.sender;
  *     {@link CodeSenderException}，并且不得泄露供应商异常。
  */
 @FunctionalInterface
-public interface CodeSender {
+public interface CodeSender<D> {
 
     /**
      * 将验证码派发到交付键中指定的目标。
      *
      *
-     * @param delivery 验证码交付内容
+     * @param delivery 渠道专用的验证码交付内容
      * @return 供应商接受状态
      * @throws CodeSenderException 当渠道派发操作失败时
      */
-    CodeSendResult send(CodeDelivery delivery) throws CodeSenderException;
+    CodeSendResult send(D delivery) throws CodeSenderException;
 }

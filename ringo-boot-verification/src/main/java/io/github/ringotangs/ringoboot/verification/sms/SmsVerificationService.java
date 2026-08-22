@@ -20,57 +20,6 @@ public final class SmsVerificationService extends AbstractVerificationService {
     private final SmsCodeSender sender;
 
     /**
-     * 使用默认验证码策略、不限制签发的限流器和 UTC 系统时钟创建短信验证服务。
-     *
-     * <p>需要限制签发频率时，应使用接收 {@link IssueRateLimiter} 的构造器。
-     *
-     * @param codeGenerator 验证码生成器
-     * @param store 验证码存储
-     * @param sender 短信发送器
-     */
-    public SmsVerificationService(CodeGenerator codeGenerator, VerificationStore store, SmsCodeSender sender) {
-        this(codeGenerator, store, VerificationPolicy.defaults(), sender);
-    }
-
-    /**
-     * 使用指定服务级验证码策略、不限制签发的限流器和 UTC 系统时钟创建短信验证服务。
-     *
-     * <p>需要限制签发频率时，应使用接收 {@link IssueRateLimiter} 的构造器。
-     *
-     * @param codeGenerator 验证码生成器
-     * @param store 验证码存储
-     * @param verificationPolicy 服务级验证码策略
-     * @param sender 短信发送器
-     */
-    public SmsVerificationService(
-            CodeGenerator codeGenerator,
-            VerificationStore store,
-            VerificationPolicy verificationPolicy,
-            SmsCodeSender sender) {
-        this(codeGenerator, store, verificationPolicy, Clock.systemUTC(), sender);
-    }
-
-    /**
-     * 使用指定服务级验证码策略、时钟和不限制签发的限流器创建短信验证服务。
-     *
-     * <p>需要限制签发频率时，应使用接收 {@link IssueRateLimiter} 的构造器。
-     *
-     * @param codeGenerator 验证码生成器
-     * @param store 验证码存储
-     * @param verificationPolicy 服务级验证码策略
-     * @param clock 提供签发和校验时间的时钟
-     * @param sender 短信发送器
-     */
-    public SmsVerificationService(
-            CodeGenerator codeGenerator,
-            VerificationStore store,
-            VerificationPolicy verificationPolicy,
-            Clock clock,
-            SmsCodeSender sender) {
-        this(codeGenerator, store, IssueRateLimiter.permitAll(), verificationPolicy, clock, sender);
-    }
-
-    /**
      * 使用指定签发限流器、服务级验证码策略和 UTC 系统时钟创建短信验证服务。
      *
      * @param codeGenerator 验证码生成器
@@ -110,14 +59,18 @@ public final class SmsVerificationService extends AbstractVerificationService {
     }
 
     /**
-     * 将验证码交给短信发送器。
+     * 将通用验证码交付内容转换为短信发送内容并交给短信发送器。
      *
-     *
-     * @param delivery 验证码交付内容
+     * @param delivery 通用验证码交付内容
      * @throws CodeSenderException 当短信派发失败时
      */
     @Override
     protected CodeSendResult dispatch(CodeDelivery delivery) throws CodeSenderException {
-        return sender.send(delivery);
+        return sender.send(new SmsCodeDelivery(
+                delivery.key().namespace(),
+                delivery.key().purpose(),
+                delivery.key().subject(),
+                delivery.code(),
+                delivery.expiresAt()));
     }
 }

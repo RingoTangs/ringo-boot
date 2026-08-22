@@ -5,8 +5,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import io.github.ringotangs.ringoboot.verification.email.EmailCodeDelivery;
 import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
-import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import java.util.Locale;
 import java.util.Map;
@@ -50,23 +50,23 @@ class EmailVerificationControllerTest {
                 .andExpect(jsonPath("$.expiresAt").isString())
                 .andExpect(jsonPath("$.code").doesNotExist());
 
-        CodeDelivery delivery = sender.latest(email);
-        org.assertj.core.api.Assertions.assertThat(delivery.code()).matches("\\d{6}");
+        EmailCodeDelivery delivery = sender.latest(email);
+        org.assertj.core.api.Assertions.assertThat(delivery.getCode()).matches("\\d{6}");
 
         mockMvc.perform(post("/verification/email/verify")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(verifyRequest("  " + email.toUpperCase(Locale.ROOT) + "  ", delivery.code())))
+                        .content(verifyRequest("  " + email.toUpperCase(Locale.ROOT) + "  ", delivery.getCode())))
                 .andExpect(status().isNoContent())
                 .andExpect(content().string(""));
 
-        assertInvalidCode(email, delivery.code());
+        assertInvalidCode(email, delivery.getCode());
     }
 
     @Test
     void throttlesRepeatedIssuanceWithoutReplacingDeliveredCode() throws Exception {
         String email = uniqueEmail();
         issue(email);
-        String originalCode = sender.latest(email).code();
+        String originalCode = sender.latest(email).getCode();
 
         mockMvc.perform(post("/verification/email/code")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -75,14 +75,15 @@ class EmailVerificationControllerTest {
                 .andExpect(jsonPath("$.type").value("urn:problem:business:verification:throttled"))
                 .andExpect(jsonPath("$.status").value(429));
 
-        org.assertj.core.api.Assertions.assertThat(sender.latest(email).code()).isEqualTo(originalCode);
+        org.assertj.core.api.Assertions.assertThat(sender.latest(email).getCode())
+                .isEqualTo(originalCode);
     }
 
     @Test
     void hidesInternalReasonForWrongAndUnknownCodes() throws Exception {
         String issuedEmail = uniqueEmail();
         issue(issuedEmail);
-        String issuedCode = sender.latest(issuedEmail).code();
+        String issuedCode = sender.latest(issuedEmail).getCode();
         String wrongCode = issuedCode.startsWith("0") ? "1" + issuedCode.substring(1) : "0" + issuedCode.substring(1);
 
         assertInvalidCode(issuedEmail, wrongCode);
@@ -166,15 +167,15 @@ class EmailVerificationControllerTest {
 
     static final class CapturingEmailCodeSender implements EmailCodeSender {
 
-        private final Map<String, CodeDelivery> deliveries = new ConcurrentHashMap<>();
+        private final Map<String, EmailCodeDelivery> deliveries = new ConcurrentHashMap<>();
 
         @Override
-        public CodeSendResult send(CodeDelivery delivery) {
-            deliveries.put(delivery.key().subject(), delivery);
+        public CodeSendResult send(EmailCodeDelivery delivery) {
+            deliveries.put(delivery.getEmail(), delivery);
             return CodeSendResult.ACCEPTED;
         }
 
-        CodeDelivery latest(String email) {
+        EmailCodeDelivery latest(String email) {
             return Objects.requireNonNull(
                     deliveries.get(email.strip().toLowerCase(Locale.ROOT)), "No delivery found for " + email);
         }

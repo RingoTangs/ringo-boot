@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import io.github.ringotangs.ringoboot.verification.IssueResult;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
-import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
 import java.time.Clock;
@@ -23,10 +23,11 @@ class SmsVerificationServiceTest {
     @Test
     void dispatchesCompleteDeliveryToSmsSender() {
         VerificationKey key = new VerificationKey("account", "login", "+8613800000000");
-        AtomicReference<CodeDelivery> captured = new AtomicReference<>();
+        AtomicReference<SmsCodeDelivery> captured = new AtomicReference<>();
         SmsVerificationService service = new SmsVerificationService(
                 length -> "123456",
                 new InMemoryVerificationStore(),
+                IssueRateLimiter.permitAll(),
                 VerificationPolicy.defaults(),
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 delivery -> {
@@ -36,15 +37,27 @@ class SmsVerificationServiceTest {
 
         IssueResult.Accepted result = assertInstanceOf(IssueResult.Accepted.class, service.issue(key));
 
-        assertEquals(key, captured.get().key());
-        assertEquals("123456", captured.get().code());
-        assertEquals(result.expiresAt(), captured.get().expiresAt());
+        assertEquals("account", captured.get().getNamespace());
+        assertEquals("login", captured.get().getPurpose());
+        assertEquals("+8613800000000", captured.get().getPhoneNumber());
+        assertEquals("123456", captured.get().getCode());
+        assertEquals(result.expiresAt(), captured.get().getExpiresAt());
     }
 
     @Test
     void rejectsNullSender() {
         assertThrows(
                 NullPointerException.class,
-                () -> new SmsVerificationService(length -> "123456", new InMemoryVerificationStore(), null));
+                () -> new SmsVerificationService(
+                        length -> "123456",
+                        new InMemoryVerificationStore(),
+                        IssueRateLimiter.permitAll(),
+                        VerificationPolicy.defaults(),
+                        null));
+    }
+
+    @Test
+    void exposesOnlyStandardAndClockAwareConstructors() {
+        assertEquals(2, SmsVerificationService.class.getConstructors().length);
     }
 }
