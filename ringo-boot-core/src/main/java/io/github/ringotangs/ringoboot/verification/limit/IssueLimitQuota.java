@@ -24,6 +24,6 @@ public record IssueLimitQuota(String ruleId, IssueLimitBucket bucket, int maxIss
      */
     public IssueLimitQuota {
         Objects.requireNonNull(bucket, "bucket must not be null");
-        IssueRateLimitManager.validateRuleDefinition(ruleId, maxIssues, window);
+        IssueRateLimitValidator.validateRuleDefinition(ruleId, maxIssues, window);
     }
 }

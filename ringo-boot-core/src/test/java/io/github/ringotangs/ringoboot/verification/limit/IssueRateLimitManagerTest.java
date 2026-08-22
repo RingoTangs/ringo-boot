@@ -72,9 +72,33 @@ class IssueRateLimitManagerTest {
     @Test
     void rejectsDuplicateAndInvalidRuleDeclarations() {
         IssueRateLimitRule rule = rule("subject-minute", context -> true, "subject");
+        IssueRateLimitRule invalidRule = new IssueRateLimitRule() {
+            @Override
+            public String id() {
+                return "subject_minute";
+            }
+
+            @Override
+            public IssueLimitBucket bucket(IssueContext context) {
+                return IssueLimitBucket.of("subject");
+            }
+
+            @Override
+            public int maxIssues() {
+                return 1;
+            }
+
+            @Override
+            public Duration window() {
+                return Duration.ofMinutes(1);
+            }
+        };
         assertThrows(
                 IllegalArgumentException.class,
                 () -> new IssueRateLimitManager(List.of(rule, rule), (rules, time) -> new IssueLimitResult.Allowed()));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new IssueRateLimitManager(List.of(invalidRule), (rules, time) -> new IssueLimitResult.Allowed()));
         assertThrows(
                 NullPointerException.class,
                 () -> new IssueRateLimitManager(

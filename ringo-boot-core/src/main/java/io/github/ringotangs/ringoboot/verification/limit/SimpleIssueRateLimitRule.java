@@ -34,7 +34,7 @@ public record SimpleIssueRateLimitRule(
     public SimpleIssueRateLimitRule {
         Objects.requireNonNull(matcher, "matcher must not be null");
         Objects.requireNonNull(bucketResolver, "bucketResolver must not be null");
-        IssueRateLimitManager.validateRuleDefinition(id, maxIssues, window);
+        IssueRateLimitValidator.validateRuleDefinition(id, maxIssues, window);
     }
 
     /** {@inheritDoc} */
