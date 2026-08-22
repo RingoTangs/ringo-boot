@@ -9,6 +9,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -71,8 +72,11 @@ class InMemoryIssueRateLimiterTest {
     @Test
     void appliesSubjectQuotaAcrossNamespacesAndPurposes() {
         InMemoryIssueRateLimiter limiter = InMemoryIssueRateLimiter.withPolicy(IssueRateLimitPolicy.of(
-                new IssueRateLimitRule(IssueLimitScope.VERIFICATION_KEY, 1, Duration.ofSeconds(60)),
-                new IssueRateLimitRule(IssueLimitScope.SUBJECT, 2, Duration.ofHours(1))));
+                new IssueRateLimitRule(
+                        Set.of(IssueLimitDimension.NAMESPACE, IssueLimitDimension.PURPOSE, IssueLimitDimension.SUBJECT),
+                        1,
+                        Duration.ofSeconds(60)),
+                new IssueRateLimitRule(Set.of(IssueLimitDimension.SUBJECT), 2, Duration.ofHours(1))));
         VerificationKey registration = new VerificationKey("account", "registration", KEY.subject());
         VerificationKey payment = new VerificationKey("payment", "confirmation", KEY.subject());
         VerificationKey otherSubject = new VerificationKey("account", "login", "other@example.com");
@@ -87,8 +91,8 @@ class InMemoryIssueRateLimiterTest {
 
     @Test
     void usesRollingWindowAndExpiresLeftBoundary() {
-        InMemoryIssueRateLimiter limiter = InMemoryIssueRateLimiter.withPolicy(
-                IssueRateLimitPolicy.of(new IssueRateLimitRule(IssueLimitScope.SUBJECT, 2, Duration.ofHours(1))));
+        InMemoryIssueRateLimiter limiter = InMemoryIssueRateLimiter.withPolicy(IssueRateLimitPolicy.of(
+                new IssueRateLimitRule(Set.of(IssueLimitDimension.SUBJECT), 2, Duration.ofHours(1))));
         VerificationKey registration = new VerificationKey("account", "registration", KEY.subject());
         VerificationKey payment = new VerificationKey("payment", "confirmation", KEY.subject());
 
@@ -103,8 +107,11 @@ class InMemoryIssueRateLimiterTest {
     @Test
     void consumesNoRulesWhenAnyRuleRejectsRequest() {
         InMemoryIssueRateLimiter limiter = InMemoryIssueRateLimiter.withPolicy(IssueRateLimitPolicy.of(
-                new IssueRateLimitRule(IssueLimitScope.VERIFICATION_KEY, 1, Duration.ofHours(1)),
-                new IssueRateLimitRule(IssueLimitScope.SUBJECT, 2, Duration.ofDays(1))));
+                new IssueRateLimitRule(
+                        Set.of(IssueLimitDimension.NAMESPACE, IssueLimitDimension.PURPOSE, IssueLimitDimension.SUBJECT),
+                        1,
+                        Duration.ofHours(1)),
+                new IssueRateLimitRule(Set.of(IssueLimitDimension.SUBJECT), 2, Duration.ofDays(1))));
         VerificationKey registration = new VerificationKey("account", "registration", KEY.subject());
         VerificationKey payment = new VerificationKey("payment", "confirmation", KEY.subject());
 
@@ -117,8 +124,11 @@ class InMemoryIssueRateLimiterTest {
     @Test
     void returnsLongestRetryAfterWhenMultipleRulesReject() {
         InMemoryIssueRateLimiter limiter = InMemoryIssueRateLimiter.withPolicy(IssueRateLimitPolicy.of(
-                new IssueRateLimitRule(IssueLimitScope.VERIFICATION_KEY, 1, Duration.ofMinutes(10)),
-                new IssueRateLimitRule(IssueLimitScope.SUBJECT, 1, Duration.ofHours(1))));
+                new IssueRateLimitRule(
+                        Set.of(IssueLimitDimension.NAMESPACE, IssueLimitDimension.PURPOSE, IssueLimitDimension.SUBJECT),
+                        1,
+                        Duration.ofMinutes(10)),
+                new IssueRateLimitRule(Set.of(IssueLimitDimension.SUBJECT), 1, Duration.ofHours(1))));
 
         assertInstanceOf(IssueLimitResult.Allowed.class, limiter.acquire(KEY, NOW));
         IssueLimitResult.Throttled throttled =
@@ -128,12 +138,99 @@ class InMemoryIssueRateLimiterTest {
     }
 
     @Test
+    void supportsNamespaceAndNamespacePurposeDimensions() {
+        InMemoryIssueRateLimiter namespaceLimiter = InMemoryIssueRateLimiter.withPolicy(
+                IssueRateLimitPolicy.of(rule(Set.of(IssueLimitDimension.NAMESPACE), 1, Duration.ofHours(1))));
+        VerificationKey sameNamespace = new VerificationKey("account", "registration", "other@example.com");
+        VerificationKey otherNamespace = new VerificationKey("payment", "login", KEY.subject());
+
+        assertInstanceOf(IssueLimitResult.Allowed.class, namespaceLimiter.acquire(KEY, NOW));
+        assertInstanceOf(IssueLimitResult.Throttled.class, namespaceLimiter.acquire(sameNamespace, NOW.plusSeconds(1)));
+        assertInstanceOf(IssueLimitResult.Allowed.class, namespaceLimiter.acquire(otherNamespace, NOW.plusSeconds(1)));
+
+        InMemoryIssueRateLimiter purposeLimiter = InMemoryIssueRateLimiter.withPolicy(IssueRateLimitPolicy.of(
+                rule(Set.of(IssueLimitDimension.NAMESPACE, IssueLimitDimension.PURPOSE), 1, Duration.ofHours(1))));
+        VerificationKey samePurpose = new VerificationKey("account", "login", "other@example.com");
+
+        assertInstanceOf(IssueLimitResult.Allowed.class, purposeLimiter.acquire(KEY, NOW));
+        assertInstanceOf(IssueLimitResult.Throttled.class, purposeLimiter.acquire(samePurpose, NOW.plusSeconds(1)));
+        assertInstanceOf(IssueLimitResult.Allowed.class, purposeLimiter.acquire(sameNamespace, NOW.plusSeconds(1)));
+    }
+
+    @Test
+    void supportsIpDeviceAndSessionDimensions() {
+        InMemoryIssueRateLimiter limiter = InMemoryIssueRateLimiter.withPolicy(IssueRateLimitPolicy.of(
+                rule(Set.of(IssueLimitDimension.IP_ADDRESS), 1, Duration.ofHours(1)),
+                rule(Set.of(IssueLimitDimension.DEVICE_ID), 1, Duration.ofHours(1)),
+                rule(Set.of(IssueLimitDimension.SESSION_ID), 1, Duration.ofHours(1))));
+        IssueContext initial = context("ip-1", "device-1", "session-1");
+
+        assertInstanceOf(IssueLimitResult.Allowed.class, limiter.acquire(initial, NOW));
+        assertInstanceOf(
+                IssueLimitResult.Throttled.class,
+                limiter.acquire(context("ip-1", "device-2", "session-2"), NOW.plusSeconds(1)));
+        assertInstanceOf(
+                IssueLimitResult.Throttled.class,
+                limiter.acquire(context("ip-2", "device-1", "session-2"), NOW.plusSeconds(1)));
+        assertInstanceOf(
+                IssueLimitResult.Throttled.class,
+                limiter.acquire(context("ip-2", "device-2", "session-1"), NOW.plusSeconds(1)));
+        assertInstanceOf(
+                IssueLimitResult.Allowed.class,
+                limiter.acquire(context("ip-2", "device-2", "session-2"), NOW.plusSeconds(1)));
+    }
+
+    @Test
+    void supportsCombinedAdditionalAndKeyDimensions() {
+        InMemoryIssueRateLimiter limiter = InMemoryIssueRateLimiter.withPolicy(IssueRateLimitPolicy.of(
+                rule(Set.of(IssueLimitDimension.IP_ADDRESS, IssueLimitDimension.PURPOSE), 1, Duration.ofHours(1))));
+        VerificationKey registration = new VerificationKey("account", "registration", KEY.subject());
+        VerificationKey otherSubject = new VerificationKey("account", "login", "other@example.com");
+
+        assertInstanceOf(
+                IssueLimitResult.Allowed.class,
+                limiter.acquire(IssueContext.of(KEY).with(IssueLimitDimension.IP_ADDRESS, "ip-1"), NOW));
+        assertInstanceOf(
+                IssueLimitResult.Allowed.class,
+                limiter.acquire(
+                        IssueContext.of(registration).with(IssueLimitDimension.IP_ADDRESS, "ip-1"),
+                        NOW.plusSeconds(1)));
+        assertInstanceOf(
+                IssueLimitResult.Throttled.class,
+                limiter.acquire(
+                        IssueContext.of(otherSubject).with(IssueLimitDimension.IP_ADDRESS, "ip-1"),
+                        NOW.plusSeconds(1)));
+    }
+
+    @Test
+    void failsWhenRequiredDimensionIsMissingWithoutConsumingQuota() {
+        InMemoryIssueRateLimiter limiter = InMemoryIssueRateLimiter.withPolicy(
+                IssueRateLimitPolicy.of(rule(Set.of(IssueLimitDimension.IP_ADDRESS), 1, Duration.ofHours(1))));
+
+        assertThrows(IllegalArgumentException.class, () -> limiter.acquire(KEY, NOW));
+        assertInstanceOf(
+                IssueLimitResult.Allowed.class,
+                limiter.acquire(IssueContext.of(KEY).with(IssueLimitDimension.IP_ADDRESS, "203.0.113.10"), NOW));
+    }
+
+    @Test
     void rejectsInvalidArguments() {
         assertThrows(NullPointerException.class, () -> new InMemoryIssueRateLimiter(null));
         assertThrows(NullPointerException.class, () -> InMemoryIssueRateLimiter.withPolicy(null));
         assertThrows(IllegalArgumentException.class, () -> new InMemoryIssueRateLimiter(Duration.ofSeconds(-1)));
         InMemoryIssueRateLimiter limiter = new InMemoryIssueRateLimiter();
-        assertThrows(NullPointerException.class, () -> limiter.acquire(null, NOW));
+        assertThrows(NullPointerException.class, () -> limiter.acquire((IssueContext) null, NOW));
         assertThrows(NullPointerException.class, () -> limiter.acquire(KEY, null));
+    }
+
+    private IssueContext context(String ipAddress, String deviceId, String sessionId) {
+        return IssueContext.of(KEY)
+                .with(IssueLimitDimension.IP_ADDRESS, ipAddress)
+                .with(IssueLimitDimension.DEVICE_ID, deviceId)
+                .with(IssueLimitDimension.SESSION_ID, sessionId);
+    }
+
+    private IssueRateLimitRule rule(Set<IssueLimitDimension> dimensions, int maxIssues, Duration window) {
+        return new IssueRateLimitRule(dimensions, maxIssues, window);
     }
 }

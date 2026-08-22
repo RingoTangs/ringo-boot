@@ -144,7 +144,7 @@ class AbstractVerificationServiceLifecycleTest {
     @Test
     void rejectsNullInputsAndGeneratedCode() {
         VerificationService service = service(length -> "123456");
-        assertThrows(NullPointerException.class, () -> service.issue(null));
+        assertThrows(NullPointerException.class, () -> service.issue((VerificationKey) null));
         assertThrows(NullPointerException.class, () -> service.issue(LOGIN, null));
         assertThrows(NullPointerException.class, () -> service.verify(LOGIN, null));
         assertThrows(NullPointerException.class, () -> service(null).issue(LOGIN));

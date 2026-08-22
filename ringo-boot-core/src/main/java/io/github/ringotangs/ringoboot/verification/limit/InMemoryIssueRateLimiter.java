@@ -1,12 +1,12 @@
 package io.github.ringotangs.ringoboot.verification.limit;
 
-import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * 基于进程内存的线程安全验证码签发限流器。
@@ -60,8 +60,8 @@ public final class InMemoryIssueRateLimiter implements IssueRateLimiter {
 
     /** {@inheritDoc} */
     @Override
-    public synchronized IssueLimitResult acquire(VerificationKey key, Instant requestedAt) {
-        Objects.requireNonNull(key, "key must not be null");
+    public synchronized IssueLimitResult acquire(IssueContext context, Instant requestedAt) {
+        Objects.requireNonNull(context, "context must not be null");
         Objects.requireNonNull(requestedAt, "requestedAt must not be null");
         if (policy.rules().isEmpty()) {
             return ALLOWED;
@@ -71,7 +71,7 @@ public final class InMemoryIssueRateLimiter implements IssueRateLimiter {
         Duration retryAfter = Duration.ZERO;
         boolean throttled = false;
         for (IssueRateLimitRule rule : policy.rules()) {
-            HistoryKey historyKey = new HistoryKey(rule, identity(rule.scope(), key));
+            HistoryKey historyKey = new HistoryKey(rule, identity(rule.dimensions(), context));
             ArrayDeque<Instant> history = histories.computeIfAbsent(historyKey, ignored -> new ArrayDeque<>());
             removeExpired(history, requestedAt.minus(rule.window()));
             evaluatedHistories.put(historyKey, history);
@@ -106,14 +106,17 @@ public final class InMemoryIssueRateLimiter implements IssueRateLimiter {
     }
 
     private static IssueRateLimitPolicy singleKeyInterval(Duration interval) {
-        return IssueRateLimitPolicy.of(new IssueRateLimitRule(IssueLimitScope.VERIFICATION_KEY, 1, interval));
+        return IssueRateLimitPolicy.of(new IssueRateLimitRule(
+                Set.of(IssueLimitDimension.NAMESPACE, IssueLimitDimension.PURPOSE, IssueLimitDimension.SUBJECT),
+                1,
+                interval));
     }
 
-    private static Object identity(IssueLimitScope scope, VerificationKey key) {
-        return switch (scope) {
-            case VERIFICATION_KEY -> key;
-            case SUBJECT -> key.subject();
-        };
+    private static Object identity(Set<IssueLimitDimension> dimensions, IssueContext context) {
+        return dimensions.stream()
+                .map(dimension -> context.value(dimension)
+                        .orElseThrow(() -> new IllegalArgumentException("missing issue limit dimension: " + dimension)))
+                .toList();
     }
 
     private static void removeExpired(ArrayDeque<Instant> history, Instant cutoff) {

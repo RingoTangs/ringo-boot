@@ -8,6 +8,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class IssueRateLimitPolicyTest {
@@ -42,6 +43,6 @@ class IssueRateLimitPolicyTest {
     }
 
     private IssueRateLimitRule rule(int maxIssues, Duration window) {
-        return new IssueRateLimitRule(IssueLimitScope.SUBJECT, maxIssues, window);
+        return new IssueRateLimitRule(Set.of(IssueLimitDimension.SUBJECT), maxIssues, window);
     }
 }

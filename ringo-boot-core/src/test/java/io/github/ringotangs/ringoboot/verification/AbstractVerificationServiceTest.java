@@ -8,6 +8,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimiter;
+import io.github.ringotangs.ringoboot.verification.limit.IssueContext;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitDimension;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDeliveryRejectedException;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
@@ -161,6 +165,29 @@ class AbstractVerificationServiceTest {
     }
 
     @Test
+    void passesIssueContextToRateLimiter() {
+        AtomicReference<IssueContext> captured = new AtomicReference<>();
+        IssueRateLimiter limiter = (context, requestedAt) -> {
+            captured.set(context);
+            return new IssueLimitResult.Allowed();
+        };
+        CapturingVerificationService template = new CapturingVerificationService(
+                length -> "123456",
+                new InMemoryVerificationStore(),
+                limiter,
+                VerificationPolicy.defaults(),
+                Clock.fixed(NOW, ZoneOffset.UTC));
+        IssueContext context = IssueContext.of(LOGIN)
+                .with(IssueLimitDimension.IP_ADDRESS, "203.0.113.10")
+                .with(IssueLimitDimension.DEVICE_ID, "device-123");
+
+        assertInstanceOf(IssueResult.Accepted.class, template.issue(context));
+
+        assertSame(context, captured.get());
+        assertEquals(LOGIN, template.delivery().key());
+    }
+
+    @Test
     void validatesRequiredServiceArgumentsBeforeIssuance() {
         CapturingVerificationService template = template(length -> "123456", new InMemoryVerificationStore());
 
@@ -171,7 +198,8 @@ class AbstractVerificationServiceTest {
                         new InMemoryVerificationStore(),
                         VerificationPolicy.defaults(),
                         Clock.fixed(NOW, ZoneOffset.UTC)));
-        assertThrows(NullPointerException.class, () -> template.issue(null));
+        assertThrows(NullPointerException.class, () -> template.issue((VerificationKey) null));
+        assertThrows(NullPointerException.class, () -> template.issue((IssueContext) null));
         assertThrows(NullPointerException.class, () -> template.issue(LOGIN, null));
     }
 
@@ -190,6 +218,15 @@ class AbstractVerificationServiceTest {
         private CapturingVerificationService(
                 CodeGenerator generator, VerificationStore store, VerificationPolicy policy, Clock clock) {
             super(generator, store, new InMemoryIssueRateLimiter(Duration.ofSeconds(60)), policy, clock);
+        }
+
+        private CapturingVerificationService(
+                CodeGenerator generator,
+                VerificationStore store,
+                IssueRateLimiter issueRateLimiter,
+                VerificationPolicy policy,
+                Clock clock) {
+            super(generator, store, issueRateLimiter, policy, clock);
         }
 
         @Override

@@ -1,6 +1,7 @@
 package io.github.ringotangs.ringoboot.autoconfigure.verification.redis;
 
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
+import io.github.ringotangs.ringoboot.verification.limit.IssueContext;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitException;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
@@ -80,9 +81,10 @@ public final class RedisIssueRateLimiter implements IssueRateLimiter {
 
     /** {@inheritDoc} */
     @Override
-    public IssueLimitResult acquire(VerificationKey key, Instant requestedAt) throws IssueRateLimitException {
-        Objects.requireNonNull(key, "key must not be null");
+    public IssueLimitResult acquire(IssueContext context, Instant requestedAt) throws IssueRateLimitException {
+        Objects.requireNonNull(context, "context must not be null");
         Objects.requireNonNull(requestedAt, "requestedAt must not be null");
+        VerificationKey key = context.key();
         if (interval.isZero()) {
             return ALLOWED;
         }

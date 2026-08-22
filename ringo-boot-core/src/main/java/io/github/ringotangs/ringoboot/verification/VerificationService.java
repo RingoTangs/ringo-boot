@@ -1,6 +1,7 @@
 package io.github.ringotangs.ringoboot.verification;
 
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
+import io.github.ringotangs.ringoboot.verification.limit.IssueContext;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitException;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
@@ -43,6 +44,37 @@ public interface VerificationService {
      * @throws VerificationStoreException 当验证码存储操作失败时
      */
     IssueResult issue(VerificationKey key, VerificationPolicy policy)
+            throws CodeGenerationException, CodeSenderException, IssueRateLimitException, VerificationStoreException;
+
+    /**
+     * 使用默认策略和额外来源信号签发并派发验证码。
+     *
+     * @param context 包含验证码键和额外来源信号的签发上下文
+     * @return 不包含明文验证码的签发结果
+     * @throws CodeGenerationException 当验证码生成失败时
+     * @throws CodeSenderException 当验证码渠道派发失败时
+     * @throws IllegalArgumentException 当限流策略依赖上下文未提供的额外维度时
+     * @throws IssueRateLimitException 当签发限流操作失败时
+     * @throws NullPointerException 当签发上下文为 {@code null} 时
+     * @throws VerificationStoreException 当验证码存储操作失败时
+     */
+    IssueResult issue(IssueContext context)
+            throws CodeGenerationException, CodeSenderException, IssueRateLimitException, VerificationStoreException;
+
+    /**
+     * 使用指定策略和额外来源信号签发并派发验证码。
+     *
+     * @param context 包含验证码键和额外来源信号的签发上下文
+     * @param policy 验证码策略
+     * @return 不包含明文验证码的签发结果
+     * @throws CodeGenerationException 当验证码生成失败时
+     * @throws CodeSenderException 当验证码渠道派发失败时
+     * @throws IllegalArgumentException 当限流策略依赖上下文未提供的额外维度时
+     * @throws IssueRateLimitException 当签发限流操作失败时
+     * @throws NullPointerException 当签发上下文或策略为 {@code null} 时
+     * @throws VerificationStoreException 当验证码存储操作失败时
+     */
+    IssueResult issue(IssueContext context, VerificationPolicy policy)
             throws CodeGenerationException, CodeSenderException, IssueRateLimitException, VerificationStoreException;
 
     /**

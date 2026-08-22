@@ -18,11 +18,26 @@ public interface IssueRateLimiter {
     /**
      * 尝试获取一次验证码签发名额。
      *
+     * @param context 包含验证码键和额外来源信号的签发上下文
+     * @param requestedAt 请求签发的时间
+     * @return 允许签发或受限结果
+     * @throws NullPointerException 当任一参数为 {@code null} 时
+     * @throws IllegalArgumentException 当策略依赖上下文未提供的额外维度时
+     * @throws IssueRateLimitException 当底层限流操作失败时
+     */
+    IssueLimitResult acquire(IssueContext context, Instant requestedAt) throws IssueRateLimitException;
+
+    /**
+     * 使用不含额外来源信号的验证码键尝试获取签发名额。
+     *
      * @param key 验证码键
      * @param requestedAt 请求签发的时间
      * @return 允许签发或受限结果
      * @throws NullPointerException 当任一参数为 {@code null} 时
+     * @throws IllegalArgumentException 当策略依赖上下文未提供的额外维度时
      * @throws IssueRateLimitException 当底层限流操作失败时
      */
-    IssueLimitResult acquire(VerificationKey key, Instant requestedAt) throws IssueRateLimitException;
+    default IssueLimitResult acquire(VerificationKey key, Instant requestedAt) throws IssueRateLimitException {
+        return acquire(IssueContext.of(key), requestedAt);
+    }
 }
