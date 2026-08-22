@@ -8,7 +8,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-/** 基于进程内存的线程安全签发限流后端，仅适用于测试、开发和单实例应用。 */
+/**
+ * 基于进程内存的线程安全签发限流后端。
+ *
+ * <p>每个 {@code ruleId + bucket} 对应一条按签发时间排序的历史队列。{@link #acquire(List, Instant)} 使用同步临界区完成所有
+ * 窗口清理、额度检查和记录写入，因此单 JVM 内不会出现部分消费。
+ *
+ * <p><strong>使用限制：</strong>历史状态不会跨进程共享，也不会持久化。该实现仅适用于单元测试、本地开发和单实例应用；多实例生产
+ * 环境应使用能够提供跨进程原子性的 Redis 后端或自定义后端。
+ */
 public final class InMemoryIssueRateLimitBackend implements IssueRateLimitBackend {
 
     private static final long CLEANUP_INTERVAL = 256;
@@ -16,6 +24,9 @@ public final class InMemoryIssueRateLimitBackend implements IssueRateLimitBacken
 
     private final Map<HistoryKey, History> histories = new HashMap<>();
     private long acquisitions;
+
+    /** 创建一个初始不包含任何额度历史的内存限流后端。 */
+    public InMemoryIssueRateLimitBackend() {}
 
     /** {@inheritDoc} */
     @Override
@@ -56,6 +67,7 @@ public final class InMemoryIssueRateLimitBackend implements IssueRateLimitBacken
         return ALLOWED;
     }
 
+    /** 周期性移除已经没有有效签发记录的额度桶，避免长期运行时保留无用桶。 */
     private void cleanup(Instant requestedAt) {
         if (++acquisitions % CLEANUP_INTERVAL == 0) {
             histories.entrySet().removeIf(entry -> {
@@ -67,6 +79,7 @@ public final class InMemoryIssueRateLimitBackend implements IssueRateLimitBacken
         }
     }
 
+    /** 移除位于滚动窗口左边界及其之前的签发记录。 */
     private static void removeExpired(ArrayDeque<Instant> history, Instant cutoff) {
         while (!history.isEmpty() && !history.getFirst().isAfter(cutoff)) {
             history.removeFirst();
