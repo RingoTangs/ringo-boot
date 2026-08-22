@@ -18,6 +18,9 @@ import java.util.Objects;
  *
  * <p>参数、规则声明和上下文数据违反契约时使用 Java 标准运行时异常；只有底层存储或原子操作等技术故障才使用
  * {@link IssueRateLimitException}。正常限流始终通过 {@link IssueLimitResult.Throttled} 返回。
+ *
+ * <p>默认管理器采用严格拒绝策略，没有规则覆盖当前验证码键时抛出 {@link MissingIssueRateLimitRuleException}。确实需要关闭限流的
+ * 应用必须显式使用 {@link #permitAll()}。
  */
 @FunctionalInterface
 public interface IssueRateLimiter {
@@ -26,6 +29,7 @@ public interface IssueRateLimiter {
      * 创建一个显式允许所有签发请求的限流器。
      *
      * <p>该实现不会创建或消费任何额度，只适用于应用明确决定关闭签发限流的场景。生产应用通常应配置实际限流规则。
+     * 返回的实现仍会校验验证码键和请求时间非空。
      *
      * @return 显式允许所有签发请求的限流器
      */

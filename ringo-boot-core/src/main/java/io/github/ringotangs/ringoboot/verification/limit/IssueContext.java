@@ -96,6 +96,13 @@ public record IssueContext(VerificationKey key, Map<String, String> attributes) 
                 + attributes.keySet() + ']';
     }
 
+    /**
+     * 校验扩展属性名称。
+     *
+     * @param name 待校验的属性名称
+     * @throws NullPointerException 当属性名称为 {@code null} 时
+     * @throws IllegalArgumentException 当属性名称为空白时
+     */
     private static void requireAttributeName(String name) {
         Objects.requireNonNull(name, "attribute name must not be null");
         if (name.isBlank()) {

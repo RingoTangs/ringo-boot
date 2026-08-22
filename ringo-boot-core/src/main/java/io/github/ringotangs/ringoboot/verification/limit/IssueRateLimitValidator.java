@@ -7,8 +7,10 @@ import java.util.regex.Pattern;
 /** 统一校验签发限流规则定义中的公共字段。 */
 final class IssueRateLimitValidator {
 
+    /** 规则 ID 格式：仅允许小写字母、数字及分隔单词的单个连字符。 */
     private static final Pattern RULE_ID_PATTERN = Pattern.compile("[a-z0-9]+(?:-[a-z0-9]+)*");
 
+    /** 工具类不允许实例化。 */
     private IssueRateLimitValidator() {}
 
     /**

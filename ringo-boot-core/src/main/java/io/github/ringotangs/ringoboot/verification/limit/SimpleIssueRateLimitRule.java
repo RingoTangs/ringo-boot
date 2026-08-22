@@ -37,13 +37,29 @@ public record SimpleIssueRateLimitRule(
         IssueRateLimitValidator.validateRuleDefinition(id, maxIssues, window);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * 使用配置的匹配器判断规则是否适用。
+     *
+     * @param context 非空签发上下文
+     * @return 匹配器的判断结果
+     * @throws NullPointerException 当上下文为 {@code null} 时
+     * @throws RuntimeException 当匹配器执行失败时
+     */
     @Override
     public boolean matches(IssueContext context) {
         return matcher.test(Objects.requireNonNull(context, "context must not be null"));
     }
 
-    /** {@inheritDoc} */
+    /**
+     * 使用配置的解析器计算额度桶。
+     *
+     * <p>解析器返回值的非空校验由 {@link IssueRateLimitManager} 统一执行。
+     *
+     * @param context 非空签发上下文
+     * @return 解析器生成的额度桶
+     * @throws NullPointerException 当上下文为 {@code null} 时
+     * @throws RuntimeException 当额度桶解析器执行失败时
+     */
     @Override
     public IssueLimitBucket bucket(IssueContext context) {
         return bucketResolver.apply(Objects.requireNonNull(context, "context must not be null"));

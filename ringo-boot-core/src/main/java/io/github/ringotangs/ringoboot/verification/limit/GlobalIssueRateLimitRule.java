@@ -15,6 +15,7 @@ import java.util.Objects;
  */
 public record GlobalIssueRateLimitRule(String id, int maxIssues, Duration window) implements IssueRateLimitRule {
 
+    /** 所有签发请求共享的固定额度桶；具体全局范围由 Store 的隔离策略决定。 */
     private static final IssueLimitBucket GLOBAL_BUCKET = IssueLimitBucket.of("global");
 
     /**
@@ -27,7 +28,13 @@ public record GlobalIssueRateLimitRule(String id, int maxIssues, Duration window
         IssueRateLimitValidator.validateRuleDefinition(id, maxIssues, window);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * 返回所有签发请求共享的全局额度桶。
+     *
+     * @param context 非空签发上下文；仅用于校验调用契约，不参与分桶
+     * @return 固定的全局额度桶
+     * @throws NullPointerException 当上下文为 {@code null} 时
+     */
     @Override
     public IssueLimitBucket bucket(IssueContext context) {
         Objects.requireNonNull(context, "context must not be null");
