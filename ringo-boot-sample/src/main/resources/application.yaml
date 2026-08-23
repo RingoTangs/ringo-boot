@@ -20,11 +20,8 @@ ringo:
   boot:
     problem:
       enabled: true
-      application-enabled: true
-      mvc-enabled: true
-      verification-enabled: true
-      i18n-enabled: true
-      fallback-enabled: true
+      handlers:
+        fallback: true
     verification:
       enabled: true
       store: redis

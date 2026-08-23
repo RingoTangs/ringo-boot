@@ -18,7 +18,11 @@ import org.springframework.http.ProblemDetail;
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass({ProblemDetail.class, VerificationException.class})
 @ConditionalOnProperty(prefix = ProblemProperties.PREFIX, name = "enabled", havingValue = "true")
-@ConditionalOnProperty(prefix = ProblemProperties.PREFIX, name = "verification-enabled", havingValue = "true")
+@ConditionalOnProperty(
+        prefix = ProblemProperties.HANDLERS_PREFIX,
+        name = "verification",
+        havingValue = "true",
+        matchIfMissing = true)
 @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "enabled", havingValue = "true")
 public class VerificationProblemAutoConfiguration {
 

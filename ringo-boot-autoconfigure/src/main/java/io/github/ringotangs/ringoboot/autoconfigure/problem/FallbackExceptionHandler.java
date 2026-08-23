@@ -66,7 +66,7 @@ public class FallbackExceptionHandler {
     public ResponseEntity<ProblemDetail> handleException(Exception exception) {
         Objects.requireNonNull(exception, "exception must not be null");
         if (exception instanceof ErrorResponse errorResponse) {
-            ProblemDetail body = properties.isI18nEnabled()
+            ProblemDetail body = properties.isI18n()
                     ? errorResponse.updateAndGetBody(messageSource, LocaleContextHolder.getLocale())
                     : errorResponse.getBody();
             return new ResponseEntity<>(body, errorResponse.getHeaders(), errorResponse.getStatusCode());

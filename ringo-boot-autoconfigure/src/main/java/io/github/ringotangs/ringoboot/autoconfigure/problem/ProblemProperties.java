@@ -9,36 +9,21 @@ public class ProblemProperties {
     /** 配置属性前缀。 */
     public static final String PREFIX = "ringo.boot.problem";
 
+    /** 异常处理器配置属性前缀。 */
+    public static final String HANDLERS_PREFIX = PREFIX + ".handlers";
+
     /**
      * 是否启用整套异常处理自动配置；需要显式开启。
      */
-    private boolean enabled = false;
+    private boolean enabled;
 
     /**
-     * 是否启用 ProblemException 异常处理；仅在总开关开启后生效。
+     * 是否使用 Spring MessageSource 解析业务问题、验证码和兜底异常的标题与详情。
      */
-    private boolean applicationEnabled = false;
+    private boolean i18n = true;
 
-    /**
-     * 是否启用 Spring MVC 内置异常处理；仅在总开关开启后生效。
-     */
-    private boolean mvcEnabled = false;
-
-    /**
-     * 是否启用验证码技术异常处理；仅在总开关和验证码功能均开启后生效。
-     */
-    private boolean verificationEnabled = false;
-
-    /**
-     * 是否使用 Spring MessageSource 解析业务异常和兜底异常的标题与详情；
-     * Spring MVC 内置异常始终使用 Spring 原生的消息解析机制。
-     */
-    private boolean i18nEnabled = false;
-
-    /**
-     * 是否启用未知异常兜底处理；仅在总开关开启后生效。
-     */
-    private boolean fallbackEnabled = false;
+    /** 各类异常处理器的开关。 */
+    private final Handlers handlers = new Handlers();
 
     public boolean isEnabled() {
         return enabled;
@@ -48,43 +33,63 @@ public class ProblemProperties {
         this.enabled = enabled;
     }
 
-    public boolean isApplicationEnabled() {
-        return applicationEnabled;
+    public boolean isI18n() {
+        return i18n;
     }
 
-    public void setApplicationEnabled(boolean applicationEnabled) {
-        this.applicationEnabled = applicationEnabled;
+    public void setI18n(boolean i18n) {
+        this.i18n = i18n;
     }
 
-    public boolean isMvcEnabled() {
-        return mvcEnabled;
+    public Handlers getHandlers() {
+        return handlers;
     }
 
-    public void setMvcEnabled(boolean mvcEnabled) {
-        this.mvcEnabled = mvcEnabled;
-    }
+    /** 各类异常处理器的配置。 */
+    public static class Handlers {
 
-    public boolean isVerificationEnabled() {
-        return verificationEnabled;
-    }
+        /** 是否处理应用抛出的 ProblemException。 */
+        private boolean application = true;
 
-    public void setVerificationEnabled(boolean verificationEnabled) {
-        this.verificationEnabled = verificationEnabled;
-    }
+        /** 是否处理 Spring MVC 内置异常。 */
+        private boolean mvc = true;
 
-    public boolean isI18nEnabled() {
-        return i18nEnabled;
-    }
+        /** 是否处理验证码业务和技术异常。 */
+        private boolean verification = true;
 
-    public void setI18nEnabled(boolean i18nEnabled) {
-        this.i18nEnabled = i18nEnabled;
-    }
+        /** 是否兜底处理其他未知异常。 */
+        private boolean fallback;
 
-    public boolean isFallbackEnabled() {
-        return fallbackEnabled;
-    }
+        public boolean isApplication() {
+            return application;
+        }
 
-    public void setFallbackEnabled(boolean fallbackEnabled) {
-        this.fallbackEnabled = fallbackEnabled;
+        public void setApplication(boolean application) {
+            this.application = application;
+        }
+
+        public boolean isMvc() {
+            return mvc;
+        }
+
+        public void setMvc(boolean mvc) {
+            this.mvc = mvc;
+        }
+
+        public boolean isVerification() {
+            return verification;
+        }
+
+        public void setVerification(boolean verification) {
+            this.verification = verification;
+        }
+
+        public boolean isFallback() {
+            return fallback;
+        }
+
+        public void setFallback(boolean fallback) {
+            this.fallback = fallback;
+        }
     }
 }

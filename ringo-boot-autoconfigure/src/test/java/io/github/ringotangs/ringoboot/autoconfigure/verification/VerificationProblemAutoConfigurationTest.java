@@ -34,14 +34,13 @@ class VerificationProblemAutoConfigurationTest {
     @Test
     void configuresVerificationHandlingIndependently() {
         contextRunner
-                .withPropertyValues(
-                        "ringo.boot.problem.enabled=true",
-                        "ringo.boot.problem.verification-enabled=true",
-                        "ringo.boot.verification.enabled=true")
+                .withPropertyValues("ringo.boot.problem.enabled=true", "ringo.boot.verification.enabled=true")
                 .run(context -> {
                     assertThat(context).hasSingleBean(VerificationExceptionHandler.class);
                     assertThat(context).hasSingleBean(ProblemMessageResolver.class);
-                    assertThat(context.getBean(ProblemProperties.class).isVerificationEnabled())
+                    assertThat(context.getBean(ProblemProperties.class)
+                                    .getHandlers()
+                                    .isVerification())
                             .isTrue();
                 });
     }
@@ -49,10 +48,7 @@ class VerificationProblemAutoConfigurationTest {
     @Test
     void doesNotConfigureInNonWebApplication() {
         nonWebContextRunner
-                .withPropertyValues(
-                        "ringo.boot.problem.enabled=true",
-                        "ringo.boot.problem.verification-enabled=true",
-                        "ringo.boot.verification.enabled=true")
+                .withPropertyValues("ringo.boot.problem.enabled=true", "ringo.boot.verification.enabled=true")
                 .run(context -> assertThat(context).doesNotHaveBean(VerificationExceptionHandler.class));
     }
 
@@ -60,10 +56,7 @@ class VerificationProblemAutoConfigurationTest {
     void doesNotConfigureWhenVerificationClassesAreAbsent() {
         contextRunner
                 .withClassLoader(new FilteredClassLoader("io.github.ringotangs.ringoboot.verification"))
-                .withPropertyValues(
-                        "ringo.boot.problem.enabled=true",
-                        "ringo.boot.problem.verification-enabled=true",
-                        "ringo.boot.verification.enabled=true")
+                .withPropertyValues("ringo.boot.problem.enabled=true", "ringo.boot.verification.enabled=true")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).doesNotHaveBean("verificationExceptionHandler");
@@ -71,13 +64,20 @@ class VerificationProblemAutoConfigurationTest {
     }
 
     @Test
-    void requiresBothFeatureSwitches() {
+    void requiresBothFeatureSwitchesAndHonorsHandlerSwitch() {
         contextRunner
-                .withPropertyValues("ringo.boot.problem.enabled=true", "ringo.boot.verification.enabled=true")
+                .withPropertyValues("ringo.boot.problem.enabled=true")
                 .run(context -> assertThat(context).doesNotHaveBean(VerificationExceptionHandler.class));
 
         contextRunner
-                .withPropertyValues("ringo.boot.problem.enabled=true", "ringo.boot.problem.verification-enabled=true")
+                .withPropertyValues("ringo.boot.verification.enabled=true")
+                .run(context -> assertThat(context).doesNotHaveBean(VerificationExceptionHandler.class));
+
+        contextRunner
+                .withPropertyValues(
+                        "ringo.boot.problem.enabled=true",
+                        "ringo.boot.problem.handlers.verification=false",
+                        "ringo.boot.verification.enabled=true")
                 .run(context -> assertThat(context).doesNotHaveBean(VerificationExceptionHandler.class));
     }
 
@@ -88,10 +88,7 @@ class VerificationProblemAutoConfigurationTest {
         VerificationExceptionHandler customHandler = new VerificationExceptionHandler(resolver);
 
         contextRunner
-                .withPropertyValues(
-                        "ringo.boot.problem.enabled=true",
-                        "ringo.boot.problem.verification-enabled=true",
-                        "ringo.boot.verification.enabled=true")
+                .withPropertyValues("ringo.boot.problem.enabled=true", "ringo.boot.verification.enabled=true")
                 .withBean(VerificationExceptionHandler.class, () -> customHandler)
                 .run(context -> assertThat(context.getBean(VerificationExceptionHandler.class))
                         .isSameAs(customHandler));
@@ -102,11 +99,7 @@ class VerificationProblemAutoConfigurationTest {
         LocaleContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
 
         contextRunner
-                .withPropertyValues(
-                        "ringo.boot.problem.enabled=true",
-                        "ringo.boot.problem.verification-enabled=true",
-                        "ringo.boot.problem.i18n-enabled=true",
-                        "ringo.boot.verification.enabled=true")
+                .withPropertyValues("ringo.boot.problem.enabled=true", "ringo.boot.verification.enabled=true")
                 .run(context -> {
                     VerificationExceptionHandler handler = context.getBean(VerificationExceptionHandler.class);
                     ProblemDetail problem =

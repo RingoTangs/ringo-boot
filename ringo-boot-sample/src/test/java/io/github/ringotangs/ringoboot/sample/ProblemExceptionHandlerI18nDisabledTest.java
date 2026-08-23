@@ -11,7 +11,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(properties = {"ringo.boot.problem.i18n-enabled=false", "ringo.boot.verification.store=memory"})
+@SpringBootTest(properties = {"ringo.boot.problem.i18n=false", "ringo.boot.verification.store=memory"})
 @AutoConfigureMockMvc
 class ProblemExceptionHandlerI18nDisabledTest {
 

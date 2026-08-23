@@ -86,7 +86,7 @@ class SpringMvcExceptionHandlerTest {
         messageSource.addMessage(exception.getTitleMessageCode(), Locale.CHINA, "Spring 本地化标题");
         messageSource.addMessage(exception.getDetailMessageCode(), Locale.CHINA, "Spring 本地化详情");
         ProblemProperties properties = new ProblemProperties();
-        properties.setI18nEnabled(false);
+        properties.setI18n(false);
         SpringMvcExceptionHandler localizedHandler = new SpringMvcExceptionHandler(messageSource, properties);
 
         org.springframework.context.i18n.LocaleContextHolder.setLocale(Locale.CHINA);

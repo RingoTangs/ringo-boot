@@ -68,7 +68,7 @@ class FallbackExceptionHandlerTest {
 
     @Test
     void usesBuiltInLocalizedMessagesForUnexpectedException() {
-        properties.setI18nEnabled(true);
+        properties.setI18n(true);
         LocaleContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
         FallbackExceptionHandler handler = createHandler(new MessageSourceProblemMessageResolver(messageSource));
 
@@ -82,7 +82,7 @@ class FallbackExceptionHandlerTest {
 
     @Test
     void usesBuiltInEnglishMessagesForUnexpectedException() {
-        properties.setI18nEnabled(true);
+        properties.setI18n(true);
         LocaleContextHolder.setLocale(Locale.ENGLISH);
         FallbackExceptionHandler handler = createHandler(new MessageSourceProblemMessageResolver(messageSource));
 
@@ -97,7 +97,7 @@ class FallbackExceptionHandlerTest {
     @Test
     void applicationMessagesOverrideBuiltInMessagesPerKey() {
         messageSource.addMessage("problem.internal-server-error.title", Locale.SIMPLIFIED_CHINESE, "自定义服务器错误");
-        properties.setI18nEnabled(true);
+        properties.setI18n(true);
         LocaleContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
         FallbackExceptionHandler handler = createHandler(new MessageSourceProblemMessageResolver(messageSource));
 
