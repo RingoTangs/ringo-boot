@@ -20,9 +20,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 /**
  * 将未被专用处理器处理的异常转换为安全的 Problem Details 响应。
  *
- * <p>Converts exceptions not handled by a dedicated handler into safe Problem Details
- * responses.</p>
- *
  * <p>应用自定义 Advice、{@link ProblemExceptionHandler} 和
  * {@link SpringMvcExceptionHandler} 优先处理其负责的异常，最后由本处理器兜底。</p>
  */
@@ -48,7 +45,9 @@ public class FallbackExceptionHandler {
     /**
      * 使用消息解析器创建全局异常兜底处理器。
      *
-     * <p>Creates the global fallback exception handler with a message resolver.</p>
+     * @param messageResolver 问题消息解析器
+     * @param messageSource Spring 消息源
+     * @param properties 异常处理配置
      */
     public FallbackExceptionHandler(
             ProblemMessageResolver messageResolver, MessageSource messageSource, ProblemProperties properties) {
@@ -60,8 +59,8 @@ public class FallbackExceptionHandler {
     /**
      * 保留 Spring 框架错误响应，并安全处理其他未知异常。
      *
-     * <p>Preserves Spring framework error responses and safely handles all other
-     * unexpected exceptions.</p>
+     * @param exception 待处理的异常
+     * @return Problem Details 响应
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleException(Exception exception) {

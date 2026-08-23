@@ -61,27 +61,10 @@ import org.springframework.data.redis.core.script.RedisScript;
  * <p>Redis key 的 TTL 截止时间为 {@code expiresAt + expiredRetention}。校验成功、尝试次数耗尽、主动失效，
  * 或校验时发现业务已过期，都会提前删除记录。邮箱、手机号和验证码均不会以明文写入 Redis。</p>
  *
- * <p>Atomically stores verification state with Redis hashes and single-key Lua scripts. A Redis
- * key has the form {@code
- * {applicationName}:verification:v1:{namespace}:{purpose}:{keyDigest}}. The application name,
- * namespace, and purpose remain readable for isolation and classification, while the subject is
- * included only in the HMAC-SHA256 key digest. Each hash stores {@code codeDigest}, {@code expiresAt}, and
- * {@code remainingAttempts}. Timestamps use epoch milliseconds, and the Redis key
- * expires at {@code expiresAt + expiredRetention}. Successful verification, exhausted attempts,
- * explicit invalidation, and detection of business expiration delete the record early. Email
- * addresses, phone numbers, and verification codes are never stored in plaintext.</p>
- *
  * <p>{@code v1} 是框架维护的存储协议版本，不是运行时配置。未来发生不兼容的 key、Hash 字段或摘要协议
  * 变更时，可使用新版本隔离新旧数据，避免新代码错误解释旧数据。</p>
  *
- * <p>{@code v1} is a framework-managed storage-protocol version, not a runtime configuration
- * property. A future incompatible key, hash-field, or digest protocol can use a new version to
- * isolate old data and prevent new code from interpreting it incorrectly.</p>
- *
- * <p><strong>API 注意事项：</strong> 所有共享 Redis 数据的应用实例必须使用同一 HMAC 密钥，否则相同验证键会映射到不同 Redis
- * key，且验证码摘要无法匹配。 / Every application instance sharing Redis data must use the same
- * HMAC secret; otherwise identical verification keys map to different Redis keys and code digests
- * cannot match.</p>
+ * <p>所有共享 Redis 数据的应用实例必须使用同一 HMAC 密钥，否则相同验证码键会映射到不同 Redis key，验证码摘要也无法匹配。</p>
  */
 public final class RedisVerificationStore implements VerificationStore {
 
@@ -101,11 +84,6 @@ public final class RedisVerificationStore implements VerificationStore {
      * 所有时间均为 epoch milliseconds。</p>
      *
      * <p>脚本会完整覆盖同一验证码键的旧 Hash、设置绝对 TTL，并返回业务过期时间。</p>
-     *
-     * <p>Atomic issuance script. {@code KEYS[1]} is the complete Redis key. Arguments are the code
-     * digest, business expiration, maximum attempts, Redis deletion time, and current
-     * issuance time. It returns {@code [1, retryAfterMillis]} when issuance is throttled, otherwise
-     * replaces the hash, sets its absolute TTL, and returns {@code [0, expiresAtMillis]}.</p>
      */
     private static final RedisScript<Long> STORE_SCRIPT = RedisScript.of("""
             redis.call('DEL', KEYS[1])
@@ -125,12 +103,6 @@ public final class RedisVerificationStore implements VerificationStore {
      * 成功、{@code 3} 不匹配但仍可尝试、{@code 4} 尝试次数耗尽、{@code 5} Hash 数据不完整。</p>
      *
      * <p>成功、过期和次数耗尽都会删除 key；普通不匹配会原子递减 {@code remainingAttempts}。</p>
-     *
-     * <p>Atomic verify-and-consume script. {@code KEYS[1]} is the complete Redis key, {@code
-     * ARGV[1]} is the candidate code digest, and {@code ARGV[2]} is the verification time in epoch
-     * milliseconds. Statuses {@code 0} through {@code 5} mean not found, expired, success,
-     * mismatch, attempts exhausted, and incomplete state. Success, expiration, and exhaustion
-     * delete the key; an ordinary mismatch atomically decrements the remaining attempts.</p>
      */
     private static final RedisScript<Long> VERIFY_SCRIPT = RedisScript.of("""
             if redis.call('EXISTS', KEYS[1]) == 0 then
@@ -163,10 +135,6 @@ public final class RedisVerificationStore implements VerificationStore {
      *
      * <p>{@code KEYS[1]} 是完整 Redis key，{@code ARGV[1]} 是需要撤销的验证码摘要。只有 Hash 中保存的摘要
      * 仍与参数相同时才删除记录，避免旧派发任务失败后的补偿操作误删后来签发的新验证码。</p>
-     *
-     * <p>Atomic invalidation script. {@code KEYS[1]} is the complete Redis key and {@code ARGV[1]}
-     * is the code digest to revoke. It deletes the hash only while the stored digest still matches,
-     * preventing compensation for an older delivery failure from deleting a newer code.</p>
      */
     private static final RedisScript<Long> INVALIDATE_SCRIPT = RedisScript.of("""
             local storedDigest = redis.call('HGET', KEYS[1], 'codeDigest')
@@ -184,18 +152,12 @@ public final class RedisVerificationStore implements VerificationStore {
     /**
      * 使用 Redis 模板、共享密钥和过期保留时间创建存储。
      *
-     * <p>Creates a store with a Redis template, shared secret, and expiration
-     * retention.</p>
-     *
-     * @param redisTemplate Redis 字符串模板 / the Redis string template
-     * @param secret 至少 32 字节的共享 HMAC 密钥 / the shared HMAC secret of at least 32 bytes
-     * @param expiredRetention 业务过期后的保留时间 / retention after business expiration
-     * @throws NullPointerException 当任一参数为 {@code null} 时 / if any argument is {@code null}
-     * @throws IllegalArgumentException 当密钥过短或保留时间不是正数时 / if the secret is too short or
-     *     retention is not positive
-     * @deprecated 使用包含应用名称的构造器；此构造器仅保留旧 key 和摘要协议兼容性 / use the
-     *     application-name constructor; this constructor remains only for legacy key and digest
-     *     protocol compatibility
+     * @param redisTemplate Redis 字符串操作模板
+     * @param secret 至少 32 字节的共享 HMAC 密钥
+     * @param expiredRetention 业务过期后的保留时间
+     * @throws NullPointerException 当任一参数为 {@code null} 时
+     * @throws IllegalArgumentException 当密钥过短或保留时间不是正数时
+     * @deprecated 请使用包含应用名称的构造器；此构造器仅用于兼容旧版 key 和摘要协议
      */
     @Deprecated(since = "1.0", forRemoval = false)
     public RedisVerificationStore(StringRedisTemplate redisTemplate, byte[] secret, Duration expiredRetention) {
@@ -205,13 +167,10 @@ public final class RedisVerificationStore implements VerificationStore {
     /**
      * 使用应用名称隔离 Redis 数据，创建验证码存储。
      *
-     * <p>Creates a verification store whose Redis data is isolated by application name.</p>
-     *
-     * @param redisTemplate Redis 字符串模板 / the Redis string template
-     * @param secret 至少 32 字节的共享 HMAC 密钥 / the shared HMAC secret of at least 32 bytes
-     * @param expiredRetention 业务过期后的保留时间 / retention after business expiration
-     * @param applicationName Redis key 和摘要使用的应用名称 / application name used by Redis
-     *     keys and digests
+     * @param redisTemplate Redis 字符串操作模板
+     * @param secret 至少 32 字节的共享 HMAC 密钥
+     * @param expiredRetention 业务过期后的保留时间
+     * @param applicationName Redis key 和摘要使用的应用名称
      */
     public RedisVerificationStore(
             StringRedisTemplate redisTemplate, byte[] secret, Duration expiredRetention, String applicationName) {
@@ -245,7 +204,16 @@ public final class RedisVerificationStore implements VerificationStore {
         this.applicationName = applicationName;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * 保存验证码摘要、过期时间和最大校验次数。
+     *
+     * @param key 验证码键
+     * @param code 验证码明文，仅用于计算摘要
+     * @param policy 验证码策略
+     * @param issuedAt 签发时间
+     * @return 存储结果
+     * @throws VerificationStoreException 当 Redis 操作失败时
+     */
     @Override
     public StoreResult store(VerificationKey key, String code, VerificationPolicy policy, Instant issuedAt)
             throws VerificationStoreException {
@@ -268,7 +236,15 @@ public final class RedisVerificationStore implements VerificationStore {
         return new StoreResult(Instant.ofEpochMilli(result));
     }
 
-    /** {@inheritDoc} */
+    /**
+     * 原子校验并消费验证码。
+     *
+     * @param key 验证码键
+     * @param code 待校验的验证码
+     * @param verifiedAt 校验时间
+     * @return 验证结果
+     * @throws VerificationStoreException 当 Redis 操作失败时
+     */
     @Override
     public VerifyResult verifyAndConsume(VerificationKey key, String code, Instant verifiedAt)
             throws VerificationStoreException {
@@ -291,7 +267,14 @@ public final class RedisVerificationStore implements VerificationStore {
         };
     }
 
-    /** {@inheritDoc} */
+    /**
+     * 当验证码键和验证码同时匹配时删除记录。
+     *
+     * @param key 验证码键
+     * @param code 待失效的验证码
+     * @return 是否删除了记录
+     * @throws VerificationStoreException 当 Redis 操作失败时
+     */
     @Override
     public boolean invalidate(VerificationKey key, String code) throws VerificationStoreException {
         Objects.requireNonNull(key, "key must not be null");
@@ -306,12 +289,8 @@ public final class RedisVerificationStore implements VerificationStore {
     /**
      * 创建验证码状态对应的 Redis key。
      *
-     * <p>Creates the Redis key for the verification state.</p>
-     *
-     * @param key 包含业务域、用途和验证主体的验证键 / verification key containing namespace,
-     *     purpose, and subject
-     * @return 包含可读业务前缀和不可逆 subject 摘要的 Redis key / Redis key containing readable
-     *     business segments and an irreversible subject digest
+     * @param key 包含业务域、用途和验证主体的验证码键
+     * @return 包含业务前缀和验证主体摘要的 Redis key
      */
     private String redisKey(VerificationKey key) {
         String prefix = applicationName == null
@@ -325,14 +304,9 @@ public final class RedisVerificationStore implements VerificationStore {
      *
      * <p>相同验证码用于不同 subject、namespace 或 purpose 时会生成不同摘要。</p>
      *
-     * <p>Creates a code digest bound to the business dimensions and verification subject. The same
-     * code produces a different digest for another subject, namespace, or purpose.</p>
-     *
-     * @param key 验证键 / verification key
-     * @param code 验证码明文，仅在当前进程中参与摘要计算 / plaintext code used only for digest
-     *     calculation in the current process
-     * @return 无填充 Base64URL 编码的 HMAC-SHA256 摘要 / unpadded Base64URL-encoded HMAC-SHA256
-     *     digest
+     * @param key 验证码键
+     * @param code 验证码明文，仅在当前进程中用于计算摘要
+     * @return 无填充 Base64URL 编码的 HMAC-SHA256 摘要
      */
     private String codeDigest(VerificationKey key, String code) {
         return digest(CODE_DIGEST_DOMAIN, key, code);
@@ -345,18 +319,11 @@ public final class RedisVerificationStore implements VerificationStore {
      * {@link #update(Mac, String)} 编码，顺序为 domain、applicationName、namespace、purpose、subject，
      * 以及可选 code。兼容构造器省略 applicationName 段。</p>
      *
-     * <p>Computes an HMAC-SHA256 digest over deterministically framed segments. The domain separates
-     * Redis-key digests from code digests. Segment order is domain, application name, namespace,
-     * purpose, subject, and the optional code. The compatibility constructor omits the application
-     * name segment.</p>
-     *
-     * @param domain 摘要用途域 / digest-purpose domain
-     * @param key 验证键 / verification key
-     * @param code 可选验证码；生成 Redis key 摘要时为 {@code null} / optional code, {@code null}
-     *     when creating a Redis-key digest
-     * @return 无填充 Base64URL 编码摘要 / unpadded Base64URL-encoded digest
-     * @throws VerificationStoreException 当运行环境不支持 HmacSHA256 时 / if HmacSHA256 is not
-     *     available
+     * @param domain 摘要用途
+     * @param key 验证码键
+     * @param code 可选验证码；生成 Redis key 摘要时为 {@code null}
+     * @return 无填充 Base64URL 编码摘要
+     * @throws VerificationStoreException 当运行环境不支持 HmacSHA256 时
      */
     private String digest(String domain, VerificationKey key, @Nullable String code) {
         try {
@@ -383,12 +350,8 @@ public final class RedisVerificationStore implements VerificationStore {
      *
      * <p>长度前缀保留分段边界，避免 {@code ["ab", "c"]} 与 {@code ["a", "bc"]} 产生相同输入字节。</p>
      *
-     * <p>Feeds one string segment into the HMAC as a four-byte big-endian length followed by UTF-8
-     * bytes. Length framing preserves segment boundaries, so {@code ["ab", "c"]} cannot collide
-     * with {@code ["a", "bc"]} merely through concatenation.</p>
-     *
-     * @param mac 当前 HMAC 计算器 / active HMAC calculator
-     * @param value 要写入的字符串段 / string segment to feed
+     * @param mac 当前 HMAC 计算器
+     * @param value 要写入的字符串段
      */
     private void update(Mac mac, String value) {
         byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
@@ -399,16 +362,12 @@ public final class RedisVerificationStore implements VerificationStore {
     /**
      * 使用单个 Redis key 执行 Lua 脚本并统一转换 Spring Data Redis 访问异常。
      *
-     * <p>Executes a Lua script against one Redis key and consistently translates Spring Data Redis
-     * access failures.</p>
-     *
-     * @param script 要执行的脚本 / script to execute
-     * @param key 唯一的 Redis key / sole Redis key
-     * @param arguments 脚本 ARGV 参数 / script ARGV values
-     * @param <T> 脚本返回类型 / script result type
-     * @return 脚本结果，Redis 返回空结果时可能为 {@code null} / script result, possibly {@code
-     *     null} when Redis returns no value
-     * @throws VerificationStoreException 当 Redis 访问失败时 / if Redis access fails
+     * @param script 要执行的脚本
+     * @param key 唯一的 Redis key
+     * @param arguments 脚本参数
+     * @param <T> 脚本返回类型
+     * @return 脚本结果，Redis 未返回值时为 {@code null}
+     * @throws VerificationStoreException 当 Redis 访问失败时
      */
     private <T extends @Nullable Object> @Nullable T execute(RedisScript<T> script, String key, String... arguments) {
         try {

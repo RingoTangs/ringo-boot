@@ -9,6 +9,7 @@ import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.context.support.ResourceBundleMessageSource;
 
+/** 优先使用应用消息源解析文案，缺失时回退到框架内置文案。 */
 final class MessageSourceProblemMessageResolver implements ProblemMessageResolver {
 
     private static final String DEFAULT_MESSAGES_BASENAME =

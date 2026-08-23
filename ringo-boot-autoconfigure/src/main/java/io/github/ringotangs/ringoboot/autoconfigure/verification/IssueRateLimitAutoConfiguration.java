@@ -24,11 +24,7 @@ import org.springframework.context.annotation.Conditional;
 /**
  * 自动配置验证码签发限流上下文、规则、状态存储和统一管理器。
  *
- * <p>应用提供自定义 Resolver、Store 或 Limiter 时，对应默认组件会自动回退。容器内的 Rule Bean 会按照 Spring 顺序统一收集。
- *
- * <p>Auto-configures verification issue rate-limit contexts, rules, state storage, and the central
- * manager. Default components back off when the application supplies the corresponding Resolver,
- * Store, or Limiter, and Rule beans are collected in Spring order.</p>
+ * <p>应用提供自定义解析器、存储或限流器时，对应默认组件会自动回退。容器内的规则 Bean 会按照 Spring 顺序统一收集。</p>
  */
 @AutoConfiguration(after = {VerificationAutoConfiguration.class, RedisIssueRateLimitAutoConfiguration.class})
 @ConditionalOnClass(IssueRateLimiter.class)

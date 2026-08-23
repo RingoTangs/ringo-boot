@@ -3,31 +3,23 @@ package io.github.ringotangs.ringoboot.autoconfigure.problem;
 import io.github.ringotangs.ringoboot.problem.ProblemException;
 import java.util.Objects;
 
-/**
- * 解析 Problem Details 响应使用的标题和详情。
- *
- * <p>Resolves the title and detail used by a Problem Details response.</p>
- */
+/** 解析 Problem Details 响应使用的标题和详情。 */
 @FunctionalInterface
 public interface ProblemMessageResolver {
 
     /**
      * 解析指定问题异常的响应消息。
      *
-     * <p>Resolves the response messages for the given problem exception.</p>
-     *
-     * @param exception 问题异常 / the problem exception
-     * @return 已解析的响应消息 / the resolved response messages
+     * @param exception 问题异常
+     * @return 已解析的响应消息
      */
     ProblemMessages resolve(ProblemException exception);
 
     /**
      * 保存已解析的 Problem Details 标题和详情。
      *
-     * <p>Stores a resolved Problem Details title and detail.</p>
-     *
-     * @param title 问题标题 / the problem title
-     * @param detail 问题详情 / the problem detail
+     * @param title 问题标题
+     * @param detail 问题详情
      */
     record ProblemMessages(String title, String detail) {
 

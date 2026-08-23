@@ -20,15 +20,6 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
  * {@code fallback-enabled} 分别控制业务问题异常、Spring MVC 内置异常、验证码技术异常与未知异常处理。{@code i18n-enabled} 不会单独
  * 启用处理器，只决定业务问题与兜底处理器是否通过 Spring
  * {@code MessageSource} 解析错误文案。Spring MVC 响应继续使用 Spring 原生消息解析。</p>
- *
- * <p>Auto-configures the Ringo Boot Problem Details exception-handling system.
- * {@code enabled} is the master switch. Once it is enabled,
- * {@code application-enabled}, {@code mvc-enabled}, {@code verification-enabled}, and
- * {@code fallback-enabled} independently control problem exceptions, built-in Spring
- * MVC exceptions, verification technical exceptions, and fallback handling.
- * {@code i18n-enabled} does not enable a handler by itself; it
- * selects MessageSource-based message resolution for problem and fallback handlers.
- * Spring MVC responses continue to use Spring's native message resolution.</p>
  */
 @AutoConfiguration(before = WebMvcAutoConfiguration.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
@@ -52,20 +43,12 @@ public class ProblemAutoConfiguration {
         }
     }
 
-    /**
-     * 在应用问题异常功能开关开启时装配 ProblemExceptionHandler。
-     *
-     * <p>Configures ProblemExceptionHandler when application problem handling is enabled.</p>
-     */
+    /** 在业务问题异常处理开关开启时装配处理器。 */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnProperty(prefix = ProblemProperties.PREFIX, name = "application-enabled", havingValue = "true")
     static class ApplicationConfiguration {
 
-        /**
-         * 用户提供自定义 ProblemExceptionHandler 时不创建默认实现。
-         *
-         * <p>Backs off when a custom ProblemExceptionHandler is available.</p>
-         */
+        /** 用户提供自定义处理器时不创建默认实现。 */
         @Bean
         @ConditionalOnMissingBean
         ProblemExceptionHandler problemExceptionHandler(ProblemMessageResolver messageResolver) {
@@ -73,21 +56,12 @@ public class ProblemAutoConfiguration {
         }
     }
 
-    /**
-     * 在兜底功能开关开启时独立装配 FallbackExceptionHandler。
-     *
-     * <p>Independently configures FallbackExceptionHandler when fallback handling
-     * is enabled.</p>
-     */
+    /** 在未知异常兜底开关开启时装配处理器。 */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnProperty(prefix = ProblemProperties.PREFIX, name = "fallback-enabled", havingValue = "true")
     static class FallbackConfiguration {
 
-        /**
-         * 用户提供自定义 FallbackExceptionHandler 时不创建默认实现。
-         *
-         * <p>Backs off when a custom FallbackExceptionHandler is available.</p>
-         */
+        /** 用户提供自定义处理器时不创建默认实现。 */
         @Bean
         @ConditionalOnMissingBean
         FallbackExceptionHandler fallbackExceptionHandler(
@@ -101,20 +75,12 @@ public class ProblemAutoConfiguration {
     /**
      * 装配应用、验证码和兜底异常处理器共享的消息解析器。
      * 只有至少一个处理器开启时才需要该解析器。
-     *
-     * <p>Configures the message resolver shared by application, verification, and fallback handlers.
-     * The resolver is needed only when application, verification, or fallback handling is enabled.</p>
      */
     @Configuration(proxyBeanMethods = false)
     @Conditional(AnyHandlerEnabledCondition.class)
     static class ProblemMessageResolverConfiguration {
 
-        /**
-         * 根据 i18n 开关选择国际化或默认消息解析器，并允许用户覆盖默认 Bean。
-         *
-         * <p>Selects the localized or default resolver and backs off for a custom
-         * resolver.</p>
-         */
+        /** 根据国际化开关选择消息解析器，用户可以提供自定义 Bean。 */
         @Bean
         @ConditionalOnMissingBean
         ProblemMessageResolver problemMessageResolver(
@@ -125,47 +91,23 @@ public class ProblemAutoConfiguration {
         }
     }
 
-    /**
-     * 当 Application、Verification 或 Fallback 任意一个功能开启时匹配。
-     *
-     * <p>该条件表达的是逻辑 OR：</p>
-     * <pre>{@code application-enabled || verification-enabled || fallback-enabled}</pre>
-     *
-     * <p>Matches when application, verification, or fallback handling is enabled.</p>
-     */
+    /** 当业务问题、验证码异常或未知异常处理任意一个开关开启时匹配。 */
     static final class AnyHandlerEnabledCondition extends AnyNestedCondition {
 
-        /**
-         * 在解析配置类阶段计算属性条件，决定是否注册消息解析器配置。
-         *
-         * <p>Evaluates the property conditions while configuration classes are
-         * being parsed.</p>
-         */
+        /** 在解析配置类时判断是否需要注册消息解析器。 */
         AnyHandlerEnabledCondition() {
             super(ConfigurationPhase.PARSE_CONFIGURATION);
         }
 
-        /**
-         * 仅描述 Application 功能开关条件，不会注册 Bean。
-         *
-         * <p>Describes the application problem-handler condition without registering a bean.</p>
-         */
+        /** 业务问题异常处理开关条件。 */
         @ConditionalOnProperty(prefix = ProblemProperties.PREFIX, name = "application-enabled", havingValue = "true")
         static class ApplicationEnabled {}
 
-        /**
-         * 仅描述 Verification 功能开关条件，不会注册 Bean。
-         *
-         * <p>Describes the verification exception-handler condition without registering a bean.</p>
-         */
+        /** 验证码异常处理开关条件。 */
         @ConditionalOnProperty(prefix = ProblemProperties.PREFIX, name = "verification-enabled", havingValue = "true")
         static class VerificationEnabled {}
 
-        /**
-         * 仅描述 Fallback 功能开关条件，不会注册 Bean。
-         *
-         * <p>Describes the fallback-handler condition without registering a bean.</p>
-         */
+        /** 未知异常兜底处理开关条件。 */
         @ConditionalOnProperty(prefix = ProblemProperties.PREFIX, name = "fallback-enabled", havingValue = "true")
         static class FallbackEnabled {}
     }

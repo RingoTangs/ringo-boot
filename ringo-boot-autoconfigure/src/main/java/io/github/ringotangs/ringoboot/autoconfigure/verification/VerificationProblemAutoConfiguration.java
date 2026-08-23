@@ -13,12 +13,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplicat
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.ProblemDetail;
 
-/**
- * 在 Problem Details 和验证码功能均启用时自动配置验证码异常处理。
- *
- * <p>Auto-configures verification exception handling when both Problem Details and verification
- * features are enabled.</p>
- */
+/** 在 Problem Details 和验证码功能均启用时自动配置验证码异常处理。 */
 @AutoConfiguration(after = ProblemAutoConfiguration.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass({ProblemDetail.class, VerificationException.class})
@@ -30,11 +25,8 @@ public class VerificationProblemAutoConfiguration {
     /**
      * 在共享消息解析器可用且用户未提供自定义实现时创建验证码异常处理器。
      *
-     * <p>Creates the verification exception handler when the shared message resolver is available
-     * and no custom handler has been supplied.</p>
-     *
-     * @param messageResolver 问题消息解析器 / the problem message resolver
-     * @return 验证码异常处理器 / the verification exception handler
+     * @param messageResolver 问题消息解析器
+     * @return 验证码异常处理器
      */
     @Bean
     @ConditionalOnBean(ProblemMessageResolver.class)

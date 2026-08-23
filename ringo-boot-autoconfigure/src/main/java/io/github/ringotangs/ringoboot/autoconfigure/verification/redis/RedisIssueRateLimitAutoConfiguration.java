@@ -19,11 +19,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
  * 显式选择 Redis 时自动配置跨实例验证码签发限流状态存储。
  *
  * <p>仅在 Spring Data Redis 和 {@link StringRedisTemplate} 可用时生效；应用提供自定义 Store 或 Limiter 后，默认 Redis Store
- * 自动回退。
- *
- * <p>Auto-configures the distributed verification issue rate-limit store when Redis is selected.
- * It is active only when Spring Data Redis and a {@link StringRedisTemplate} are available, and
- * backs off for a custom Store or Limiter.</p>
+ * 自动回退。</p>
  */
 @AutoConfiguration(after = RedisAutoConfiguration.class, before = IssueRateLimitAutoConfiguration.class)
 @ConditionalOnClass(StringRedisTemplate.class)

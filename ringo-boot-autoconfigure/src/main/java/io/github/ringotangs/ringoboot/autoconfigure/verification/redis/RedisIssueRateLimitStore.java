@@ -71,7 +71,13 @@ public final class RedisIssueRateLimitStore implements IssueRateLimitStore {
     private final byte[] secret;
     private final String applicationName;
 
-    /** 创建 Redis 验证码签发限流状态存储。 */
+    /**
+     * 创建 Redis 验证码签发限流状态存储。
+     *
+     * @param redisTemplate Redis 字符串操作模板
+     * @param secret 至少 32 字节的共享 HMAC 密钥
+     * @param applicationName Redis key 使用的应用名称
+     */
     public RedisIssueRateLimitStore(StringRedisTemplate redisTemplate, byte[] secret, String applicationName) {
         this.redisTemplate = Objects.requireNonNull(redisTemplate, "redisTemplate must not be null");
         Objects.requireNonNull(secret, "secret must not be null");
@@ -87,7 +93,14 @@ public final class RedisIssueRateLimitStore implements IssueRateLimitStore {
         this.secret = secret.clone();
     }
 
-    /** {@inheritDoc} */
+    /**
+     * 原子检查并消费本次签发涉及的全部额度。
+     *
+     * @param quotas 待检查的签发额度
+     * @param requestedAt 请求时间
+     * @return 允许签发或需要等待的结果
+     * @throws IssueRateLimitException 当 Redis 操作失败时
+     */
     @Override
     public IssueLimitResult acquire(List<IssueLimitQuota> quotas, Instant requestedAt) throws IssueRateLimitException {
         Objects.requireNonNull(quotas, "quotas must not be null");

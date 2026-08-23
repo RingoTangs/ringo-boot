@@ -19,11 +19,6 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
  *
  * <p>4xx 与可预期的超时响应保留 Spring MVC 生成的状态、Header 和诊断文本；
  * 框架内部错误返回固定的脱敏内容，并在服务端记录完整异常。</p>
- *
- * <p>Adds stable Problem Details {@code type} values to built-in Spring MVC
- * exceptions. Client errors and expected timeouts retain the Spring MVC status,
- * headers, and diagnostic text. Internal framework errors use a fixed safe body
- * and are logged with their full exception.</p>
  */
 @RestControllerAdvice
 @Order(0)
@@ -34,8 +29,8 @@ public class SpringMvcExceptionHandler extends ResponseEntityExceptionHandler {
     /**
      * 使用消息源和异常处理配置创建 Spring MVC 异常处理器。
      *
-     * <p>Creates the Spring MVC exception handler with a message source and exception
-     * handling properties.</p>
+     * @param messageSource Spring 消息源
+     * @param properties 异常处理配置
      */
     public SpringMvcExceptionHandler(MessageSource messageSource, ProblemProperties properties) {
         setMessageSource(Objects.requireNonNull(messageSource, "messageSource must not be null"));

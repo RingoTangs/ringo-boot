@@ -22,12 +22,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 /**
  * 将已知的验证码业务异常和技术异常转换为安全、稳定的 Problem Details 响应。
  *
- * <p>Converts known verification business and technical failures into safe and stable Problem Details
- * responses.</p>
- *
- * <p><strong>API 注意事项：</strong> 原始异常仅写入服务端日志，响应不会暴露存储实现、发送渠道或供应商诊断信息。 / The
- * original exception is written only to server logs; responses do not expose storage,
- * delivery-channel, or provider diagnostics.</p>
+ * <p>原始异常仅写入服务端日志，响应不会暴露存储实现、发送渠道或供应商诊断信息。</p>
  */
 @RestControllerAdvice
 @Order(0)
@@ -40,9 +35,7 @@ public class VerificationExceptionHandler {
     /**
      * 使用问题消息解析器创建验证码异常处理器。
      *
-     * <p>Creates a verification exception handler with a problem message resolver.</p>
-     *
-     * @param messageResolver 问题消息解析器 / the problem message resolver
+     * @param messageResolver 问题消息解析器
      */
     public VerificationExceptionHandler(ProblemMessageResolver messageResolver) {
         this.problemDetailFactory = new ProblemDetailFactory(messageResolver);
@@ -51,11 +44,8 @@ public class VerificationExceptionHandler {
     /**
      * 记录验证码技术异常并构建不包含内部诊断信息的响应。
      *
-     * <p>Logs a verification technical failure and builds a response without internal diagnostic
-     * information.</p>
-     *
-     * @param exception 验证码技术异常 / the verification technical failure
-     * @return 安全的 Problem Details 响应 / the safe Problem Details response
+     * @param exception 验证码技术异常
+     * @return 安全的 Problem Details 响应
      */
     @ExceptionHandler({
         CodeGenerationException.class,
@@ -78,10 +68,8 @@ public class VerificationExceptionHandler {
     /**
      * 将签发限流转换为包含等待秒数的 429 Problem Details。
      *
-     * <p>Converts issuance throttling into a 429 Problem Details response containing wait seconds.</p>
-     *
-     * @param exception 签发限流异常 / issuance throttling exception
-     * @return 限流 Problem Details / throttling Problem Details
+     * @param exception 签发限流异常
+     * @return 限流 Problem Details
      */
     @ExceptionHandler(VerificationThrottledException.class)
     public ProblemDetail handleVerificationThrottled(VerificationThrottledException exception) {
@@ -92,10 +80,8 @@ public class VerificationExceptionHandler {
     /**
      * 将所有未通过的验证码校验转换为统一的安全响应。
      *
-     * <p>Converts every unsuccessful code verification into one uniform safe response.</p>
-     *
-     * @param exception 验证码无效异常 / invalid verification code exception
-     * @return 验证码无效 Problem Details / invalid-code Problem Details
+     * @param exception 验证码无效异常
+     * @return 验证码无效 Problem Details
      */
     @ExceptionHandler(InvalidVerificationCodeException.class)
     public ProblemDetail handleInvalidVerificationCode(InvalidVerificationCodeException exception) {

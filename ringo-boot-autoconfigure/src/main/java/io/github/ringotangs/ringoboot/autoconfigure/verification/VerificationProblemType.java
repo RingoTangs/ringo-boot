@@ -5,7 +5,7 @@ import io.github.ringotangs.ringoboot.problem.ProblemTypeDefinition;
 import io.github.ringotangs.ringoboot.problem.ProblemTypeUri;
 import org.springframework.http.HttpStatus;
 
-/** 验证码技术异常使用的稳定 Problem Type。 / Stable Problem Types for verification technical failures. */
+/** 验证码异常使用的稳定 Problem Type。 */
 enum VerificationProblemType implements ProblemType {
     THROTTLED(
             ProblemTypeUri.of("business", "verification", "throttled"),
@@ -45,7 +45,7 @@ enum VerificationProblemType implements ProblemType {
                 type, "problem.verification." + category, title, defaultDetail, status.value());
     }
 
-    /** {@inheritDoc} */
+    /** 返回当前异常类型的定义。 */
     @Override
     public ProblemTypeDefinition getDefinition() {
         return definition;

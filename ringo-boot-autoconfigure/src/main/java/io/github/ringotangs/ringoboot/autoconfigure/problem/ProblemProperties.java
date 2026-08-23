@@ -2,11 +2,7 @@ package io.github.ringotangs.ringoboot.autoconfigure.problem;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-/**
- * Ringo Boot Problem Details 自动配置属性。
- *
- * <p>Auto-configuration properties for Ringo Boot Problem Details.</p>
- */
+/** Ringo Boot Problem Details 自动配置属性。 */
 @ConfigurationProperties(ProblemProperties.PREFIX)
 public class ProblemProperties {
 
@@ -15,51 +11,32 @@ public class ProblemProperties {
 
     /**
      * 是否启用整套异常处理自动配置；需要显式开启。
-     *
-     * <p>Whether to enable the complete exception-handling auto-configuration;
-     * explicit opt-in is required.</p>
      */
     private boolean enabled = false;
 
     /**
      * 是否启用 ProblemException 异常处理；仅在总开关开启后生效。
-     *
-     * <p>Whether to enable ProblemException handling; effective only when the
-     * main switch is enabled.</p>
      */
     private boolean applicationEnabled = false;
 
     /**
      * 是否启用 Spring MVC 内置异常处理；仅在总开关开启后生效。
-     *
-     * <p>Whether to handle built-in Spring MVC exceptions; effective only when the
-     * main switch is enabled.</p>
      */
     private boolean mvcEnabled = false;
 
     /**
      * 是否启用验证码技术异常处理；仅在总开关和验证码功能均开启后生效。
-     *
-     * <p>Whether to enable verification technical exception handling; effective only
-     * when both the main switch and verification feature are enabled.</p>
      */
     private boolean verificationEnabled = false;
 
     /**
      * 是否使用 Spring MessageSource 解析业务异常和兜底异常的标题与详情；
      * Spring MVC 内置异常始终使用 Spring 原生的消息解析机制。
-     *
-     * <p>Whether to resolve problem and fallback exception messages through Spring
-     * MessageSource. Built-in Spring MVC exceptions always use Spring's native
-     * message resolution.</p>
      */
     private boolean i18nEnabled = false;
 
     /**
      * 是否启用未知异常兜底处理；仅在总开关开启后生效。
-     *
-     * <p>Whether to enable fallback handling for unexpected exceptions;
-     * effective only when the main switch is enabled.</p>
      */
     private boolean fallbackEnabled = false;
 
