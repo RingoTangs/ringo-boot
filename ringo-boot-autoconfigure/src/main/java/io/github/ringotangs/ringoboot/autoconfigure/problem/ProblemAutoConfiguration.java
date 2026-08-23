@@ -20,7 +20,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @AutoConfiguration(before = WebMvcAutoConfiguration.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass({ProblemDetail.class, ProblemException.class})
-@ConditionalOnProperty(prefix = ProblemProperties.PREFIX, name = "enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = ProblemConfigurationConstants.PREFIX, name = "enabled", havingValue = "true")
 @EnableConfigurationProperties(ProblemProperties.class)
 public class ProblemAutoConfiguration {
 
@@ -28,7 +28,7 @@ public class ProblemAutoConfiguration {
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(ResponseEntityExceptionHandler.class)
     @ConditionalOnProperty(
-            prefix = ProblemProperties.HANDLERS_PREFIX,
+            prefix = ProblemConfigurationConstants.HANDLERS_PREFIX,
             name = "mvc",
             havingValue = "true",
             matchIfMissing = true)
@@ -46,7 +46,7 @@ public class ProblemAutoConfiguration {
     /** 在业务问题异常处理开关开启时装配处理器。 */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnProperty(
-            prefix = ProblemProperties.HANDLERS_PREFIX,
+            prefix = ProblemConfigurationConstants.HANDLERS_PREFIX,
             name = "application",
             havingValue = "true",
             matchIfMissing = true)
@@ -62,7 +62,10 @@ public class ProblemAutoConfiguration {
 
     /** 在未知异常兜底开关开启时装配处理器。 */
     @Configuration(proxyBeanMethods = false)
-    @ConditionalOnProperty(prefix = ProblemProperties.HANDLERS_PREFIX, name = "fallback", havingValue = "true")
+    @ConditionalOnProperty(
+            prefix = ProblemConfigurationConstants.HANDLERS_PREFIX,
+            name = "fallback",
+            havingValue = "true")
     static class FallbackConfiguration {
 
         /** 用户提供自定义处理器时不创建默认实现。 */

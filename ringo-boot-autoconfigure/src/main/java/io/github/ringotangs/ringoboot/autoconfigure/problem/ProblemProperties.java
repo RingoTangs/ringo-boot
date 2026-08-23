@@ -3,14 +3,8 @@ package io.github.ringotangs.ringoboot.autoconfigure.problem;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /** Ringo Boot Problem Details 自动配置属性。 */
-@ConfigurationProperties(ProblemProperties.PREFIX)
+@ConfigurationProperties(ProblemConfigurationConstants.PREFIX)
 public class ProblemProperties {
-
-    /** 配置属性前缀。 */
-    public static final String PREFIX = "ringo.boot.problem";
-
-    /** 异常处理器配置属性前缀。 */
-    public static final String HANDLERS_PREFIX = PREFIX + ".handlers";
 
     /**
      * 是否启用整套异常处理自动配置；需要显式开启。

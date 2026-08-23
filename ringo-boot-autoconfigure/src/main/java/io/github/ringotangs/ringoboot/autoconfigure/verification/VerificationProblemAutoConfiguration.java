@@ -1,8 +1,8 @@
 package io.github.ringotangs.ringoboot.autoconfigure.verification;
 
 import io.github.ringotangs.ringoboot.autoconfigure.problem.ProblemAutoConfiguration;
+import io.github.ringotangs.ringoboot.autoconfigure.problem.ProblemConfigurationConstants;
 import io.github.ringotangs.ringoboot.autoconfigure.problem.ProblemMessageResolver;
-import io.github.ringotangs.ringoboot.autoconfigure.problem.ProblemProperties;
 import io.github.ringotangs.ringoboot.verification.VerificationException;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -17,9 +17,9 @@ import org.springframework.http.ProblemDetail;
 @AutoConfiguration(after = ProblemAutoConfiguration.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass({ProblemDetail.class, VerificationException.class})
-@ConditionalOnProperty(prefix = ProblemProperties.PREFIX, name = "enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = ProblemConfigurationConstants.PREFIX, name = "enabled", havingValue = "true")
 @ConditionalOnProperty(
-        prefix = ProblemProperties.HANDLERS_PREFIX,
+        prefix = ProblemConfigurationConstants.HANDLERS_PREFIX,
         name = "verification",
         havingValue = "true",
         matchIfMissing = true)
