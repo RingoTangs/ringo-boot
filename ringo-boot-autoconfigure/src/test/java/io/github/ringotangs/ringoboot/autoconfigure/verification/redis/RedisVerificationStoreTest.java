@@ -95,31 +95,16 @@ class RedisVerificationStoreTest {
     void validatesConstructionArguments() {
         StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
 
-        assertThatThrownBy(() -> new RedisVerificationStore(redisTemplate, new byte[31], Duration.ofMinutes(1)))
+        assertThatThrownBy(() -> new RedisVerificationStore(
+                        redisTemplate, new byte[31], Duration.ofMinutes(1), "test-application"))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new RedisVerificationStore(redisTemplate, new byte[32], Duration.ZERO))
+        assertThatThrownBy(() ->
+                        new RedisVerificationStore(redisTemplate, new byte[32], Duration.ZERO, "test-application"))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new RedisVerificationStore(
                         redisTemplate, new byte[32], Duration.ofMinutes(1), "invalid application"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("applicationName");
-    }
-
-    @Test
-    @SuppressWarnings({"rawtypes", "unchecked", "deprecation"})
-    void keepsLegacyKeyFormatForDeprecatedConstructor() {
-        StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
-        when(redisTemplate.execute(any(RedisScript.class), anyList(), any(Object[].class)))
-                .thenReturn(NOW.plusSeconds(300).toEpochMilli());
-        RedisVerificationStore store = new RedisVerificationStore(redisTemplate, new byte[32], Duration.ofMinutes(1));
-
-        store.store(KEY, "123456", VerificationPolicy.defaults(), NOW);
-
-        ArgumentCaptor<List<String>> keys = ArgumentCaptor.forClass(List.class);
-        verify(redisTemplate).execute(any(RedisScript.class), keys.capture(), any(Object[].class));
-        assertThat(keys.getValue().getFirst())
-                .startsWith("ringo:verification:v1:account:email-verification:")
-                .doesNotContain("test-application");
     }
 
     @Test

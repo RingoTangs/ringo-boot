@@ -68,7 +68,6 @@ import org.springframework.data.redis.core.script.RedisScript;
  */
 public final class RedisVerificationStore implements VerificationStore {
 
-    private static final String LEGACY_KEY_PREFIX = "ringo:verification:v1:";
     private static final String STORAGE_VERSION = "v1";
     private static final String KEY_DIGEST_DOMAIN = "key:v1";
     private static final String CODE_DIGEST_DOMAIN = "code:v1";
@@ -147,22 +146,7 @@ public final class RedisVerificationStore implements VerificationStore {
     private final StringRedisTemplate redisTemplate;
     private final byte[] secret;
     private final Duration expiredRetention;
-    private final @Nullable String applicationName;
-
-    /**
-     * 使用 Redis 模板、共享密钥和过期保留时间创建存储。
-     *
-     * @param redisTemplate Redis 字符串操作模板
-     * @param secret 至少 32 字节的共享 HMAC 密钥
-     * @param expiredRetention 业务过期后的保留时间
-     * @throws NullPointerException 当任一参数为 {@code null} 时
-     * @throws IllegalArgumentException 当密钥过短或保留时间不是正数时
-     * @deprecated 请使用包含应用名称的构造器；此构造器仅用于兼容旧版 key 和摘要协议
-     */
-    @Deprecated(since = "1.0", forRemoval = false)
-    public RedisVerificationStore(StringRedisTemplate redisTemplate, byte[] secret, Duration expiredRetention) {
-        this(redisTemplate, secret, expiredRetention, null, true);
-    }
+    private final String applicationName;
 
     /**
      * 使用应用名称隔离 Redis 数据，创建验证码存储。
@@ -171,21 +155,15 @@ public final class RedisVerificationStore implements VerificationStore {
      * @param secret 至少 32 字节的共享 HMAC 密钥
      * @param expiredRetention 业务过期后的保留时间
      * @param applicationName Redis key 和摘要使用的应用名称
+     * @throws NullPointerException 当任一参数为 {@code null} 时
+     * @throws IllegalArgumentException 当密钥过短、保留时间不是正数或应用名称格式无效时
      */
     public RedisVerificationStore(
             StringRedisTemplate redisTemplate, byte[] secret, Duration expiredRetention, String applicationName) {
-        this(redisTemplate, secret, expiredRetention, applicationName, false);
-    }
-
-    private RedisVerificationStore(
-            StringRedisTemplate redisTemplate,
-            byte[] secret,
-            Duration expiredRetention,
-            @Nullable String applicationName,
-            boolean legacyFormat) {
         this.redisTemplate = Objects.requireNonNull(redisTemplate, "redisTemplate must not be null");
         Objects.requireNonNull(secret, "secret must not be null");
         this.expiredRetention = Objects.requireNonNull(expiredRetention, "expiredRetention must not be null");
+        this.applicationName = Objects.requireNonNull(applicationName, "applicationName must not be null");
         if (secret.length < MINIMUM_SECRET_BYTES) {
             throw new IllegalArgumentException("secret must contain at least 32 bytes");
         }
@@ -193,15 +171,11 @@ public final class RedisVerificationStore implements VerificationStore {
             throw new IllegalArgumentException("expiredRetention must be positive: " + expiredRetention);
         }
         this.secret = secret.clone();
-        if (!legacyFormat) {
-            Objects.requireNonNull(applicationName, "applicationName must not be null");
-            if (!APPLICATION_NAME_PATTERN.matcher(applicationName).matches()) {
-                throw new IllegalArgumentException(
-                        "applicationName must start with an alphanumeric character and contain only letters, digits, '.', '_', or '-': "
-                                + applicationName);
-            }
+        if (!APPLICATION_NAME_PATTERN.matcher(applicationName).matches()) {
+            throw new IllegalArgumentException(
+                    "applicationName must start with an alphanumeric character and contain only letters, digits, '.', '_', or '-': "
+                            + applicationName);
         }
-        this.applicationName = applicationName;
     }
 
     /**
@@ -293,9 +267,7 @@ public final class RedisVerificationStore implements VerificationStore {
      * @return 包含业务前缀和验证主体摘要的 Redis key
      */
     private String redisKey(VerificationKey key) {
-        String prefix = applicationName == null
-                ? LEGACY_KEY_PREFIX
-                : applicationName + ":verification:" + STORAGE_VERSION + ':';
+        String prefix = applicationName + ":verification:" + STORAGE_VERSION + ':';
         return prefix + key.namespace() + ':' + key.purpose() + ':' + digest(KEY_DIGEST_DOMAIN, key, null);
     }
 
@@ -317,7 +289,7 @@ public final class RedisVerificationStore implements VerificationStore {
      *
      * <p>{@code domain} 用于隔离 Redis key 摘要和验证码摘要，防止相同输入在不同用途间复用。各字符串段通过
      * {@link #update(Mac, String)} 编码，顺序为 domain、applicationName、namespace、purpose、subject，
-     * 以及可选 code。兼容构造器省略 applicationName 段。</p>
+     * 以及可选 code。</p>
      *
      * @param domain 摘要用途
      * @param key 验证码键
@@ -330,9 +302,7 @@ public final class RedisVerificationStore implements VerificationStore {
             Mac mac = Mac.getInstance(HMAC_ALGORITHM);
             mac.init(new SecretKeySpec(secret, HMAC_ALGORITHM));
             update(mac, domain);
-            if (applicationName != null) {
-                update(mac, applicationName);
-            }
+            update(mac, applicationName);
             update(mac, key.namespace());
             update(mac, key.purpose());
             update(mac, key.subject());
