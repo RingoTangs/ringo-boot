@@ -14,8 +14,8 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 /**
  * 自动配置 Ringo Boot Problem Details 异常处理体系。
  *
- * <p>{@code enabled} 是总开关。业务问题、Spring MVC 和验证码异常处理默认开启，未知异常兜底默认关闭，
- * 可以通过 {@code handlers} 分组分别调整。{@code i18n} 决定是否通过 Spring {@code MessageSource} 解析错误文案。</p>
+ * <p>{@code enabled} 是总开关。业务问题、Spring MVC、验证码和未知异常处理均默认关闭，
+ * 需要通过 {@code handlers} 分组分别开启。{@code i18n} 决定是否通过 Spring {@code MessageSource} 解析错误文案。</p>
  */
 @AutoConfiguration(before = WebMvcAutoConfiguration.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
@@ -27,11 +27,7 @@ public class ProblemAutoConfiguration {
     /** 配置 Spring MVC 内置异常的稳定 Problem Details 映射。 */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(ResponseEntityExceptionHandler.class)
-    @ConditionalOnProperty(
-            prefix = ProblemConfigurationConstants.HANDLERS_PREFIX,
-            name = "mvc",
-            havingValue = "true",
-            matchIfMissing = true)
+    @ConditionalOnProperty(prefix = ProblemConfigurationConstants.HANDLERS_PREFIX, name = "mvc", havingValue = "true")
     static class SpringMvcConfiguration {
 
         /** 用户提供 ResponseEntityExceptionHandler 时不创建默认 MVC 处理器。 */
@@ -48,8 +44,7 @@ public class ProblemAutoConfiguration {
     @ConditionalOnProperty(
             prefix = ProblemConfigurationConstants.HANDLERS_PREFIX,
             name = "application",
-            havingValue = "true",
-            matchIfMissing = true)
+            havingValue = "true")
     static class ApplicationConfiguration {
 
         /** 用户提供自定义处理器时不创建默认实现。 */

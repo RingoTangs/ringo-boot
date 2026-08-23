@@ -20,7 +20,11 @@ ringo:
   boot:
     problem:
       enabled: true
+      i18n: true
       handlers:
+        application: true
+        mvc: true
+        verification: true
         fallback: true
     verification:
       enabled: true

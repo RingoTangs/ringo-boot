@@ -21,8 +21,7 @@ import org.springframework.http.ProblemDetail;
 @ConditionalOnProperty(
         prefix = ProblemConfigurationConstants.HANDLERS_PREFIX,
         name = "verification",
-        havingValue = "true",
-        matchIfMissing = true)
+        havingValue = "true")
 @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "enabled", havingValue = "true")
 public class VerificationProblemAutoConfiguration {
 

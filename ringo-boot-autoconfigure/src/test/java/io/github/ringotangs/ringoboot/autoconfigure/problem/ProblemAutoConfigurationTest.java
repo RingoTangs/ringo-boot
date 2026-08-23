@@ -46,7 +46,10 @@ class ProblemAutoConfigurationTest {
     void configuresProblemHandlingWhenVerificationModuleIsAbsent() {
         contextRunner
                 .withClassLoader(new FilteredClassLoader("io.github.ringotangs.ringoboot.verification"))
-                .withPropertyValues("ringo.boot.problem.enabled=true", "ringo.boot.verification.enabled=true")
+                .withPropertyValues(
+                        "ringo.boot.problem.enabled=true",
+                        "ringo.boot.problem.handlers.application=true",
+                        "ringo.boot.verification.enabled=true")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(ProblemExceptionHandler.class);
@@ -68,16 +71,12 @@ class ProblemAutoConfigurationTest {
     @Test
     void configuresSpringMvcHandlingIndependently() {
         contextRunner
-                .withPropertyValues("ringo.boot.problem.enabled=true", "ringo.boot.problem.handlers.application=false")
+                .withPropertyValues("ringo.boot.problem.enabled=true", "ringo.boot.problem.handlers.mvc=true")
                 .run(context -> {
                     assertThat(context).hasSingleBean(SpringMvcExceptionHandler.class);
                     assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);
                     assertThat(context).doesNotHaveBean(FallbackExceptionHandler.class);
                     assertThat(context).hasSingleBean(ProblemMessageResolver.class);
-                    assertThat(context.getBean(ProblemProperties.class)
-                                    .getHandlers()
-                                    .isMvc())
-                            .isTrue();
                 });
     }
 
@@ -85,14 +84,14 @@ class ProblemAutoConfigurationTest {
     void doesNotConfigureSpringMvcHandlerWhenSpringMvcIsAbsent() {
         contextRunner
                 .withClassLoader(new FilteredClassLoader(ResponseEntityExceptionHandler.class))
-                .withPropertyValues("ringo.boot.problem.enabled=true")
+                .withPropertyValues("ringo.boot.problem.enabled=true", "ringo.boot.problem.handlers.mvc=true")
                 .run(context -> assertThat(context).doesNotHaveBean(SpringMvcExceptionHandler.class));
     }
 
     @Test
     void backsOffForCustomSpringMvcExceptionHandler() {
         contextRunner
-                .withPropertyValues("ringo.boot.problem.enabled=true")
+                .withPropertyValues("ringo.boot.problem.enabled=true", "ringo.boot.problem.handlers.mvc=true")
                 .withBean(ResponseEntityExceptionHandler.class, CustomSpringMvcExceptionHandler::new)
                 .run(context -> {
                     assertThat(context).doesNotHaveBean(SpringMvcExceptionHandler.class);
@@ -101,56 +100,43 @@ class ProblemAutoConfigurationTest {
     }
 
     @Test
-    void masterSwitchConfiguresSafeDefaults() {
+    void masterSwitchLeavesAllHandlersDisabledByDefault() {
         contextRunner.withPropertyValues("ringo.boot.problem.enabled=true").run(context -> {
-            assertThat(context).hasSingleBean(ProblemExceptionHandler.class);
-            assertThat(context).hasSingleBean(SpringMvcExceptionHandler.class);
+            assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);
+            assertThat(context).doesNotHaveBean(SpringMvcExceptionHandler.class);
             assertThat(context).hasSingleBean(ProblemMessageResolver.class);
             assertThat(context).doesNotHaveBean(FallbackExceptionHandler.class);
             ProblemProperties properties = context.getBean(ProblemProperties.class);
             assertThat(properties.isEnabled()).isTrue();
-            assertThat(properties.isI18n()).isTrue();
-            assertThat(properties.getHandlers().isApplication()).isTrue();
-            assertThat(properties.getHandlers().isMvc()).isTrue();
-            assertThat(properties.getHandlers().isVerification()).isTrue();
-            assertThat(properties.getHandlers().isFallback()).isFalse();
+            assertThat(properties.isI18n()).isFalse();
         });
     }
 
     @Test
     void configuresProblemHandlingWithDefaultMessagesWhenExplicitlyEnabled() {
         contextRunner
-                .withPropertyValues("ringo.boot.problem.enabled=true", "ringo.boot.problem.i18n=false")
+                .withPropertyValues(
+                        "ringo.boot.problem.enabled=true",
+                        "ringo.boot.problem.i18n=false",
+                        "ringo.boot.problem.handlers.application=true")
                 .run(context -> {
                     assertThat(context).hasSingleBean(ProblemExceptionHandler.class);
                     assertThat(context).hasSingleBean(ProblemMessageResolver.class);
                     assertThat(context.getBean(ProblemMessageResolver.class))
                             .isInstanceOf(DefaultProblemMessageResolver.class);
                     assertThat(context).doesNotHaveBean(FallbackExceptionHandler.class);
-                    assertThat(context.getBean(ProblemProperties.class)
-                                    .getHandlers()
-                                    .isApplication())
-                            .isTrue();
                 });
     }
 
     @Test
     void configuresFallbackHandlingIndependently() {
         contextRunner
-                .withPropertyValues(
-                        "ringo.boot.problem.enabled=true",
-                        "ringo.boot.problem.handlers.application=false",
-                        "ringo.boot.problem.handlers.mvc=false",
-                        "ringo.boot.problem.handlers.fallback=true")
+                .withPropertyValues("ringo.boot.problem.enabled=true", "ringo.boot.problem.handlers.fallback=true")
                 .run(context -> {
                     assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);
                     assertThat(context).doesNotHaveBean(SpringMvcExceptionHandler.class);
                     assertThat(context).hasSingleBean(FallbackExceptionHandler.class);
                     assertThat(context).hasSingleBean(ProblemMessageResolver.class);
-                    assertThat(context.getBean(ProblemProperties.class)
-                                    .getHandlers()
-                                    .isFallback())
-                            .isTrue();
                 });
     }
 
@@ -177,7 +163,11 @@ class ProblemAutoConfigurationTest {
     @Test
     void configuresBothHandlersWithLocalizedMessages() {
         contextRunner
-                .withPropertyValues("ringo.boot.problem.enabled=true", "ringo.boot.problem.handlers.fallback=true")
+                .withPropertyValues(
+                        "ringo.boot.problem.enabled=true",
+                        "ringo.boot.problem.i18n=true",
+                        "ringo.boot.problem.handlers.application=true",
+                        "ringo.boot.problem.handlers.fallback=true")
                 .run(context -> {
                     assertThat(context).hasSingleBean(ProblemExceptionHandler.class);
                     assertThat(context).hasSingleBean(FallbackExceptionHandler.class);
@@ -211,7 +201,7 @@ class ProblemAutoConfigurationTest {
                 exception -> new ProblemMessageResolver.ProblemMessages("Custom title", "Custom detail");
 
         contextRunner
-                .withPropertyValues("ringo.boot.problem.enabled=true")
+                .withPropertyValues("ringo.boot.problem.enabled=true", "ringo.boot.problem.handlers.application=true")
                 .withBean(ProblemMessageResolver.class, () -> customResolver)
                 .run(context -> {
                     assertThat(context).hasSingleBean(ProblemMessageResolver.class);
