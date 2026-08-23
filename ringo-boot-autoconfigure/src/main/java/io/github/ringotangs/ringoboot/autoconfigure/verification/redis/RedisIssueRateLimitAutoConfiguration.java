@@ -4,13 +4,13 @@ import io.github.ringotangs.ringoboot.autoconfigure.verification.IssueRateLimitA
 import io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationProperties;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitStore;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -26,24 +26,26 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 @ConditionalOnBean(StringRedisTemplate.class)
 @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "enabled", havingValue = "true")
 @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "store", havingValue = "redis")
-@EnableConfigurationProperties(RedisVerificationProperties.class)
 public class RedisIssueRateLimitAutoConfiguration {
 
     /**
      * 使用 Redis 和共享 HMAC 密钥创建跨实例签发限流状态存储。
      *
      * @param redisTemplate Redis 字符串操作模板
-     * @param properties Redis 验证码配置
+     * @param hmacKeys 应用提供的 Redis 验证码 HMAC 密钥
      * @param environment Spring 环境
      * @return Redis 验证码签发限流状态存储
      */
     @Bean
     @ConditionalOnMissingBean({IssueRateLimiter.class, IssueRateLimitStore.class})
     IssueRateLimitStore redisIssueRateLimitStore(
-            StringRedisTemplate redisTemplate, RedisVerificationProperties properties, Environment environment) {
+            StringRedisTemplate redisTemplate,
+            ObjectProvider<RedisVerificationHmacKey> hmacKeys,
+            Environment environment) {
+        RedisVerificationHmacKey hmacKey = RedisVerificationConfigurationSupport.hmacKey(hmacKeys);
         return new RedisIssueRateLimitStore(
                 redisTemplate,
-                RedisVerificationConfigurationSupport.decodeSecret(properties.getSecret()),
-                RedisVerificationConfigurationSupport.applicationName(properties, environment));
+                hmacKey.getEncoded(),
+                RedisVerificationConfigurationSupport.applicationName(environment));
     }
 }

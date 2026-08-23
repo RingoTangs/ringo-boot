@@ -261,16 +261,21 @@ ringo:
     verification:
       enabled: true
       store: redis
-      redis:
-        # 可选覆盖 spring.application.name；共享 Redis 时用于隔离不同应用
-        # application-name: identity-service
-        secret: ${VERIFICATION_HMAC_SECRET}
-        expired-retention: 1m
+```
+
+应用还必须提供唯一的 `RedisVerificationHmacKey` Bean。下面示例从环境变量读取 Base64 密钥：
+
+```java
+@Bean
+RedisVerificationHmacKey redisVerificationHmacKey(Environment environment) {
+    return RedisVerificationHmacKey.fromBase64(
+            environment.getRequiredProperty("VERIFICATION_HMAC_KEY"));
+}
 ```
 
 验证码状态使用 Redis Hash，key 格式为
-`{applicationName}:verification:v1:{namespace}:{purpose}:{keyDigest}`。应用名称优先读取
-`ringo.boot.verification.redis.application-name`，否则读取 `spring.application.name`；两者均缺失时应用启动失败。
+`{applicationName}:verification:v1:{namespace}:{purpose}:{keyDigest}`。应用名称读取 `spring.application.name`，
+缺失时应用启动失败。
 应用名称必须以字母或数字开头，只能包含字母、数字、点、下划线和连字符。应用名称也参与 key 摘要和验证码
 摘要计算，因此不同应用即使业务维度、验证主体和验证码完全相同，也不会共享 Redis 状态。修改应用名称会使
 旧名称下尚未过期的验证码不可访问。
@@ -291,16 +296,16 @@ Lua 脚本原子检查和消费额度。ZSET score 是签发时间戳，member �
 export REDIS_PASSWORD="$(cat /opt/ringo-redis/secrets/redis-password.txt)"
 ```
 
-验证码 HMAC secret 需要单独生成：
+验证码 HMAC 密钥需要单独生成：
 
 ```shell
-export VERIFICATION_HMAC_SECRET="$(openssl rand -base64 32)"
+export VERIFICATION_HMAC_KEY="$(openssl rand -base64 32)"
 ```
 
 两个密钥的职责不同：
 
 - `REDIS_PASSWORD` 用于 Redis 客户端认证。
-- `VERIFICATION_HMAC_SECRET` 用于生成 Redis 验证键和验证码的 HMAC-SHA256 摘要。它必须是 Base64
+- `VERIFICATION_HMAC_KEY` 用于生成 Redis 验证键和验证码的 HMAC-SHA256 摘要。它必须是 Base64
   编码且解码后至少 32 字节；共享同一 Redis 数据的所有应用实例必须使用相同值，并且应用重启后不能改变。
 
 生产环境应通过部署平台的 Secret Manager 注入应用密钥，不要将真实密码、HMAC secret 或

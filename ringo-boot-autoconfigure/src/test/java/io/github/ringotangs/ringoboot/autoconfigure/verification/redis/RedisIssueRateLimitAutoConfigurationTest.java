@@ -29,7 +29,7 @@ class RedisIssueRateLimitAutoConfigurationTest {
     @Test
     void configuresRedisRateLimitStoreAndManager() {
         contextRunner
-                .withPropertyValues("ringo.boot.verification.redis.secret=" + SECRET)
+                .withBean(RedisVerificationHmacKey.class, RedisIssueRateLimitAutoConfigurationTest::hmacKey)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(IssueRateLimitStore.class);
@@ -40,9 +40,24 @@ class RedisIssueRateLimitAutoConfigurationTest {
     }
 
     @Test
-    void failsWhenSharedSecretIsMissing() {
+    void failsWhenHmacKeyIsMissing() {
         contextRunner.run(context -> assertThat(context.getStartupFailure())
-                .hasRootCauseMessage("ringo.boot.verification.redis.secret must be configured"));
+                .hasRootCauseMessage("exactly one RedisVerificationHmacKey bean must be configured"));
+    }
+
+    @Test
+    void failsWhenMultipleHmacKeysAreConfigured() {
+        contextRunner
+                .withBean(
+                        "firstHmacKey",
+                        RedisVerificationHmacKey.class,
+                        RedisIssueRateLimitAutoConfigurationTest::hmacKey)
+                .withBean(
+                        "secondHmacKey",
+                        RedisVerificationHmacKey.class,
+                        RedisIssueRateLimitAutoConfigurationTest::hmacKey)
+                .run(context -> assertThat(context.getStartupFailure())
+                        .hasRootCauseMessage("exactly one RedisVerificationHmacKey bean must be configured"));
     }
 
     @Test
@@ -54,5 +69,9 @@ class RedisIssueRateLimitAutoConfigurationTest {
             assertThat(context.getBean(IssueRateLimitStore.class)).isSameAs(store);
             assertThat(context).hasSingleBean(IssueRateLimiter.class);
         });
+    }
+
+    private static RedisVerificationHmacKey hmacKey() {
+        return RedisVerificationHmacKey.fromBase64(SECRET);
     }
 }

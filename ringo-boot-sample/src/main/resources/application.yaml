@@ -45,6 +45,3 @@ ringo:
             purpose: email-verification
             max-issues: 10
             window: 1h
-      redis:
-        secret: v2pd/5bgDhCt81RaMcfAVC+nFYHNn/EMJdvmFo2dyEo=
-        expired-retention: 1m

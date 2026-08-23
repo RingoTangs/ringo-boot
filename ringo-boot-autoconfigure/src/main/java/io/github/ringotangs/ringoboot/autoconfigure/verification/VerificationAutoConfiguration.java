@@ -64,7 +64,7 @@ public class VerificationAutoConfiguration {
     @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "store", havingValue = "redis")
     VerificationStore missingRedisVerificationStore() {
         throw new IllegalStateException(
-                "Redis verification storage requires Spring Data Redis, a StringRedisTemplate, and a valid secret");
+                "Redis verification storage requires Spring Data Redis, a StringRedisTemplate, and a RedisVerificationHmacKey bean");
     }
 
     /**

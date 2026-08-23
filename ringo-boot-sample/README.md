@@ -26,9 +26,6 @@ ringo:
             purpose: email-verification
             max-issues: 10
             window: 1h
-      redis:
-        secret: ${VERIFICATION_HMAC_SECRET}
-        expired-retention: 1m
 ```
 
 sample 已引入 `spring-boot-starter-data-redis`。Spring Boot 创建 `StringRedisTemplate` 后，Ringo Boot
@@ -71,12 +68,10 @@ ringo:
     verification:
       enabled: true
       store: redis
-      redis:
-        secret: ${VERIFICATION_HMAC_SECRET}
-        expired-retention: 1m
 ```
 
-`VERIFICATION_HMAC_SECRET` 必须是 Base64 编码且解码后至少 32 字节的共享密钥，所有应用实例必须使用相同值。
+sample 会读取环境变量 `VERIFICATION_HMAC_KEY` 并创建 `RedisVerificationHmacKey` Bean。该值必须是 Base64
+编码且解码后至少 32 字节的共享密钥，所有应用实例必须使用相同值。
 Redis 中只保存验证码及验证键的 HMAC 摘要，不保存验证码、邮箱或手机号明文。
 
 可以使用 OpenSSL 生成密钥：
@@ -89,7 +84,7 @@ openssl rand -base64 32
 
 ```shell
 $env:REDIS_URL="redis://username:password@redis.example.com:6379/0"
-$env:VERIFICATION_HMAC_SECRET="生成的 Base64 密钥"
+$env:VERIFICATION_HMAC_KEY="生成的 Base64 密钥"
 mvn -pl ringo-boot-sample -am spring-boot:run
 ```
 
