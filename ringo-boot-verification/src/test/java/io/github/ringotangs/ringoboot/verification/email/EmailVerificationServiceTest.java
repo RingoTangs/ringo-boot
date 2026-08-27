@@ -1,5 +1,6 @@
 package io.github.ringotangs.ringoboot.verification.email;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -10,19 +11,16 @@ import io.github.ringotangs.ringoboot.verification.IssueResult;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
+import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
+import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.lang.reflect.Modifier;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
 class EmailVerificationServiceTest {
-
-    private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
 
     @Test
     void dispatchesCompleteDeliveryToEmailSender() {
@@ -37,7 +35,6 @@ class EmailVerificationServiceTest {
                     return new io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult.Allowed();
                 },
                 VerificationPolicy.defaults(),
-                Clock.fixed(NOW, ZoneOffset.UTC),
                 delivery -> {
                     captured.set(delivery);
                     return CodeSendResult.ACCEPTED;
@@ -66,8 +63,19 @@ class EmailVerificationServiceTest {
     }
 
     @Test
-    void exposesOnlyStandardAndClockAwareConstructors() {
-        assertEquals(2, EmailVerificationService.class.getConstructors().length);
+    void exposesOnlyStandardConstructor() {
+        var constructors = EmailVerificationService.class.getConstructors();
+
+        assertEquals(1, constructors.length);
+        assertArrayEquals(
+                new Class<?>[] {
+                    CodeGenerator.class,
+                    VerificationStore.class,
+                    IssueRateLimiter.class,
+                    VerificationPolicy.class,
+                    EmailCodeSender.class
+                },
+                constructors[0].getParameterTypes());
     }
 
     @Test

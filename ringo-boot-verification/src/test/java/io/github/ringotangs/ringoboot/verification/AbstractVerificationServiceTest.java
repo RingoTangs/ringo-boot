@@ -1,6 +1,6 @@
 package io.github.ringotangs.ringoboot.verification;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -284,23 +284,30 @@ class AbstractVerificationServiceTest {
                         null,
                         VerificationPolicy.defaults(),
                         Clock.fixed(NOW, ZoneOffset.UTC)));
+        assertThrows(
+                NullPointerException.class,
+                () -> new CapturingVerificationService(
+                        length -> "123456",
+                        new InMemoryVerificationStore(),
+                        IssueRateLimiter.permitAll(),
+                        VerificationPolicy.defaults(),
+                        null));
         assertThrows(NullPointerException.class, () -> template.issue((VerificationKey) null));
     }
 
     @Test
-    void declaresOnlyCompleteDependencyConstructor() {
+    void declaresDefaultAndClockAwareDependencyConstructors() {
         var constructors = AbstractVerificationService.class.getDeclaredConstructors();
 
-        assertEquals(1, constructors.length);
-        assertArrayEquals(
-                new Class<?>[] {
-                    CodeGenerator.class,
-                    VerificationStore.class,
-                    IssueRateLimiter.class,
-                    VerificationPolicy.class,
-                    Clock.class
-                },
-                constructors[0].getParameterTypes());
+        assertEquals(2, constructors.length);
+        assertDoesNotThrow(() -> AbstractVerificationService.class.getDeclaredConstructor(
+                CodeGenerator.class, VerificationStore.class, IssueRateLimiter.class, VerificationPolicy.class));
+        assertDoesNotThrow(() -> AbstractVerificationService.class.getDeclaredConstructor(
+                CodeGenerator.class,
+                VerificationStore.class,
+                IssueRateLimiter.class,
+                VerificationPolicy.class,
+                Clock.class));
     }
 
     private CapturingVerificationService template(CodeGenerator generator, VerificationStore store) {
@@ -335,7 +342,7 @@ class AbstractVerificationServiceTest {
         private CodeSendResult result = CodeSendResult.ACCEPTED;
 
         private CapturingVerificationService(CodeGenerator generator, VerificationStore store) {
-            this(generator, store, IssueRateLimiter.permitAll(), VerificationPolicy.defaults(), Clock.systemUTC());
+            super(generator, store, IssueRateLimiter.permitAll(), VerificationPolicy.defaults());
         }
 
         private CapturingVerificationService(

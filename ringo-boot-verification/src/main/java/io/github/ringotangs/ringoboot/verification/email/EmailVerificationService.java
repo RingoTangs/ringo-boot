@@ -9,12 +9,11 @@ import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
-import java.time.Clock;
+
 import java.util.Objects;
 
 /**
  * 统一编排验证码生命周期并通过邮件渠道派发。
- *
  */
 public class EmailVerificationService extends AbstractVerificationService {
 
@@ -23,11 +22,11 @@ public class EmailVerificationService extends AbstractVerificationService {
     /**
      * 使用指定签发限流器、服务级验证码策略和 UTC 系统时钟创建邮件验证服务。
      *
-     * @param codeGenerator 验证码生成器
-     * @param store 验证码存储
-     * @param issueRateLimiter 验证码签发限流器
+     * @param codeGenerator      验证码生成器
+     * @param store              验证码存储
+     * @param issueRateLimiter   验证码签发限流器
      * @param verificationPolicy 服务级验证码策略
-     * @param sender 邮件发送器
+     * @param sender             邮件发送器
      */
     public EmailVerificationService(
             CodeGenerator codeGenerator,
@@ -35,27 +34,7 @@ public class EmailVerificationService extends AbstractVerificationService {
             IssueRateLimiter issueRateLimiter,
             VerificationPolicy verificationPolicy,
             EmailCodeSender sender) {
-        this(codeGenerator, store, issueRateLimiter, verificationPolicy, Clock.systemUTC(), sender);
-    }
-
-    /**
-     * 使用指定签发限流器、服务级验证码策略和时钟创建邮件验证服务。
-     *
-     * @param codeGenerator 验证码生成器
-     * @param store 验证码存储
-     * @param issueRateLimiter 验证码签发限流器
-     * @param verificationPolicy 服务级验证码策略
-     * @param clock 提供签发和校验时间的时钟
-     * @param sender 邮件发送器
-     */
-    public EmailVerificationService(
-            CodeGenerator codeGenerator,
-            VerificationStore store,
-            IssueRateLimiter issueRateLimiter,
-            VerificationPolicy verificationPolicy,
-            Clock clock,
-            EmailCodeSender sender) {
-        super(codeGenerator, store, issueRateLimiter, verificationPolicy, clock);
+        super(codeGenerator, store, issueRateLimiter, verificationPolicy);
         this.sender = Objects.requireNonNull(sender, "sender must not be null");
     }
 
