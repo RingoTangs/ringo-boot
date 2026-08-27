@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.github.ringotangs.ringoboot.verification.IssueResult;
+import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
@@ -24,10 +25,15 @@ class SmsVerificationServiceTest {
     void dispatchesCompleteDeliveryToSmsSender() {
         VerificationKey key = new VerificationKey("account", "login", "+8613800000000");
         AtomicReference<SmsCodeDelivery> captured = new AtomicReference<>();
+        AtomicReference<VerificationChannel> capturedChannel = new AtomicReference<>();
         SmsVerificationService service = new SmsVerificationService(
                 length -> "123456",
                 new InMemoryVerificationStore(),
-                IssueRateLimiter.permitAll(),
+                (context, requestedAt) -> {
+                    capturedChannel.set(context.channel());
+                    return new io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult.Allowed();
+                },
+                context -> context,
                 VerificationPolicy.defaults(),
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 delivery -> {
@@ -38,6 +44,7 @@ class SmsVerificationServiceTest {
         IssueResult.Accepted result = assertInstanceOf(IssueResult.Accepted.class, service.issue(key));
 
         assertEquals("account", captured.get().namespace());
+        assertEquals(VerificationChannel.SMS, capturedChannel.get());
         assertEquals("login", captured.get().purpose());
         assertEquals("+8613800000000", captured.get().phoneNumber());
         assertEquals("123456", captured.get().code());
@@ -52,6 +59,7 @@ class SmsVerificationServiceTest {
                         length -> "123456",
                         new InMemoryVerificationStore(),
                         IssueRateLimiter.permitAll(),
+                        context -> context,
                         VerificationPolicy.defaults(),
                         null));
     }

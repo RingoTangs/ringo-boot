@@ -1,6 +1,6 @@
 package io.github.ringotangs.ringoboot.verification.limit;
 
-import io.github.ringotangs.ringoboot.verification.VerificationKey;
+import io.github.ringotangs.ringoboot.verification.IssueContext;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -26,9 +26,6 @@ public final class IssueRateLimitManager implements IssueRateLimiter {
     /** 原子检查并消费已解析签发配额的状态存储。 */
     private final IssueRateLimitStore store;
 
-    /** 根据验证码键补充 IP、设备或租户等运行时限流信号的解析器。 */
-    private final IssueContextResolver contextResolver;
-
     /**
      * 使用规则集合和限流状态存储创建管理器。
      *
@@ -41,26 +38,8 @@ public final class IssueRateLimitManager implements IssueRateLimiter {
      * @throws MissingIssueRateLimitRuleException 当规则集合为空时
      */
     public IssueRateLimitManager(List<IssueRateLimitRule> rules, IssueRateLimitStore store) {
-        this(rules, store, IssueContext::of);
-    }
-
-    /**
-     * 使用规则集合、限流状态存储和上下文解析器创建管理器。
-     *
-     * <p>规则的迭代顺序会被保留，便于获得稳定的匹配和诊断顺序，但所有匹配规则仍以 AND 关系原子执行，顺序不会改变限流结果。
-     *
-     * @param rules 需要管理的非空签发限流规则集合
-     * @param store 原子保存和消费已解析配额的限流状态存储
-     * @param contextResolver 根据验证码键解析额外限流信号的上下文解析器
-     * @throws NullPointerException 当规则集合、任一规则、规则定义字段、Store 或上下文解析器为 {@code null} 时
-     * @throws IllegalArgumentException 当规则定义非法或存在重复规则 ID 时
-     * @throws MissingIssueRateLimitRuleException 当规则集合为空时
-     */
-    public IssueRateLimitManager(
-            List<IssueRateLimitRule> rules, IssueRateLimitStore store, IssueContextResolver contextResolver) {
         Objects.requireNonNull(rules, "rules must not be null");
         this.store = Objects.requireNonNull(store, "store must not be null");
-        this.contextResolver = Objects.requireNonNull(contextResolver, "contextResolver must not be null");
         this.rules = List.copyOf(rules);
         if (this.rules.isEmpty()) {
             throw new MissingIssueRateLimitRuleException();
@@ -76,29 +55,24 @@ public final class IssueRateLimitManager implements IssueRateLimiter {
     }
 
     /**
-     * 解析上下文，收集全部匹配规则并原子获取一次签发名额。
+     * 使用签发上下文收集全部匹配规则并原子获取一次签发名额。
      *
      * <p>该方法先解析所有匹配规则的额度桶，只有全部额度桶均成功解析后才调用 Store。没有规则匹配时严格拒绝，Store 返回结果为空
      * 也视为实现违反契约。
      *
-     * @param key 验证码键
+     * @param context 当前签发流程的上下文
      * @param requestedAt 请求签发的时间
      * @return Store 返回的允许或受限结果
-     * @throws NullPointerException 当任一参数、解析出的上下文、规则返回的额度桶或 Store 返回结果为 {@code null} 时
-     * @throws IllegalArgumentException 当上下文解析器改变验证码键，或者规则生成的配额非法时
+     * @throws NullPointerException 当任一参数、规则返回的额度桶或 Store 返回结果为 {@code null} 时
+     * @throws IllegalArgumentException 当规则生成的配额非法时
      * @throws MissingIssueRateLimitRuleException 当没有规则覆盖当前验证码键时
-     * @throws RuntimeException 当上下文解析、规则匹配或额度桶解析失败时
+     * @throws RuntimeException 当规则匹配或额度桶解析失败时
      * @throws IssueRateLimitException 当底层限流状态操作失败时
      */
     @Override
-    public IssueLimitResult acquire(VerificationKey key, Instant requestedAt) throws IssueRateLimitException {
-        Objects.requireNonNull(key, "key must not be null");
+    public IssueLimitResult acquire(IssueContext context, Instant requestedAt) throws IssueRateLimitException {
+        Objects.requireNonNull(context, "context must not be null");
         Objects.requireNonNull(requestedAt, "requestedAt must not be null");
-        IssueContext context =
-                Objects.requireNonNull(contextResolver.resolve(key), "issue context resolver result must not be null");
-        if (!context.key().equals(key)) {
-            throw new IllegalArgumentException("issue context resolver must preserve the verification key");
-        }
         List<IssueLimitQuota> quotas = new ArrayList<>();
         for (IssueRateLimitRule rule : rules) {
             if (rule.matches(context)) {
@@ -108,7 +82,7 @@ public final class IssueRateLimitManager implements IssueRateLimiter {
             }
         }
         if (quotas.isEmpty()) {
-            throw new MissingIssueRateLimitRuleException(key);
+            throw new MissingIssueRateLimitRuleException(context.key());
         }
         return Objects.requireNonNull(
                 store.acquire(List.copyOf(quotas), requestedAt), "issue rate limit store result must not be null");

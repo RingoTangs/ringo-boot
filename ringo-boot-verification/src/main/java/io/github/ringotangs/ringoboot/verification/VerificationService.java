@@ -5,7 +5,7 @@ package io.github.ringotangs.ringoboot.verification;
  *
  *
  * <p><strong>API 注意事项：</strong> 此接口仅定义业务能力；验证码生成、存储、渠道派发和签发限流由
- * {@link AbstractVerificationService} 统一编排。IP、设备等环境限流信号由限流组件集中解析，业务调用方只需传递验证码键。
+ * {@link AbstractVerificationService} 统一编排。签发服务负责创建和解析 {@link IssueContext}，业务调用方只需传递验证码键。
  */
 public interface VerificationService {
 

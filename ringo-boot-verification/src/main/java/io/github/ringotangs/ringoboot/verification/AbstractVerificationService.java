@@ -10,7 +10,6 @@ import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
-
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Objects;
@@ -18,22 +17,25 @@ import java.util.Objects;
 /**
  * 统一编排验证码生成、存储、渠道派发、失败补偿和校验消费流程。
  *
- * <p><strong>API 注意事项：</strong> 子类只需实现 {@link #dispatch(CodeDelivery)} 以完成邮件、短信等渠道的派发。
+ * <p><strong>API 注意事项：</strong> 子类通过 {@link #channel()} 声明渠道，实现 {@link #dispatch(CodeDelivery)} 完成派发；
+ * 需要额外流程属性时可以覆盖 {@link #customizeIssueContext(IssueContext)}。
  */
 public abstract class AbstractVerificationService implements VerificationService {
 
     private final CodeGenerator codeGenerator;
     private final VerificationStore store;
     private final IssueRateLimiter issueRateLimiter;
+    private final IssueContextResolver issueContextResolver;
     private final VerificationPolicy verificationPolicy;
     private final Clock clock;
 
     /**
-     * 使用指定生成器、存储、签发限流器、服务级验证码策略和时钟创建渠道服务。
+     * 使用指定生成器、存储、签发限流器、上下文解析器、服务级验证码策略和时钟创建渠道服务。
      *
      * @param codeGenerator      验证码生成器
      * @param store              验证码状态存储
      * @param issueRateLimiter   验证码签发限流器
+     * @param issueContextResolver 签发上下文解析器
      * @param verificationPolicy 服务级验证码策略
      * @param clock              提供签发和校验时间的时钟
      * @throws NullPointerException 当任一参数为 {@code null} 时
@@ -42,11 +44,14 @@ public abstract class AbstractVerificationService implements VerificationService
             CodeGenerator codeGenerator,
             VerificationStore store,
             IssueRateLimiter issueRateLimiter,
+            IssueContextResolver issueContextResolver,
             VerificationPolicy verificationPolicy,
             Clock clock) {
         this.codeGenerator = Objects.requireNonNull(codeGenerator, "codeGenerator must not be null");
         this.store = Objects.requireNonNull(store, "store must not be null");
         this.issueRateLimiter = Objects.requireNonNull(issueRateLimiter, "issueRateLimiter must not be null");
+        this.issueContextResolver =
+                Objects.requireNonNull(issueContextResolver, "issueContextResolver must not be null");
         this.verificationPolicy = Objects.requireNonNull(verificationPolicy, "verificationPolicy must not be null");
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
     }
@@ -57,9 +62,21 @@ public abstract class AbstractVerificationService implements VerificationService
     @Override
     public final IssueResult issue(VerificationKey key) throws VerificationException {
         Objects.requireNonNull(key, "key must not be null");
+        VerificationChannel channel = Objects.requireNonNull(channel(), "verification channel must not be null");
+        IssueContext baseContext = IssueContext.of(key, channel);
+        IssueContext resolvedContext = requirePreservedContext(
+                baseContext,
+                Objects.requireNonNull(
+                        issueContextResolver.resolve(baseContext), "issue context resolver result must not be null"),
+                "issue context resolver");
+        IssueContext context = requirePreservedContext(
+                baseContext,
+                Objects.requireNonNull(
+                        customizeIssueContext(resolvedContext), "customized issue context must not be null"),
+                "issue context customizer");
         Instant issuedAt = clock.instant();
         IssueLimitResult limitResult = Objects.requireNonNull(
-                issueRateLimiter.acquire(key, issuedAt), "issue rate limiter result must not be null");
+                issueRateLimiter.acquire(context, issuedAt), "issue rate limiter result must not be null");
         if (limitResult instanceof IssueLimitResult.Throttled(java.time.Duration retryAfter)) {
             return new IssueResult.Throttled(retryAfter);
         }
@@ -69,8 +86,8 @@ public abstract class AbstractVerificationService implements VerificationService
         if (code == null || code.isBlank() || code.length() != codeLength) {
             throw new CodeGenerationException("generated code must be non-blank and have length " + codeLength);
         }
-        StoreResult stored = store.store(key, code, verificationPolicy, issuedAt);
-        return dispatchStoredCode(key, code, stored.expiresAt());
+        StoreResult stored = store.store(context.key(), code, verificationPolicy, issuedAt);
+        return dispatchStoredCode(context, code, stored.expiresAt());
     }
 
     /**
@@ -92,10 +109,29 @@ public abstract class AbstractVerificationService implements VerificationService
      */
     protected abstract CodeSendResult dispatch(CodeDelivery delivery) throws CodeSenderException;
 
-    private IssueResult dispatchStoredCode(VerificationKey key, String code, Instant expiresAt) {
+    /**
+     * 返回当前服务使用的验证码渠道。
+     *
+     * @return 稳定的验证码渠道
+     */
+    protected abstract VerificationChannel channel();
+
+    /**
+     * 为当前服务补充签发流程属性。
+     *
+     * <p>子类可以返回增加属性后的新上下文，但不能替换验证码键或渠道。
+     *
+     * @param context 已补充执行环境信息的签发上下文
+     * @return 当前服务补充后的签发上下文
+     */
+    protected IssueContext customizeIssueContext(IssueContext context) {
+        return context;
+    }
+
+    private IssueResult dispatchStoredCode(IssueContext context, String code, Instant expiresAt) {
         try {
             CodeSendResult result = Objects.requireNonNull(
-                    dispatch(new CodeDelivery(key, code, expiresAt)), "code sender result must not be null");
+                    dispatch(new CodeDelivery(context, code, expiresAt)), "code sender result must not be null");
             return switch (result) {
                 case ACCEPTED -> new IssueResult.Accepted(expiresAt);
                 case UNKNOWN -> new IssueResult.Uncertain(expiresAt);
@@ -103,11 +139,21 @@ public abstract class AbstractVerificationService implements VerificationService
             };
         } catch (RuntimeException dispatchFailure) {
             try {
-                store.invalidate(key, code);
+                store.invalidate(context.key(), code);
             } catch (RuntimeException invalidationFailure) {
                 dispatchFailure.addSuppressed(invalidationFailure);
             }
             throw dispatchFailure;
         }
+    }
+
+    private static IssueContext requirePreservedContext(IssueContext expected, IssueContext actual, String source) {
+        if (!actual.key().equals(expected.key())) {
+            throw new IllegalArgumentException(source + " must preserve the verification key");
+        }
+        if (!actual.channel().equals(expected.channel())) {
+            throw new IllegalArgumentException(source + " must preserve the verification channel");
+        }
+        return actual;
     }
 }

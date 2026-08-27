@@ -1,14 +1,14 @@
 package io.github.ringotangs.ringoboot.verification.limit;
 
-import io.github.ringotangs.ringoboot.verification.VerificationKey;
+import io.github.ringotangs.ringoboot.verification.IssueContext;
 import java.time.Instant;
 import java.util.Objects;
 
 /**
  * 验证码服务使用的签发频率限制入口。
  *
- * <p>默认实现由 {@link IssueRateLimitManager} 提供。管理器通过 {@link IssueContextResolver} 统一解析额外限流信号，调用方只需提供
- * {@link VerificationKey}。应用也可以替换整个入口，但自定义实现必须保证：一次获取涉及多条规则时，
+ * <p>默认实现由 {@link IssueRateLimitManager} 提供。签发服务负责创建上下文，限流器只负责检查和消费额度。
+ * 应用也可以替换整个入口，但自定义实现必须保证：一次获取涉及多条规则时，
  * 先检查全部规则；只有全部规则允许时，才能同时消费所有规则的额度。正常受限的请求不得消费任何规则的额度。
  *
  * <p>获得名额后即视为消耗，无论后续验证码生成、存储或派发是否成功，都不应自动退还。这样可以避免调用方利用后续步骤失败持续绕过
@@ -34,8 +34,8 @@ public interface IssueRateLimiter {
      * @return 显式允许所有签发请求的限流器
      */
     static IssueRateLimiter permitAll() {
-        return (key, requestedAt) -> {
-            Objects.requireNonNull(key, "key must not be null");
+        return (context, requestedAt) -> {
+            Objects.requireNonNull(context, "context must not be null");
             Objects.requireNonNull(requestedAt, "requestedAt must not be null");
             return new IssueLimitResult.Allowed();
         };
@@ -44,7 +44,7 @@ public interface IssueRateLimiter {
     /**
      * 尝试获取一次验证码签发名额。
      *
-     * @param key 验证码键
+     * @param context 当前签发流程的上下文
      * @param requestedAt 请求签发的时间
      * @return 允许签发或受限结果
      * @throws NullPointerException 当任一参数为 {@code null} 时
@@ -53,5 +53,5 @@ public interface IssueRateLimiter {
      * @throws MissingIssueRateLimitRuleException 当没有规则覆盖当前验证码键时
      * @throws IssueRateLimitException 当底层限流操作失败时
      */
-    IssueLimitResult acquire(VerificationKey key, Instant requestedAt) throws IssueRateLimitException;
+    IssueLimitResult acquire(IssueContext context, Instant requestedAt) throws IssueRateLimitException;
 }

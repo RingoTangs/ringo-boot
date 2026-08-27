@@ -30,6 +30,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.UnaryOperator;
 import org.junit.jupiter.api.Test;
 
 class AbstractVerificationServiceTest {
@@ -44,7 +45,7 @@ class AbstractVerificationServiceTest {
         IssueResult.Accepted issued = assertInstanceOf(IssueResult.Accepted.class, template.issue(LOGIN));
 
         assertEquals(NOW.plus(Duration.ofMinutes(5)), issued.expiresAt());
-        assertEquals(LOGIN, template.delivery().key());
+        assertEquals(LOGIN, template.delivery().context().key());
         assertEquals("123456", template.delivery().code());
         assertFalse(template.delivery().toString().contains("123456"));
         assertFalse(issued.toString().contains("123456"));
@@ -180,22 +181,74 @@ class AbstractVerificationServiceTest {
     }
 
     @Test
-    void passesVerificationKeyToRateLimiter() {
-        AtomicReference<VerificationKey> captured = new AtomicReference<>();
-        IssueRateLimiter limiter = (key, requestedAt) -> {
-            captured.set(key);
+    void passesSameResolvedContextToRateLimiterAndDelivery() {
+        AtomicReference<IssueContext> captured = new AtomicReference<>();
+        AtomicInteger resolverCalls = new AtomicInteger();
+        IssueContextResolver resolver = context -> {
+            resolverCalls.incrementAndGet();
+            return context.with("ip-address", "203.0.113.10");
+        };
+        IssueRateLimiter limiter = (context, requestedAt) -> {
+            captured.set(context);
             return new IssueLimitResult.Allowed();
         };
         CapturingVerificationService template = new CapturingVerificationService(
                 length -> "123456",
                 new InMemoryVerificationStore(),
                 limiter,
+                resolver,
                 VerificationPolicy.defaults(),
                 Clock.fixed(NOW, ZoneOffset.UTC));
         assertInstanceOf(IssueResult.Accepted.class, template.issue(LOGIN));
 
-        assertSame(LOGIN, captured.get());
-        assertEquals(LOGIN, template.delivery().key());
+        assertSame(captured.get(), template.delivery().context());
+        assertEquals(LOGIN, captured.get().key());
+        assertEquals(VerificationChannel.EMAIL, captured.get().channel());
+        assertEquals("203.0.113.10", captured.get().attribute("ip-address").orElseThrow());
+        assertEquals("capturing", captured.get().attribute("service").orElseThrow());
+        assertEquals(1, resolverCalls.get());
+        assertEquals(1, template.customizations());
+    }
+
+    @Test
+    void rejectsInvalidResolverAndCustomizerResults() {
+        VerificationKey otherKey = new VerificationKey("account", "login", "other@example.com");
+        CapturingVerificationService changedKey = new CapturingVerificationService(
+                length -> "123456",
+                new InMemoryVerificationStore(),
+                IssueRateLimiter.permitAll(),
+                context -> IssueContext.of(otherKey, context.channel()),
+                VerificationPolicy.defaults(),
+                Clock.fixed(NOW, ZoneOffset.UTC));
+        CapturingVerificationService changedChannel = template(length -> "123456", new InMemoryVerificationStore());
+        changedChannel.customizeWith(context -> IssueContext.of(context.key(), VerificationChannel.SMS));
+        CapturingVerificationService nullResolvedContext = new CapturingVerificationService(
+                length -> "123456",
+                new InMemoryVerificationStore(),
+                IssueRateLimiter.permitAll(),
+                context -> null,
+                VerificationPolicy.defaults(),
+                Clock.fixed(NOW, ZoneOffset.UTC));
+        CapturingVerificationService nullCustomizedContext =
+                template(length -> "123456", new InMemoryVerificationStore());
+        nullCustomizedContext.customizeWith(context -> null);
+
+        assertEquals(
+                "issue context resolver must preserve the verification key",
+                assertThrows(IllegalArgumentException.class, () -> changedKey.issue(LOGIN))
+                        .getMessage());
+        assertEquals(
+                "issue context customizer must preserve the verification channel",
+                assertThrows(IllegalArgumentException.class, () -> changedChannel.issue(LOGIN))
+                        .getMessage());
+        assertEquals(
+                "issue context resolver result must not be null",
+                assertThrows(NullPointerException.class, () -> nullResolvedContext.issue(LOGIN))
+                        .getMessage());
+        assertEquals(
+                "customized issue context must not be null",
+                assertThrows(NullPointerException.class, () -> nullCustomizedContext.issue(LOGIN))
+                        .getMessage());
     }
 
     @Test
@@ -209,8 +262,8 @@ class AbstractVerificationServiceTest {
                 return super.store(key, code, policy, issuedAt);
             }
         };
-        IssueRateLimiter limiter = (key, requestedAt) -> {
-            throw new MissingIssueRateLimitRuleException(key);
+        IssueRateLimiter limiter = (context, requestedAt) -> {
+            throw new MissingIssueRateLimitRuleException(context.key());
         };
         CapturingVerificationService template = new CapturingVerificationService(
                 length -> {
@@ -219,6 +272,7 @@ class AbstractVerificationServiceTest {
                 },
                 store,
                 limiter,
+                context -> context,
                 VerificationPolicy.defaults(),
                 Clock.fixed(NOW, ZoneOffset.UTC));
 
@@ -250,6 +304,7 @@ class AbstractVerificationServiceTest {
                         length -> "123456",
                         new InMemoryVerificationStore(),
                         null,
+                        context -> context,
                         VerificationPolicy.defaults(),
                         Clock.fixed(NOW, ZoneOffset.UTC)));
         assertThrows(NullPointerException.class, () -> template.issue((VerificationKey) null));
@@ -265,6 +320,7 @@ class AbstractVerificationServiceTest {
                     CodeGenerator.class,
                     VerificationStore.class,
                     IssueRateLimiter.class,
+                    IssueContextResolver.class,
                     VerificationPolicy.class,
                     Clock.class
                 },
@@ -278,7 +334,12 @@ class AbstractVerificationServiceTest {
     private CapturingVerificationService template(
             CodeGenerator generator, VerificationStore store, VerificationPolicy verificationPolicy) {
         return new CapturingVerificationService(
-                generator, store, testIssueRateLimiter(), verificationPolicy, Clock.fixed(NOW, ZoneOffset.UTC));
+                generator,
+                store,
+                testIssueRateLimiter(),
+                context -> context,
+                verificationPolicy,
+                Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     private IssueRateLimiter testIssueRateLimiter() {
@@ -297,25 +358,34 @@ class AbstractVerificationServiceTest {
 
         private final AtomicReference<CodeDelivery> delivery = new AtomicReference<>();
         private final AtomicInteger dispatches = new AtomicInteger();
+        private final AtomicInteger customizations = new AtomicInteger();
+        private UnaryOperator<IssueContext> customizer = context -> context.with("service", "capturing");
         private RuntimeException failure;
         private CodeSendResult result = CodeSendResult.ACCEPTED;
 
         private CapturingVerificationService(CodeGenerator generator, VerificationStore store) {
-            this(generator, store, IssueRateLimiter.permitAll(), VerificationPolicy.defaults(), Clock.systemUTC());
+            this(
+                    generator,
+                    store,
+                    IssueRateLimiter.permitAll(),
+                    context -> context,
+                    VerificationPolicy.defaults(),
+                    Clock.systemUTC());
         }
 
         private CapturingVerificationService(
                 CodeGenerator generator, VerificationStore store, VerificationPolicy verificationPolicy, Clock clock) {
-            this(generator, store, IssueRateLimiter.permitAll(), verificationPolicy, clock);
+            this(generator, store, IssueRateLimiter.permitAll(), context -> context, verificationPolicy, clock);
         }
 
         private CapturingVerificationService(
                 CodeGenerator generator,
                 VerificationStore store,
                 IssueRateLimiter issueRateLimiter,
+                IssueContextResolver issueContextResolver,
                 VerificationPolicy verificationPolicy,
                 Clock clock) {
-            super(generator, store, issueRateLimiter, verificationPolicy, clock);
+            super(generator, store, issueRateLimiter, issueContextResolver, verificationPolicy, clock);
         }
 
         @Override
@@ -328,12 +398,31 @@ class AbstractVerificationServiceTest {
             return result;
         }
 
+        @Override
+        protected VerificationChannel channel() {
+            return VerificationChannel.EMAIL;
+        }
+
+        @Override
+        protected IssueContext customizeIssueContext(IssueContext context) {
+            customizations.incrementAndGet();
+            return customizer.apply(context);
+        }
+
         private CodeDelivery delivery() {
             return delivery.get();
         }
 
         private int dispatches() {
             return dispatches.get();
+        }
+
+        private int customizations() {
+            return customizations.get();
+        }
+
+        private void customizeWith(UnaryOperator<IssueContext> customizer) {
+            this.customizer = customizer;
         }
 
         private void failWith(RuntimeException failure) {

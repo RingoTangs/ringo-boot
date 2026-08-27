@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.ringotangs.ringoboot.verification.IssueContext;
+import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
@@ -12,7 +14,7 @@ import org.junit.jupiter.api.Test;
 class IssueRateLimitRuleTest {
 
     private static final IssueContext CONTEXT =
-            IssueContext.of(new VerificationKey("account", "login", "user@example.com"));
+            IssueContext.of(new VerificationKey("account", "login", "user@example.com"), VerificationChannel.EMAIL);
 
     @Test
     void createsGlobalAndConditionalRules() {

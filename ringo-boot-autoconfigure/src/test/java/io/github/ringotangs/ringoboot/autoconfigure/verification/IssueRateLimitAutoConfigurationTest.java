@@ -3,10 +3,10 @@ package io.github.ringotangs.ringoboot.autoconfigure.verification;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.github.ringotangs.ringoboot.verification.IssueContext;
+import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimitStore;
-import io.github.ringotangs.ringoboot.verification.limit.IssueContext;
-import io.github.ringotangs.ringoboot.verification.limit.IssueContextResolver;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitManager;
@@ -28,7 +28,6 @@ class IssueRateLimitAutoConfigurationTest {
     @Test
     void doesNotConfigureRateLimitingByDefault() {
         contextRunner.run(context -> {
-            assertThat(context).doesNotHaveBean(IssueContextResolver.class);
             assertThat(context).doesNotHaveBean(IssueRateLimitStore.class);
             assertThat(context).doesNotHaveBean(IssueRateLimiter.class);
         });
@@ -38,7 +37,6 @@ class IssueRateLimitAutoConfigurationTest {
     void configuresDefaultInMemoryRateLimitingWhenVerificationIsEnabled() {
         contextRunner.withPropertyValues("ringo.boot.verification.enabled=true").run(context -> {
             assertThat(context).hasNotFailed();
-            assertThat(context).hasSingleBean(IssueContextResolver.class);
             assertThat(context).hasSingleBean(IssueRateLimitRule.class);
             assertThat(context.getBean(IssueRateLimitRule.class).window()).isEqualTo(Duration.ofSeconds(60));
             assertThat(context).hasSingleBean(IssueRateLimitStore.class);
@@ -46,33 +44,13 @@ class IssueRateLimitAutoConfigurationTest {
             assertThat(context).hasSingleBean(IssueRateLimiter.class);
             assertThat(context.getBean(IssueRateLimiter.class)).isInstanceOf(IssueRateLimitManager.class);
             assertThat(context.getBean(IssueRateLimiter.class)
-                            .acquire(new VerificationKey("account", "login", "user@example.com"), Instant.EPOCH))
+                            .acquire(
+                                    IssueContext.of(
+                                            new VerificationKey("account", "login", "user@example.com"),
+                                            VerificationChannel.EMAIL),
+                                    Instant.EPOCH))
                     .isInstanceOf(IssueLimitResult.Allowed.class);
         });
-    }
-
-    @Test
-    void customResolverSuppliesAttributesToDiscoveredRules() {
-        VerificationKey key = new VerificationKey("account", "login", "user@example.com");
-        IssueContextResolver resolver = candidate -> IssueContext.of(candidate).with("ip-address", "203.0.113.10");
-        IssueRateLimitRule rule = IssueRateLimitRule.of(
-                "login-ip-hour",
-                context -> IssueLimitBucket.of(context.attribute("ip-address").orElseThrow()),
-                10,
-                Duration.ofHours(1));
-
-        contextRunner
-                .withPropertyValues("ringo.boot.verification.enabled=true")
-                .withBean(IssueContextResolver.class, () -> resolver)
-                .withBean("ipRule", IssueRateLimitRule.class, () -> rule)
-                .run(context -> {
-                    assertThat(context).hasNotFailed();
-                    assertThat(context.getBean(IssueContextResolver.class)).isSameAs(resolver);
-                    assertThat(context).hasSingleBean(IssueRateLimitRule.class);
-                    assertThat(context.getBean(IssueRateLimitRule.class)).isSameAs(rule);
-                    assertThat(context.getBean(IssueRateLimiter.class).acquire(key, Instant.EPOCH))
-                            .isInstanceOf(IssueLimitResult.Allowed.class);
-                });
     }
 
     @Test
@@ -108,8 +86,8 @@ class IssueRateLimitAutoConfigurationTest {
                 .withBean("accountLoginRule", IssueRateLimitRule.class, () -> rule)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThatThrownBy(() ->
-                                    context.getBean(IssueRateLimiter.class).acquire(uncovered, Instant.EPOCH))
+                    assertThatThrownBy(() -> context.getBean(IssueRateLimiter.class)
+                                    .acquire(IssueContext.of(uncovered, VerificationChannel.SMS), Instant.EPOCH))
                             .isInstanceOf(MissingIssueRateLimitRuleException.class)
                             .hasMessage("no issue rate limit rule matches namespace=payment, purpose=confirm")
                             .hasMessageNotContaining(uncovered.subject());
@@ -148,8 +126,10 @@ class IssueRateLimitAutoConfigurationTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context).getBeans(IssueRateLimitRule.class).hasSize(2);
                     IssueRateLimiter limiter = context.getBean(IssueRateLimiter.class);
-                    assertThat(limiter.acquire(first, Instant.EPOCH)).isInstanceOf(IssueLimitResult.Allowed.class);
-                    assertThat(limiter.acquire(second, Instant.EPOCH.plusSeconds(1)))
+                    assertThat(limiter.acquire(IssueContext.of(first, VerificationChannel.EMAIL), Instant.EPOCH))
+                            .isInstanceOf(IssueLimitResult.Allowed.class);
+                    assertThat(limiter.acquire(
+                                    IssueContext.of(second, VerificationChannel.SMS), Instant.EPOCH.plusSeconds(1)))
                             .isInstanceOf(IssueLimitResult.Throttled.class);
                 });
     }

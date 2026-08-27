@@ -2,8 +2,6 @@ package io.github.ringotangs.ringoboot.autoconfigure.verification;
 
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisIssueRateLimitAutoConfiguration;
 import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimitStore;
-import io.github.ringotangs.ringoboot.verification.limit.IssueContext;
-import io.github.ringotangs.ringoboot.verification.limit.IssueContextResolver;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitManager;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
@@ -30,17 +28,6 @@ import org.springframework.context.annotation.Bean;
 public class IssueRateLimitAutoConfiguration {
 
     private static final Duration DEFAULT_KEY_COOLDOWN = Duration.ofSeconds(60);
-
-    /**
-     * 在应用未提供上下文解析器时，仅使用验证码键创建签发上下文。
-     *
-     * @return 不包含 IP、设备等环境属性的默认上下文解析器
-     */
-    @Bean
-    @ConditionalOnMissingBean
-    IssueContextResolver issueContextResolver() {
-        return IssueContext::of;
-    }
 
     /**
      * 在内存模式且用户未提供存储时创建进程内签发限流状态存储。
@@ -81,15 +68,13 @@ public class IssueRateLimitAutoConfiguration {
      *
      * @param rules 容器内的签发限流规则
      * @param store 签发限流状态存储
-     * @param contextResolver 签发上下文解析器
      * @return 统一签发限流入口
      */
     @Bean
     @ConditionalOnBean(IssueRateLimitStore.class)
     @ConditionalOnMissingBean(IssueRateLimiter.class)
-    IssueRateLimiter issueRateLimiter(
-            ObjectProvider<IssueRateLimitRule> rules, IssueRateLimitStore store, IssueContextResolver contextResolver) {
+    IssueRateLimiter issueRateLimiter(ObjectProvider<IssueRateLimitRule> rules, IssueRateLimitStore store) {
         List<IssueRateLimitRule> ruleBeans = rules.orderedStream().toList();
-        return new IssueRateLimitManager(ruleBeans, store, contextResolver);
+        return new IssueRateLimitManager(ruleBeans, store);
     }
 }
