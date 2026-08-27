@@ -1,15 +1,15 @@
 package io.github.ringotangs.ringoboot.verification.email;
 
 import io.github.ringotangs.ringoboot.verification.AbstractVerificationService;
+import io.github.ringotangs.ringoboot.verification.IssueContext;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
-import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
-
+import java.time.Instant;
 import java.util.Objects;
 
 /**
@@ -39,19 +39,21 @@ public class EmailVerificationService extends AbstractVerificationService {
     }
 
     /**
-     * 将通用验证码交付内容转换为邮件发送内容并交给邮件发送器。
+     * 根据签发上下文创建邮件交付内容并交给邮件发送器。
      *
-     * @param delivery 通用验证码交付内容
+     * @param context 当前签发流程的上下文
+     * @param code 仅供发送期间使用的明文验证码
+     * @param expiresAt 验证码过期时间
      * @throws CodeSenderException 当邮件派发失败时
      */
     @Override
-    protected CodeSendResult dispatch(CodeDelivery delivery) throws CodeSenderException {
+    protected CodeSendResult dispatch(IssueContext context, String code, Instant expiresAt) throws CodeSenderException {
         return sender.send(new EmailCodeDelivery(
-                delivery.context().key().namespace(),
-                delivery.context().key().purpose(),
-                delivery.context().key().subject(),
-                delivery.code(),
-                delivery.expiresAt()));
+                context.key().namespace(),
+                context.key().purpose(),
+                context.key().subject(),
+                code,
+                expiresAt));
     }
 
     @Override

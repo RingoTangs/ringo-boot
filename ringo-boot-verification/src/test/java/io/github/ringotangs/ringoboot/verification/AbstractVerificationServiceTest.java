@@ -15,7 +15,6 @@ import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitManager;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.limit.MissingIssueRateLimitRuleException;
-import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDeliveryRejectedException;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSenderException;
@@ -47,7 +46,6 @@ class AbstractVerificationServiceTest {
         assertEquals(NOW.plus(Duration.ofMinutes(5)), issued.expiresAt());
         assertEquals(LOGIN, template.delivery().context().key());
         assertEquals("123456", template.delivery().code());
-        assertFalse(template.delivery().toString().contains("123456"));
         assertFalse(issued.toString().contains("123456"));
         assertEquals(VerifyResult.SUCCESS, template.verify(LOGIN, "123456"));
     }
@@ -334,7 +332,7 @@ class AbstractVerificationServiceTest {
 
     private static final class CapturingVerificationService extends AbstractVerificationService {
 
-        private final AtomicReference<CodeDelivery> delivery = new AtomicReference<>();
+        private final AtomicReference<TestDispatch> delivery = new AtomicReference<>();
         private final AtomicInteger dispatches = new AtomicInteger();
         private final AtomicInteger customizations = new AtomicInteger();
         private UnaryOperator<IssueContext> customizer = context -> context.with("service", "capturing");
@@ -360,12 +358,12 @@ class AbstractVerificationServiceTest {
         }
 
         @Override
-        protected CodeSendResult dispatch(CodeDelivery delivery) {
+        protected CodeSendResult dispatch(IssueContext context, String code, Instant expiresAt) {
             dispatches.incrementAndGet();
             if (failure != null) {
                 throw failure;
             }
-            this.delivery.set(delivery);
+            delivery.set(new TestDispatch(context, code, expiresAt));
             return result;
         }
 
@@ -380,7 +378,7 @@ class AbstractVerificationServiceTest {
             return customizer.apply(context);
         }
 
-        private CodeDelivery delivery() {
+        private TestDispatch delivery() {
             return delivery.get();
         }
 
@@ -403,6 +401,8 @@ class AbstractVerificationServiceTest {
         private void respondWith(CodeSendResult result) {
             this.result = result;
         }
+
+        private record TestDispatch(IssueContext context, String code, Instant expiresAt) {}
     }
 
     private static class StubVerificationStore implements VerificationStore {

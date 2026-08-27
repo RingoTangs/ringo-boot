@@ -4,13 +4,11 @@ import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationExcep
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
-import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDeliveryRejectedException;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
-
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Objects;
@@ -18,7 +16,7 @@ import java.util.Objects;
 /**
  * 统一编排验证码生成、存储、渠道派发、失败补偿和校验消费流程。
  *
- * <p><strong>API 注意事项：</strong> 子类通过 {@link #channel()} 声明渠道，实现 {@link #dispatch(CodeDelivery)} 完成派发；
+ * <p><strong>API 注意事项：</strong> 子类通过 {@link #channel()} 声明渠道，实现 {@link #dispatch(IssueContext, String, Instant)} 完成派发；
  * 需要额外流程属性时可以覆盖 {@link #customizeIssueContext(IssueContext)}。
  */
 public abstract class AbstractVerificationService implements VerificationService {
@@ -110,11 +108,14 @@ public abstract class AbstractVerificationService implements VerificationService
     /**
      * 将已生成并存储的验证码派发到具体渠道。
      *
-     * @param delivery 验证码交付内容
+     * @param context 当前签发流程的上下文
+     * @param code 仅供发送期间使用的明文验证码
+     * @param expiresAt 验证码过期时间
      * @return 渠道对发送请求的受理结果
      * @throws CodeSenderException 当渠道派发操作失败时
      */
-    protected abstract CodeSendResult dispatch(CodeDelivery delivery) throws CodeSenderException;
+    protected abstract CodeSendResult dispatch(IssueContext context, String code, Instant expiresAt)
+            throws CodeSenderException;
 
     /**
      * 返回当前服务使用的验证码渠道。
@@ -137,8 +138,8 @@ public abstract class AbstractVerificationService implements VerificationService
 
     private IssueResult dispatchStoredCode(IssueContext context, String code, Instant expiresAt) {
         try {
-            CodeSendResult result = Objects.requireNonNull(
-                    dispatch(new CodeDelivery(context, code, expiresAt)), "code sender result must not be null");
+            CodeSendResult result =
+                    Objects.requireNonNull(dispatch(context, code, expiresAt), "code sender result must not be null");
             return switch (result) {
                 case ACCEPTED -> new IssueResult.Accepted(expiresAt);
                 case UNKNOWN -> new IssueResult.Uncertain(expiresAt);

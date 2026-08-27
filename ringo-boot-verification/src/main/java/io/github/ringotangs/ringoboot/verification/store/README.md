@@ -129,7 +129,7 @@ sequenceDiagram
     participant App as 业务代码
     participant Service as AbstractVerificationService
     participant Store as VerificationStore
-    participant Sender as CodeSender
+    participant Sender as 渠道 Sender
 
     App->>Service: issue(key)
     Service->>Service: 限流并生成明文验证码

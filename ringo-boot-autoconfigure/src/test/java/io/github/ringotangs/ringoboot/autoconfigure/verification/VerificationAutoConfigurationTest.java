@@ -19,7 +19,6 @@ import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitManager;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitStore;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
-import io.github.ringotangs.ringoboot.verification.sender.CodeSender;
 import io.github.ringotangs.ringoboot.verification.sms.SmsCodeSender;
 import io.github.ringotangs.ringoboot.verification.sms.SmsVerificationService;
 import io.github.ringotangs.ringoboot.verification.sms.StdoutSmsCodeSender;
@@ -125,7 +124,6 @@ class VerificationAutoConfigurationTest {
             assertThat(context.getBean(VerificationStore.class)).isInstanceOf(InMemoryVerificationStore.class);
             assertThat(context.getBean(EmailCodeSender.class)).isInstanceOf(StdoutEmailCodeSender.class);
             assertThat(context.getBean(SmsCodeSender.class)).isInstanceOf(StdoutSmsCodeSender.class);
-            assertThat(context).getBeans(CodeSender.class).hasSize(2);
             assertThat(context).hasSingleBean(EmailVerificationService.class);
             assertThat(context).hasSingleBean(SmsVerificationService.class);
         });

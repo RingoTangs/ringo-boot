@@ -28,7 +28,7 @@ public record VerificationChannel(String value) {
     /**
      * 创建并校验验证码渠道。
      *
-     * @throws NullPointerException 当渠道标识为 {@code null} 时
+     * @throws NullPointerException     当渠道标识为 {@code null} 时
      * @throws IllegalArgumentException 当渠道标识不是小写 kebab-case 时
      */
     public VerificationChannel {

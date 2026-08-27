@@ -200,7 +200,7 @@ sequenceDiagram
     participant Rule as Rule Beans
     participant LimitStore as IssueRateLimitStore
     participant CodeStore as VerificationStore
-    participant Sender as CodeSender
+    participant Sender as 渠道 Sender
 
     App->>Service: issue(VerificationKey)
     Service->>Service: IssueContext.of(key, channel)

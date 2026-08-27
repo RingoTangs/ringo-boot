@@ -12,7 +12,6 @@ import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitManager;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
-import io.github.ringotangs.ringoboot.verification.sender.CodeDelivery;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
@@ -212,8 +211,8 @@ class AbstractVerificationServiceLifecycleTest {
         }
 
         @Override
-        protected CodeSendResult dispatch(CodeDelivery delivery) {
-            lastCode = delivery.code();
+        protected CodeSendResult dispatch(IssueContext context, String code, Instant expiresAt) {
+            lastCode = code;
             return CodeSendResult.ACCEPTED;
         }
 
