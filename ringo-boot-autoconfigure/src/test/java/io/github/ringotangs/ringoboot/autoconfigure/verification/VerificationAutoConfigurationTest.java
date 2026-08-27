@@ -6,9 +6,6 @@ import static org.mockito.Mockito.mock;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisIssueRateLimitAutoConfiguration;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisIssueRateLimitStore;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationStore;
-import io.github.ringotangs.ringoboot.verification.IssueContext;
-import io.github.ringotangs.ringoboot.verification.IssueContextResolver;
-import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.VerificationService;
@@ -131,40 +128,7 @@ class VerificationAutoConfigurationTest {
             assertThat(context).getBeans(CodeSender.class).hasSize(2);
             assertThat(context).hasSingleBean(EmailVerificationService.class);
             assertThat(context).hasSingleBean(SmsVerificationService.class);
-            assertThat(context).hasSingleBean(IssueContextResolver.class);
-            VerificationKey key = new VerificationKey("account", "login", "user@example.com");
-            IssueContext baseContext = IssueContext.of(key, VerificationChannel.EMAIL);
-            assertThat(context.getBean(IssueContextResolver.class).resolve(baseContext))
-                    .isSameAs(baseContext);
         });
-    }
-
-    @Test
-    void backsOffForCustomIssueContextResolver() {
-        IssueContextResolver resolver = context -> context.with("tenant-id", "tenant-1");
-
-        contextRunner
-                .withPropertyValues("ringo.boot.verification.enabled=true")
-                .withBean(IssueContextResolver.class, () -> resolver)
-                .run(context -> {
-                    assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(IssueContextResolver.class);
-                    assertThat(context.getBean(IssueContextResolver.class)).isSameAs(resolver);
-                });
-    }
-
-    @Test
-    void doesNotSelectBetweenMultipleIssueContextResolvers() {
-        contextRunner
-                .withPropertyValues("ringo.boot.verification.enabled=true")
-                .withBean("firstIssueContextResolver", IssueContextResolver.class, () -> context -> context)
-                .withBean("secondIssueContextResolver", IssueContextResolver.class, () -> context -> context)
-                .run(context -> {
-                    assertThat(context).hasNotFailed();
-                    assertThat(context).getBeans(IssueContextResolver.class).hasSize(2);
-                    assertThat(context).doesNotHaveBean(EmailVerificationService.class);
-                    assertThat(context).doesNotHaveBean(SmsVerificationService.class);
-                });
     }
 
     @Test
@@ -394,7 +358,6 @@ class VerificationAutoConfigurationTest {
                 length -> "1".repeat(length),
                 new TestVerificationStore(),
                 IssueRateLimiter.permitAll(),
-                context -> context,
                 VerificationPolicy.defaults(),
                 sender);
 

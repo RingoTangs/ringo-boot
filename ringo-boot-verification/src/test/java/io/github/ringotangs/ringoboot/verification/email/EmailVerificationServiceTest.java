@@ -3,7 +3,9 @@ package io.github.ringotangs.ringoboot.verification.email;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.ringotangs.ringoboot.verification.IssueContext;
 import io.github.ringotangs.ringoboot.verification.IssueResult;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
@@ -11,6 +13,7 @@ import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
+import java.lang.reflect.Modifier;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -33,7 +36,6 @@ class EmailVerificationServiceTest {
                     capturedChannel.set(context.channel());
                     return new io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult.Allowed();
                 },
-                context -> context,
                 VerificationPolicy.defaults(),
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 delivery -> {
@@ -59,7 +61,6 @@ class EmailVerificationServiceTest {
                         length -> "123456",
                         new InMemoryVerificationStore(),
                         IssueRateLimiter.permitAll(),
-                        context -> context,
                         VerificationPolicy.defaults(),
                         null));
     }
@@ -67,5 +68,38 @@ class EmailVerificationServiceTest {
     @Test
     void exposesOnlyStandardAndClockAwareConstructors() {
         assertEquals(2, EmailVerificationService.class.getConstructors().length);
+    }
+
+    @Test
+    void allowsContextCustomizationWithoutChangingEmailChannel() throws Exception {
+        AtomicReference<IssueContext> captured = new AtomicReference<>();
+        CustomEmailVerificationService service = new CustomEmailVerificationService((context, requestedAt) -> {
+            captured.set(context);
+            return new io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult.Allowed();
+        });
+
+        service.issue(new VerificationKey("account", "login", "user@example.com"));
+
+        assertEquals("tenant-1", captured.get().attribute("tenant-id").orElseThrow());
+        assertEquals(VerificationChannel.EMAIL, captured.get().channel());
+        assertTrue(Modifier.isFinal(
+                EmailVerificationService.class.getDeclaredMethod("channel").getModifiers()));
+    }
+
+    private static final class CustomEmailVerificationService extends EmailVerificationService {
+
+        private CustomEmailVerificationService(IssueRateLimiter limiter) {
+            super(
+                    length -> "123456",
+                    new InMemoryVerificationStore(),
+                    limiter,
+                    VerificationPolicy.defaults(),
+                    delivery -> CodeSendResult.ACCEPTED);
+        }
+
+        @Override
+        protected IssueContext customizeIssueContext(IssueContext context) {
+            return context.with("tenant-id", "tenant-1");
+        }
     }
 }

@@ -1,7 +1,6 @@
 package io.github.ringotangs.ringoboot.autoconfigure.verification;
 
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationStore;
-import io.github.ringotangs.ringoboot.verification.IssueContextResolver;
 import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.email.EmailVerificationService;
 import io.github.ringotangs.ringoboot.verification.email.StdoutEmailCodeSender;
@@ -34,17 +33,6 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "enabled", havingValue = "true")
 @EnableConfigurationProperties(VerificationProperties.class)
 public class VerificationAutoConfiguration {
-
-    /**
-     * 在用户未提供解析器时创建不修改签发上下文的默认实现。
-     *
-     * @return 原样返回签发上下文的解析器
-     */
-    @Bean
-    @ConditionalOnMissingBean
-    IssueContextResolver issueContextResolver() {
-        return context -> context;
-    }
 
     /**
      * 在用户未提供生成器时创建安全的数字验证码生成器。
@@ -117,7 +105,6 @@ public class VerificationAutoConfiguration {
      * @param codeGenerator    验证码生成器
      * @param store            验证码状态存储
      * @param issueRateLimiter 验证码签发限流器
-     * @param issueContextResolver 签发上下文解析器
      * @param properties       验证码配置属性
      * @param sender           邮件验证码发送器
      * @return 邮件验证码服务
@@ -130,11 +117,9 @@ public class VerificationAutoConfiguration {
             CodeGenerator codeGenerator,
             VerificationStore store,
             IssueRateLimiter issueRateLimiter,
-            IssueContextResolver issueContextResolver,
             VerificationProperties properties,
             EmailCodeSender sender) {
-        return new EmailVerificationService(
-                codeGenerator, store, issueRateLimiter, issueContextResolver, properties.toPolicy(), sender);
+        return new EmailVerificationService(codeGenerator, store, issueRateLimiter, properties.toPolicy(), sender);
     }
 
     /**
@@ -143,7 +128,6 @@ public class VerificationAutoConfiguration {
      * @param codeGenerator    验证码生成器
      * @param store            验证码状态存储
      * @param issueRateLimiter 验证码签发限流器
-     * @param issueContextResolver 签发上下文解析器
      * @param properties       验证码配置属性
      * @param sender           短信验证码发送器
      * @return 短信验证码服务
@@ -156,11 +140,9 @@ public class VerificationAutoConfiguration {
             CodeGenerator codeGenerator,
             VerificationStore store,
             IssueRateLimiter issueRateLimiter,
-            IssueContextResolver issueContextResolver,
             VerificationProperties properties,
             SmsCodeSender sender) {
-        return new SmsVerificationService(
-                codeGenerator, store, issueRateLimiter, issueContextResolver, properties.toPolicy(), sender);
+        return new SmsVerificationService(codeGenerator, store, issueRateLimiter, properties.toPolicy(), sender);
     }
 
     /**
@@ -196,7 +178,7 @@ public class VerificationAutoConfiguration {
     }
 
     /**
-     * 同时检查验证码状态存储、签发限流器和上下文解析器是否存在唯一候选 Bean。
+     * 同时检查验证码状态存储和签发限流器是否存在唯一候选 Bean。
      */
     static final class OnVerificationServiceDependenciesCondition extends AllNestedConditions {
 
@@ -209,8 +191,5 @@ public class VerificationAutoConfiguration {
 
         @ConditionalOnSingleCandidate(IssueRateLimiter.class)
         static class SingleIssueRateLimiter {}
-
-        @ConditionalOnSingleCandidate(IssueContextResolver.class)
-        static class SingleIssueContextResolver {}
     }
 }

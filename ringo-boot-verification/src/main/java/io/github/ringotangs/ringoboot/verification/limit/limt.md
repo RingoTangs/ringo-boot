@@ -165,13 +165,16 @@ Twilio 支持业务传入自定义限流键，例如用户 IP；Firebase 同时�
    - 告警、审计和动态黑名单。
 
 当前业务调用方仍只需调用 `VerificationService.issue(VerificationKey)`。签发服务在入口创建 `IssueContext`，通过
-`IssueContextResolver` 补充环境信息后传给 `IssueRateLimiter.acquire(IssueContext, Instant)`，因此规则仍可使用 IP、设备、账号和租户维度：
+`customizeIssueContext` 模板钩子补充环境信息后传给 `IssueRateLimiter.acquire(IssueContext, Instant)`，因此规则仍可使用 IP、设备、账号和租户维度：
 
 ```java
-IssueContextResolver resolver = context -> context
-        .with("ip-address", resolveTrustedClientIp())
-        .with("device-id", resolveTrustedDeviceId());
+@Override
+protected IssueContext customizeIssueContext(IssueContext context) {
+    return context
+            .with("ip-address", resolveTrustedClientIp())
+            .with("device-id", resolveTrustedDeviceId());
+}
 ```
 
-Spring Boot 默认解析器原样返回服务创建的上下文。需要环境维度的应用应注册自定义 Resolver Bean；HTTP 请求提取和可信代理策略属于
+需要环境维度的应用应继承对应的邮件或短信验证码服务并覆盖该模板方法，再把自定义服务注册为 Bean。HTTP 请求提取和可信代理策略属于
 应用层职责，限流规则本身只读取上下文，不直接依赖 Web API。

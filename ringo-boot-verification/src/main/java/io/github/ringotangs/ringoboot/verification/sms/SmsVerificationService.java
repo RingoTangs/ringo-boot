@@ -1,7 +1,6 @@
 package io.github.ringotangs.ringoboot.verification.sms;
 
 import io.github.ringotangs.ringoboot.verification.AbstractVerificationService;
-import io.github.ringotangs.ringoboot.verification.IssueContextResolver;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
@@ -17,7 +16,7 @@ import java.util.Objects;
  * 统一编排验证码生命周期并通过短信渠道派发。
  *
  */
-public final class SmsVerificationService extends AbstractVerificationService {
+public class SmsVerificationService extends AbstractVerificationService {
 
     private final SmsCodeSender sender;
 
@@ -27,7 +26,6 @@ public final class SmsVerificationService extends AbstractVerificationService {
      * @param codeGenerator 验证码生成器
      * @param store 验证码存储
      * @param issueRateLimiter 验证码签发限流器
-     * @param issueContextResolver 签发上下文解析器
      * @param verificationPolicy 服务级验证码策略
      * @param sender 短信发送器
      */
@@ -35,17 +33,9 @@ public final class SmsVerificationService extends AbstractVerificationService {
             CodeGenerator codeGenerator,
             VerificationStore store,
             IssueRateLimiter issueRateLimiter,
-            IssueContextResolver issueContextResolver,
             VerificationPolicy verificationPolicy,
             SmsCodeSender sender) {
-        this(
-                codeGenerator,
-                store,
-                issueRateLimiter,
-                issueContextResolver,
-                verificationPolicy,
-                Clock.systemUTC(),
-                sender);
+        this(codeGenerator, store, issueRateLimiter, verificationPolicy, Clock.systemUTC(), sender);
     }
 
     /**
@@ -54,7 +44,6 @@ public final class SmsVerificationService extends AbstractVerificationService {
      * @param codeGenerator 验证码生成器
      * @param store 验证码存储
      * @param issueRateLimiter 验证码签发限流器
-     * @param issueContextResolver 签发上下文解析器
      * @param verificationPolicy 服务级验证码策略
      * @param clock 提供签发和校验时间的时钟
      * @param sender 短信发送器
@@ -63,11 +52,10 @@ public final class SmsVerificationService extends AbstractVerificationService {
             CodeGenerator codeGenerator,
             VerificationStore store,
             IssueRateLimiter issueRateLimiter,
-            IssueContextResolver issueContextResolver,
             VerificationPolicy verificationPolicy,
             Clock clock,
             SmsCodeSender sender) {
-        super(codeGenerator, store, issueRateLimiter, issueContextResolver, verificationPolicy, clock);
+        super(codeGenerator, store, issueRateLimiter, verificationPolicy, clock);
         this.sender = Objects.requireNonNull(sender, "sender must not be null");
     }
 
@@ -88,7 +76,7 @@ public final class SmsVerificationService extends AbstractVerificationService {
     }
 
     @Override
-    protected VerificationChannel channel() {
+    protected final VerificationChannel channel() {
         return VerificationChannel.SMS;
     }
 }

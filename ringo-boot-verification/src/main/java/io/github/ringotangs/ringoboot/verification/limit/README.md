@@ -9,7 +9,7 @@
 
 ```mermaid
 flowchart LR
-    A[VerificationService.issue VerificationKey] --> B[创建并解析 IssueContext]
+    A[VerificationService.issue VerificationKey] --> B[创建并定制 IssueContext]
     B --> C[IssueRateLimitManager]
     R1[默认冷却 Rule Bean] --> C
     R2[业务自定义 Rule Bean] --> C
@@ -24,7 +24,6 @@ flowchart LR
 | 组件 | 职责 | 是否理解业务含义 |
 | --- | --- | --- |
 | `IssueContext` | 保存 `VerificationKey`、渠道和应用提供的扩展属性 | 只保存数据，不解释属性 |
-| `IssueContextResolver` | 为服务创建的上下文补充 IP、设备等环境信号 | 是 |
 | `IssueRateLimitRule` | 判断规则是否适用，并计算本次请求属于哪个额度桶 | 是 |
 | `IssueLimitBucket` | 用多个字符串分段表达额度累计身份 | 不解释分段 |
 | `IssueRateLimitManager` | 收集、匹配、校验规则并生成不可变签发配额 | 只负责编排 |
@@ -44,7 +43,7 @@ flowchart LR
 ## 二、签发上下文
 
 业务代码调用 `VerificationService.issue(key)` 时只需传递 `VerificationKey`。`AbstractVerificationService` 在入口创建一次
-`IssueContext`，调用 `IssueContextResolver` 补充环境信息，并允许渠道子类通过模板钩子补充流程属性。最终上下文包含三部分：
+`IssueContext`，并调用 `customizeIssueContext` 模板钩子补充环境信息或流程属性。最终上下文包含三部分：
 
 1. `VerificationKey`：框架已有的 `namespace`、`purpose` 和 `subject`。
 2. `VerificationChannel`：稳定的邮件、短信或自定义渠道标识。
@@ -56,9 +55,12 @@ VerificationKey key = new VerificationKey(
         "login",
         "user@example.com");
 
-IssueContextResolver resolver = context -> context
-        .with("ip-address", resolveTrustedClientIp())
-        .with("device-id", resolveTrustedDeviceId());
+@Override
+protected IssueContext customizeIssueContext(IssueContext context) {
+    return context
+            .with("ip-address", resolveTrustedClientIp())
+            .with("device-id", resolveTrustedDeviceId());
+}
 ```
 
 verification 模块不定义属性名常量。实际应用应在自己的模块中统一声明属性名，避免多个调用方使用不同拼写：
@@ -76,20 +78,23 @@ public final class VerificationIssueAttributes {
 `IssueContext` 是不可变对象，`with` 会返回一个新实例。它的 `toString()` 不输出 subject 和属性值，避免邮箱、手机号、
 IP 等信息意外进入日志。
 
-verification 模块不依赖 Servlet API，也不会默认解析 HTTP 请求。Spring Boot 自动配置提供的 Resolver 会原样返回服务创建的上下文。
-Web 应用需要 IP 或设备规则时，可以在应用中覆盖它：
+verification 模块不依赖 Servlet API，也不会默认解析 HTTP 请求。Web 应用需要 IP 或设备规则时，可以继承对应的渠道服务并覆盖模板钩子：
 
 ```java
-@Bean
-IssueContextResolver httpIssueContextResolver(ObjectProvider<HttpServletRequest> requests) {
-    return context -> {
-        HttpServletRequest request = requests.getObject();
+final class WebEmailVerificationService extends EmailVerificationService {
+
+    @Override
+    protected IssueContext customizeIssueContext(IssueContext context) {
+        HttpServletRequest request = currentRequest();
         return context
                 .with("ip-address", resolveTrustedClientIp(request))
                 .with("device-id", resolveTrustedDeviceId(request));
-    };
+    }
 }
 ```
+
+内置邮件和短信服务允许继承，但它们的 `channel()` 方法不可覆盖。模板方法还会校验定制结果没有替换原始
+`VerificationKey` 或渠道，并把同一个最终上下文传给限流、存储键提取和发送流程。
 
 不要直接信任任意客户端提交的 `X-Forwarded-For` 或设备标识。只有在反向代理链已经受信且应用正确配置转发头处理后，才能从转发头
 提取客户端 IP；设备标识也应由应用完成签名校验或可信绑定。规则只消费解析后的属性，不应访问 `HttpServletRequest`。
@@ -191,7 +196,6 @@ context -> IssueLimitBucket.of(
 sequenceDiagram
     participant App as 应用
     participant Service as VerificationService
-    participant Resolver as IssueContextResolver
     participant Manager as IssueRateLimitManager
     participant Rule as Rule Beans
     participant LimitStore as IssueRateLimitStore
@@ -200,9 +204,7 @@ sequenceDiagram
 
     App->>Service: issue(VerificationKey)
     Service->>Service: IssueContext.of(key, channel)
-    Service->>Resolver: resolve(baseContext)
-    Resolver-->>Service: resolvedContext
-    Service->>Service: customizeIssueContext(context)
+    Service->>Service: customizeIssueContext(baseContext)
     Service->>Manager: acquire(context, requestedAt)
     Manager->>Rule: matches(context)
     Rule-->>Manager: true / false
@@ -224,8 +226,8 @@ sequenceDiagram
 具体步骤如下：
 
 1. 业务层使用 `VerificationKey` 调用验证码服务。
-2. 签发服务创建包含验证码键和渠道的基础上下文，并调用 `IssueContextResolver` 补充可信环境信号。
-3. 渠道子类通过模板钩子补充自身属性；解析器和子类都不能替换验证码键或渠道。
+2. 签发服务创建包含验证码键和渠道的基础上下文，并通过模板钩子补充可信环境信号或流程属性。
+3. 模板校验定制结果；子类不能替换验证码键或渠道。
 4. 管理器按照 Spring 的有序 Bean 顺序遍历所有规则。
 5. `matches=false` 的规则不参与本次签发。
 6. 管理器先解析所有匹配规则的 bucket，任何规则解析失败时都不会访问限流状态存储。
@@ -285,11 +287,10 @@ v2:login-ip-hour:{bucketDigest}
 启用验证码功能后，自动配置执行以下操作：
 
 1. 根据 `store=memory|redis` 注册对应的 `IssueRateLimitStore`。
-2. 在应用未提供时注册原样返回上下文的默认 `IssueContextResolver`，并将其注入渠道服务。
-3. 应用没有提供规则 Bean 时注册固定 60 秒的 `default-key-cooldown` Rule Bean。
-4. 收集容器内所有 `IssueRateLimitRule` Bean。
-5. 使用这些规则创建唯一默认 `IssueRateLimiter`。
-6. 邮件和短信验证码服务注入该 `IssueRateLimiter`。
+2. 应用没有提供规则 Bean 时注册固定 60 秒的 `default-key-cooldown` Rule Bean。
+3. 收集容器内所有 `IssueRateLimitRule` Bean。
+4. 使用这些规则创建唯一默认 `IssueRateLimiter`。
+5. 邮件和短信验证码服务注入该 `IssueRateLimiter`。
 
 限流规则不支持 YAML 配置。应用提供任意规则 Bean 后，默认冷却规则自动回退。如果自定义规则只覆盖部分业务，应用可以启动，
 但未被任何规则覆盖的 `namespace + purpose` 会在首次签发时抛出配置异常，不会生成、存储或发送验证码。
@@ -324,9 +325,11 @@ IssueRateLimitRule accountLoginSubjectHourlyRule() {
 | 应用提供的 Bean | 自动配置行为 |
 | --- | --- |
 | `IssueRateLimitRule` | 收集所有应用规则，并使固定 60 秒默认规则回退 |
-| `IssueContextResolver` | 替换默认解析器，为规则提供 IP、设备等应用信号 |
 | `IssueRateLimitStore` | 使用自定义限流状态存储，仍自动收集所有规则 |
 | `IssueRateLimiter` | 完全替换默认管理器和限流状态存储；显式关闭限流时使用 `IssueRateLimiter.permitAll()` |
+
+需要向上下文增加 IP、设备或租户等应用信号时，应继承对应的 `EmailVerificationService` 或
+`SmsVerificationService`，覆盖 `customizeIssueContext`，再将自定义服务注册为 Bean，使自动配置中的默认服务回退。
 
 ## 八、推荐的初始规则
 
@@ -346,7 +349,7 @@ IssueRateLimitRule accountLoginSubjectHourlyRule() {
 
 - 使用稳定、唯一的 kebab-case `id`。
 - `matches` 只负责业务匹配，不用它掩盖缺失的安全属性。
-- 在 `IssueContextResolver` 中集中读取环境信号，不在 Rule Bean 中访问 HTTP 请求。
+- 在验证码服务的 `customizeIssueContext` 中集中读取环境信号，不在 Rule Bean 中访问 HTTP 请求。
 - bucket 中包含真正需要共享额度的字段，不包含无关字段。
 - 不在 Rule Bean 中访问 Redis、数据库或远程服务。
 - Rule Bean 保持无状态、线程安全，启动后不动态改变窗口和配额。

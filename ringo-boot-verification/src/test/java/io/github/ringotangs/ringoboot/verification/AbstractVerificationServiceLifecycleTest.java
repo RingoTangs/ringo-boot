@@ -208,7 +208,7 @@ class AbstractVerificationServiceLifecycleTest {
                 IssueRateLimiter issueRateLimiter,
                 VerificationPolicy verificationPolicy,
                 Clock clock) {
-            super(generator, store, issueRateLimiter, context -> context, verificationPolicy, clock);
+            super(generator, store, issueRateLimiter, verificationPolicy, clock);
         }
 
         @Override

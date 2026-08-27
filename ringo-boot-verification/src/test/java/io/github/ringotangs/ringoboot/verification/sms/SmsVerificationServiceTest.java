@@ -3,7 +3,9 @@ package io.github.ringotangs.ringoboot.verification.sms;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.ringotangs.ringoboot.verification.IssueContext;
 import io.github.ringotangs.ringoboot.verification.IssueResult;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
@@ -11,6 +13,7 @@ import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
+import java.lang.reflect.Modifier;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -33,7 +36,6 @@ class SmsVerificationServiceTest {
                     capturedChannel.set(context.channel());
                     return new io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult.Allowed();
                 },
-                context -> context,
                 VerificationPolicy.defaults(),
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 delivery -> {
@@ -59,7 +61,6 @@ class SmsVerificationServiceTest {
                         length -> "123456",
                         new InMemoryVerificationStore(),
                         IssueRateLimiter.permitAll(),
-                        context -> context,
                         VerificationPolicy.defaults(),
                         null));
     }
@@ -67,5 +68,38 @@ class SmsVerificationServiceTest {
     @Test
     void exposesOnlyStandardAndClockAwareConstructors() {
         assertEquals(2, SmsVerificationService.class.getConstructors().length);
+    }
+
+    @Test
+    void allowsContextCustomizationWithoutChangingSmsChannel() throws Exception {
+        AtomicReference<IssueContext> captured = new AtomicReference<>();
+        CustomSmsVerificationService service = new CustomSmsVerificationService((context, requestedAt) -> {
+            captured.set(context);
+            return new io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult.Allowed();
+        });
+
+        service.issue(new VerificationKey("account", "login", "+8613800000000"));
+
+        assertEquals("device-1", captured.get().attribute("device-id").orElseThrow());
+        assertEquals(VerificationChannel.SMS, captured.get().channel());
+        assertTrue(Modifier.isFinal(
+                SmsVerificationService.class.getDeclaredMethod("channel").getModifiers()));
+    }
+
+    private static final class CustomSmsVerificationService extends SmsVerificationService {
+
+        private CustomSmsVerificationService(IssueRateLimiter limiter) {
+            super(
+                    length -> "123456",
+                    new InMemoryVerificationStore(),
+                    limiter,
+                    VerificationPolicy.defaults(),
+                    delivery -> CodeSendResult.ACCEPTED);
+        }
+
+        @Override
+        protected IssueContext customizeIssueContext(IssueContext context) {
+            return context.with("device-id", "device-1");
+        }
     }
 }

@@ -25,17 +25,15 @@ public abstract class AbstractVerificationService implements VerificationService
     private final CodeGenerator codeGenerator;
     private final VerificationStore store;
     private final IssueRateLimiter issueRateLimiter;
-    private final IssueContextResolver issueContextResolver;
     private final VerificationPolicy verificationPolicy;
     private final Clock clock;
 
     /**
-     * 使用指定生成器、存储、签发限流器、上下文解析器、服务级验证码策略和时钟创建渠道服务。
+     * 使用指定生成器、存储、签发限流器、服务级验证码策略和时钟创建渠道服务。
      *
      * @param codeGenerator      验证码生成器
      * @param store              验证码状态存储
      * @param issueRateLimiter   验证码签发限流器
-     * @param issueContextResolver 签发上下文解析器
      * @param verificationPolicy 服务级验证码策略
      * @param clock              提供签发和校验时间的时钟
      * @throws NullPointerException 当任一参数为 {@code null} 时
@@ -44,14 +42,11 @@ public abstract class AbstractVerificationService implements VerificationService
             CodeGenerator codeGenerator,
             VerificationStore store,
             IssueRateLimiter issueRateLimiter,
-            IssueContextResolver issueContextResolver,
             VerificationPolicy verificationPolicy,
             Clock clock) {
         this.codeGenerator = Objects.requireNonNull(codeGenerator, "codeGenerator must not be null");
         this.store = Objects.requireNonNull(store, "store must not be null");
         this.issueRateLimiter = Objects.requireNonNull(issueRateLimiter, "issueRateLimiter must not be null");
-        this.issueContextResolver =
-                Objects.requireNonNull(issueContextResolver, "issueContextResolver must not be null");
         this.verificationPolicy = Objects.requireNonNull(verificationPolicy, "verificationPolicy must not be null");
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
     }
@@ -64,15 +59,9 @@ public abstract class AbstractVerificationService implements VerificationService
         Objects.requireNonNull(key, "key must not be null");
         VerificationChannel channel = Objects.requireNonNull(channel(), "verification channel must not be null");
         IssueContext baseContext = IssueContext.of(key, channel);
-        IssueContext resolvedContext = requirePreservedContext(
-                baseContext,
-                Objects.requireNonNull(
-                        issueContextResolver.resolve(baseContext), "issue context resolver result must not be null"),
-                "issue context resolver");
         IssueContext context = requirePreservedContext(
                 baseContext,
-                Objects.requireNonNull(
-                        customizeIssueContext(resolvedContext), "customized issue context must not be null"),
+                Objects.requireNonNull(customizeIssueContext(baseContext), "customized issue context must not be null"),
                 "issue context customizer");
         Instant issuedAt = clock.instant();
         IssueLimitResult limitResult = Objects.requireNonNull(
@@ -121,7 +110,7 @@ public abstract class AbstractVerificationService implements VerificationService
      *
      * <p>子类可以返回增加属性后的新上下文，但不能替换验证码键或渠道。
      *
-     * @param context 已补充执行环境信息的签发上下文
+     * @param context 包含验证码键和渠道的基础签发上下文
      * @return 当前服务补充后的签发上下文
      */
     protected IssueContext customizeIssueContext(IssueContext context) {
