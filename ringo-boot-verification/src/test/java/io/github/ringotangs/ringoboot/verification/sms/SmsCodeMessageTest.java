@@ -5,6 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.ringotangs.ringoboot.verification.IssueContext;
+import io.github.ringotangs.ringoboot.verification.VerificationChannel;
+import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 
@@ -42,6 +45,35 @@ class SmsCodeMessageTest {
         assertThrows(IllegalArgumentException.class, () -> message("account", "login", " ", "123456", EXPIRES_AT));
         assertThrows(
                 IllegalArgumentException.class, () -> message("account", "login", "+8613800000000", " ", EXPIRES_AT));
+    }
+
+    @Test
+    void createsMessageFromSmsContextWithoutExposingAttributes() {
+        IssueContext context = IssueContext.of(
+                        new VerificationKey("account", "login", "+8613800000000"), VerificationChannel.SMS)
+                .with("device-id", "device-1");
+
+        SmsCodeMessage message = SmsCodeMessage.from(context, "123456", EXPIRES_AT);
+
+        assertEquals("account", message.namespace());
+        assertEquals("login", message.purpose());
+        assertEquals("+8613800000000", message.phoneNumber());
+        assertEquals("123456", message.code());
+        assertEquals(EXPIRES_AT, message.expiresAt());
+        assertFalse(message.toString().contains("device-1"));
+    }
+
+    @Test
+    void rejectsInvalidFactoryArguments() {
+        IssueContext smsContext =
+                IssueContext.of(new VerificationKey("account", "login", "+8613800000000"), VerificationChannel.SMS);
+        IssueContext emailContext =
+                IssueContext.of(new VerificationKey("account", "login", "+8613800000000"), VerificationChannel.EMAIL);
+
+        assertThrows(NullPointerException.class, () -> SmsCodeMessage.from(null, "123456", EXPIRES_AT));
+        assertThrows(IllegalArgumentException.class, () -> SmsCodeMessage.from(emailContext, "123456", EXPIRES_AT));
+        assertThrows(NullPointerException.class, () -> SmsCodeMessage.from(smsContext, null, EXPIRES_AT));
+        assertThrows(NullPointerException.class, () -> SmsCodeMessage.from(smsContext, "123456", null));
     }
 
     private SmsCodeMessage message(
