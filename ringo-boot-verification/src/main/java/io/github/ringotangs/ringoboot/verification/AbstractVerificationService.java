@@ -31,11 +31,11 @@ public abstract class AbstractVerificationService implements VerificationService
     /**
      * 使用指定生成器、存储、签发限流器、服务级验证码策略和时钟创建渠道服务。
      *
-     * @param codeGenerator 验证码生成器
-     * @param store 验证码状态存储
-     * @param issueRateLimiter 验证码签发限流器
+     * @param codeGenerator      验证码生成器
+     * @param store              验证码状态存储
+     * @param issueRateLimiter   验证码签发限流器
      * @param verificationPolicy 服务级验证码策略
-     * @param clock 提供签发和校验时间的时钟
+     * @param clock              提供签发和校验时间的时钟
      * @throws NullPointerException 当任一参数为 {@code null} 时
      */
     protected AbstractVerificationService(
@@ -51,7 +51,9 @@ public abstract class AbstractVerificationService implements VerificationService
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final IssueResult issue(VerificationKey key) throws VerificationException {
         Objects.requireNonNull(key, "key must not be null");
@@ -71,7 +73,9 @@ public abstract class AbstractVerificationService implements VerificationService
         return dispatchStoredCode(key, code, stored.expiresAt());
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final VerifyResult verify(VerificationKey key, String code) throws VerificationException {
         Objects.requireNonNull(key, "key must not be null");
@@ -81,7 +85,6 @@ public abstract class AbstractVerificationService implements VerificationService
 
     /**
      * 将已生成并存储的验证码派发到具体渠道。
-     *
      *
      * @param delivery 验证码交付内容
      * @return 渠道对发送请求的受理结果
