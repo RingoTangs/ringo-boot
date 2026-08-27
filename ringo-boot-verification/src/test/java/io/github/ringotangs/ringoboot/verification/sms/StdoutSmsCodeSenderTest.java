@@ -14,7 +14,7 @@ class StdoutSmsCodeSenderTest {
     @Test
     void writesCodeWithDevelopmentWarningAndMaskedPhoneNumber() {
         String output = captureOutput(() -> new StdoutSmsCodeSender()
-                .send(new SmsCodeDelivery(
+                .send(new SmsCodeMessage(
                         "account", "sms-login", "+8613800000000", "654321", Instant.parse("2026-01-01T00:05:00Z"))));
 
         assertTrue(output.contains("DEVELOPMENT ONLY"));

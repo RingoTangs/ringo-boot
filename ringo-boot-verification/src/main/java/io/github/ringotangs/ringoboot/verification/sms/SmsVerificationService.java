@@ -39,7 +39,7 @@ public class SmsVerificationService extends AbstractVerificationService {
     }
 
     /**
-     * 根据签发上下文创建短信交付内容并交给短信发送器。
+     * 根据签发上下文创建短信消息并交给短信发送器。
      *
      * @param context 当前签发流程的上下文
      * @param code 仅供发送期间使用的明文验证码
@@ -48,7 +48,7 @@ public class SmsVerificationService extends AbstractVerificationService {
      */
     @Override
     protected CodeSendResult dispatch(IssueContext context, String code, Instant expiresAt) throws CodeSenderException {
-        return sender.send(new SmsCodeDelivery(
+        return sender.send(new SmsCodeMessage(
                 context.key().namespace(),
                 context.key().purpose(),
                 context.key().subject(),

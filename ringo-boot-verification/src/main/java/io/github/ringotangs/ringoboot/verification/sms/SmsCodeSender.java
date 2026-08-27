@@ -15,9 +15,9 @@ public interface SmsCodeSender {
     /**
      * 将验证码派发到指定手机号码。
      *
-     * @param delivery 短信验证码交付内容
+     * @param message 短信验证码消息
      * @return 供应商接受状态
      * @throws CodeSenderException 当短信派发操作失败时
      */
-    CodeSendResult send(SmsCodeDelivery delivery) throws CodeSenderException;
+    CodeSendResult send(SmsCodeMessage message) throws CodeSenderException;
 }

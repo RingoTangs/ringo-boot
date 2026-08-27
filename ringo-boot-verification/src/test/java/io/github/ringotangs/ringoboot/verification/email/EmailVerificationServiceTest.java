@@ -2,6 +2,7 @@ package io.github.ringotangs.ringoboot.verification.email;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -23,9 +24,9 @@ import org.junit.jupiter.api.Test;
 class EmailVerificationServiceTest {
 
     @Test
-    void dispatchesCompleteDeliveryToEmailSender() {
+    void dispatchesCompleteMessageToEmailSender() {
         VerificationKey key = new VerificationKey("account", "login", "user@example.com");
-        AtomicReference<EmailCodeDelivery> captured = new AtomicReference<>();
+        AtomicReference<EmailCodeMessage> captured = new AtomicReference<>();
         AtomicReference<VerificationChannel> capturedChannel = new AtomicReference<>();
         EmailVerificationService service = new EmailVerificationService(
                 length -> "123456",
@@ -35,8 +36,8 @@ class EmailVerificationServiceTest {
                     return new io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult.Allowed();
                 },
                 VerificationPolicy.defaults(),
-                delivery -> {
-                    captured.set(delivery);
+                message -> {
+                    captured.set(message);
                     return CodeSendResult.ACCEPTED;
                 });
 
@@ -81,28 +82,30 @@ class EmailVerificationServiceTest {
     @Test
     void allowsContextCustomizationWithoutChangingEmailChannel() throws Exception {
         AtomicReference<IssueContext> captured = new AtomicReference<>();
-        CustomEmailVerificationService service = new CustomEmailVerificationService((context, requestedAt) -> {
-            captured.set(context);
-            return new io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult.Allowed();
-        });
+        AtomicReference<EmailCodeMessage> dispatched = new AtomicReference<>();
+        CustomEmailVerificationService service = new CustomEmailVerificationService(
+                (context, requestedAt) -> {
+                    captured.set(context);
+                    return new io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult.Allowed();
+                },
+                message -> {
+                    dispatched.set(message);
+                    return CodeSendResult.ACCEPTED;
+                });
 
         service.issue(new VerificationKey("account", "login", "user@example.com"));
 
         assertEquals("tenant-1", captured.get().attribute("tenant-id").orElseThrow());
         assertEquals(VerificationChannel.EMAIL, captured.get().channel());
+        assertFalse(dispatched.get().toString().contains("tenant-1"));
         assertTrue(Modifier.isFinal(
                 EmailVerificationService.class.getDeclaredMethod("channel").getModifiers()));
     }
 
     private static final class CustomEmailVerificationService extends EmailVerificationService {
 
-        private CustomEmailVerificationService(IssueRateLimiter limiter) {
-            super(
-                    length -> "123456",
-                    new InMemoryVerificationStore(),
-                    limiter,
-                    VerificationPolicy.defaults(),
-                    delivery -> CodeSendResult.ACCEPTED);
+        private CustomEmailVerificationService(IssueRateLimiter limiter, EmailCodeSender sender) {
+            super(length -> "123456", new InMemoryVerificationStore(), limiter, VerificationPolicy.defaults(), sender);
         }
 
         @Override

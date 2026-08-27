@@ -5,7 +5,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import io.github.ringotangs.ringoboot.verification.email.EmailCodeDelivery;
+import io.github.ringotangs.ringoboot.verification.email.EmailCodeMessage;
 import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import java.util.Locale;
@@ -50,16 +50,16 @@ class EmailVerificationControllerTest {
                 .andExpect(jsonPath("$.expiresAt").isString())
                 .andExpect(jsonPath("$.code").doesNotExist());
 
-        EmailCodeDelivery delivery = sender.latest(email);
-        org.assertj.core.api.Assertions.assertThat(delivery.code()).matches("\\d{6}");
+        EmailCodeMessage message = sender.latest(email);
+        org.assertj.core.api.Assertions.assertThat(message.code()).matches("\\d{6}");
 
         mockMvc.perform(post("/verification/email/verify")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(verifyRequest("  " + email.toUpperCase(Locale.ROOT) + "  ", delivery.code())))
+                        .content(verifyRequest("  " + email.toUpperCase(Locale.ROOT) + "  ", message.code())))
                 .andExpect(status().isNoContent())
                 .andExpect(content().string(""));
 
-        assertInvalidCode(email, delivery.code());
+        assertInvalidCode(email, message.code());
     }
 
     @Test
@@ -166,17 +166,17 @@ class EmailVerificationControllerTest {
 
     static final class CapturingEmailCodeSender implements EmailCodeSender {
 
-        private final Map<String, EmailCodeDelivery> deliveries = new ConcurrentHashMap<>();
+        private final Map<String, EmailCodeMessage> messages = new ConcurrentHashMap<>();
 
         @Override
-        public CodeSendResult send(EmailCodeDelivery delivery) {
-            deliveries.put(delivery.email(), delivery);
+        public CodeSendResult send(EmailCodeMessage message) {
+            messages.put(message.email(), message);
             return CodeSendResult.ACCEPTED;
         }
 
-        EmailCodeDelivery latest(String email) {
+        EmailCodeMessage latest(String email) {
             return Objects.requireNonNull(
-                    deliveries.get(email.strip().toLowerCase(Locale.ROOT)), "No delivery found for " + email);
+                    messages.get(email.strip().toLowerCase(Locale.ROOT)), "No message found for " + email);
         }
     }
 }

@@ -15,9 +15,9 @@ public interface EmailCodeSender {
     /**
      * 将验证码派发到指定邮箱。
      *
-     * @param delivery 邮件验证码交付内容
+     * @param message 邮件验证码消息
      * @return 供应商接受状态
      * @throws CodeSenderException 当邮件派发操作失败时
      */
-    CodeSendResult send(EmailCodeDelivery delivery) throws CodeSenderException;
+    CodeSendResult send(EmailCodeMessage message) throws CodeSenderException;
 }

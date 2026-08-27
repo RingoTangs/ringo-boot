@@ -2,6 +2,7 @@ package io.github.ringotangs.ringoboot.verification.sms;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -23,9 +24,9 @@ import org.junit.jupiter.api.Test;
 class SmsVerificationServiceTest {
 
     @Test
-    void dispatchesCompleteDeliveryToSmsSender() {
+    void dispatchesCompleteMessageToSmsSender() {
         VerificationKey key = new VerificationKey("account", "login", "+8613800000000");
-        AtomicReference<SmsCodeDelivery> captured = new AtomicReference<>();
+        AtomicReference<SmsCodeMessage> captured = new AtomicReference<>();
         AtomicReference<VerificationChannel> capturedChannel = new AtomicReference<>();
         SmsVerificationService service = new SmsVerificationService(
                 length -> "123456",
@@ -35,8 +36,8 @@ class SmsVerificationServiceTest {
                     return new io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult.Allowed();
                 },
                 VerificationPolicy.defaults(),
-                delivery -> {
-                    captured.set(delivery);
+                message -> {
+                    captured.set(message);
                     return CodeSendResult.ACCEPTED;
                 });
 
@@ -81,28 +82,30 @@ class SmsVerificationServiceTest {
     @Test
     void allowsContextCustomizationWithoutChangingSmsChannel() throws Exception {
         AtomicReference<IssueContext> captured = new AtomicReference<>();
-        CustomSmsVerificationService service = new CustomSmsVerificationService((context, requestedAt) -> {
-            captured.set(context);
-            return new io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult.Allowed();
-        });
+        AtomicReference<SmsCodeMessage> dispatched = new AtomicReference<>();
+        CustomSmsVerificationService service = new CustomSmsVerificationService(
+                (context, requestedAt) -> {
+                    captured.set(context);
+                    return new io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult.Allowed();
+                },
+                message -> {
+                    dispatched.set(message);
+                    return CodeSendResult.ACCEPTED;
+                });
 
         service.issue(new VerificationKey("account", "login", "+8613800000000"));
 
         assertEquals("device-1", captured.get().attribute("device-id").orElseThrow());
         assertEquals(VerificationChannel.SMS, captured.get().channel());
+        assertFalse(dispatched.get().toString().contains("device-1"));
         assertTrue(Modifier.isFinal(
                 SmsVerificationService.class.getDeclaredMethod("channel").getModifiers()));
     }
 
     private static final class CustomSmsVerificationService extends SmsVerificationService {
 
-        private CustomSmsVerificationService(IssueRateLimiter limiter) {
-            super(
-                    length -> "123456",
-                    new InMemoryVerificationStore(),
-                    limiter,
-                    VerificationPolicy.defaults(),
-                    delivery -> CodeSendResult.ACCEPTED);
+        private CustomSmsVerificationService(IssueRateLimiter limiter, SmsCodeSender sender) {
+            super(length -> "123456", new InMemoryVerificationStore(), limiter, VerificationPolicy.defaults(), sender);
         }
 
         @Override

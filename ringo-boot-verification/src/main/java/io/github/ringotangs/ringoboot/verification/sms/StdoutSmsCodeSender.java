@@ -17,21 +17,21 @@ public final class StdoutSmsCodeSender implements SmsCodeSender {
      * 将验证码及脱敏后的手机号输出到标准输出。
      *
      *
-     * @param delivery 验证码交付内容
+     * @param message 验证码消息
      * @return 始终返回供应商已接受
      */
     @Override
-    public CodeSendResult send(SmsCodeDelivery delivery) {
+    public CodeSendResult send(SmsCodeMessage message) {
         System.out.println("DEVELOPMENT ONLY - SMS verification code: namespace="
-                + delivery.namespace()
+                + message.namespace()
                 + ", purpose="
-                + delivery.purpose()
+                + message.purpose()
                 + ", phoneNumber="
-                + mask(delivery.phoneNumber())
+                + mask(message.phoneNumber())
                 + ", code="
-                + delivery.code()
+                + message.code()
                 + ", expiresAt="
-                + delivery.expiresAt());
+                + message.expiresAt());
         return CodeSendResult.ACCEPTED;
     }
 

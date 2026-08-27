@@ -14,7 +14,7 @@ class StdoutEmailCodeSenderTest {
     @Test
     void writesCodeWithDevelopmentWarningAndMaskedAddress() {
         String output = captureOutput(() -> new StdoutEmailCodeSender()
-                .send(new EmailCodeDelivery(
+                .send(new EmailCodeMessage(
                         "account",
                         "email-login",
                         "user@example.com",

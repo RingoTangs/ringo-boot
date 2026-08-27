@@ -12,7 +12,7 @@ import java.util.Objects;
  * @param code 仅供发送期间使用的明文验证码
  * @param expiresAt 验证码过期时间
  */
-public record SmsCodeDelivery(String namespace, String purpose, String phoneNumber, String code, Instant expiresAt) {
+public record SmsCodeMessage(String namespace, String purpose, String phoneNumber, String code, Instant expiresAt) {
 
     /**
      * 创建短信验证码发送内容。
@@ -20,7 +20,7 @@ public record SmsCodeDelivery(String namespace, String purpose, String phoneNumb
      * @throws NullPointerException     当任一参数为 {@code null} 时
      * @throws IllegalArgumentException 当任一字符串参数为空白时
      */
-    public SmsCodeDelivery {
+    public SmsCodeMessage {
         namespace = requireText(namespace, "namespace");
         purpose = requireText(purpose, "purpose");
         phoneNumber = requireText(phoneNumber, "phoneNumber");
@@ -35,7 +35,7 @@ public record SmsCodeDelivery(String namespace, String purpose, String phoneNumb
      */
     @Override
     public String toString() {
-        return "SmsCodeDelivery[namespace=" + namespace + ", purpose=" + purpose
+        return "SmsCodeMessage[namespace=" + namespace + ", purpose=" + purpose
                 + ", phoneNumber=<redacted>, code=<redacted>, expiresAt=" + expiresAt + "]";
     }
 

@@ -12,7 +12,7 @@ import java.util.Objects;
  * @param code 仅供发送期间使用的明文验证码
  * @param expiresAt 验证码过期时间
  */
-public record EmailCodeDelivery(String namespace, String purpose, String email, String code, Instant expiresAt) {
+public record EmailCodeMessage(String namespace, String purpose, String email, String code, Instant expiresAt) {
 
     /**
      * 创建邮件验证码发送内容。
@@ -20,7 +20,7 @@ public record EmailCodeDelivery(String namespace, String purpose, String email, 
      * @throws NullPointerException 当任一参数为 {@code null} 时
      * @throws IllegalArgumentException 当任一字符串参数为空白时
      */
-    public EmailCodeDelivery {
+    public EmailCodeMessage {
         namespace = requireText(namespace, "namespace");
         purpose = requireText(purpose, "purpose");
         email = requireText(email, "email");
@@ -35,7 +35,7 @@ public record EmailCodeDelivery(String namespace, String purpose, String email, 
      */
     @Override
     public String toString() {
-        return "EmailCodeDelivery[namespace=" + namespace + ", purpose=" + purpose
+        return "EmailCodeMessage[namespace=" + namespace + ", purpose=" + purpose
                 + ", email=<redacted>, code=<redacted>, expiresAt=" + expiresAt + "]";
     }
 

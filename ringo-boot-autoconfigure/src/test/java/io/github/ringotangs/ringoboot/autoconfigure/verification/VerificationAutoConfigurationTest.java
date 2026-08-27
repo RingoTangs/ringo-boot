@@ -305,7 +305,7 @@ class VerificationAutoConfigurationTest {
 
     @Test
     void configuresEmailServiceWhenSenderIsAvailable() {
-        EmailCodeSender sender = delivery -> CodeSendResult.ACCEPTED;
+        EmailCodeSender sender = message -> CodeSendResult.ACCEPTED;
 
         contextRunner
                 .withPropertyValues("ringo.boot.verification.enabled=true")
@@ -321,7 +321,7 @@ class VerificationAutoConfigurationTest {
 
     @Test
     void configuresSmsServiceWhenSenderIsAvailable() {
-        SmsCodeSender sender = delivery -> CodeSendResult.ACCEPTED;
+        SmsCodeSender sender = message -> CodeSendResult.ACCEPTED;
 
         contextRunner
                 .withPropertyValues("ringo.boot.verification.enabled=true")
@@ -339,8 +339,8 @@ class VerificationAutoConfigurationTest {
     void configuresBothChannelServicesWhenBothSendersAreAvailable() {
         contextRunner
                 .withPropertyValues("ringo.boot.verification.enabled=true")
-                .withBean(EmailCodeSender.class, () -> delivery -> CodeSendResult.ACCEPTED)
-                .withBean(SmsCodeSender.class, () -> delivery -> CodeSendResult.ACCEPTED)
+                .withBean(EmailCodeSender.class, () -> message -> CodeSendResult.ACCEPTED)
+                .withBean(SmsCodeSender.class, () -> message -> CodeSendResult.ACCEPTED)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(EmailVerificationService.class);
@@ -351,7 +351,7 @@ class VerificationAutoConfigurationTest {
 
     @Test
     void backsOffForCustomEmailService() {
-        EmailCodeSender sender = delivery -> CodeSendResult.ACCEPTED;
+        EmailCodeSender sender = message -> CodeSendResult.ACCEPTED;
         EmailVerificationService service = new EmailVerificationService(
                 length -> "1".repeat(length),
                 new TestVerificationStore(),

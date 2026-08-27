@@ -34,8 +34,8 @@ sample 已引入 `spring-boot-starter-data-redis`。Spring Boot 创建 `StringRe
 ```java
 @Bean
 EmailCodeSender emailCodeSender(EmailClient emailClient) {
-    return delivery -> emailClient.send(
-            delivery.key().subject(), delivery.code(), delivery.expiresAt());
+    return message -> emailClient.send(
+            message.email(), message.code(), message.expiresAt());
 }
 ```
 

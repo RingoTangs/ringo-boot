@@ -17,21 +17,21 @@ public final class StdoutEmailCodeSender implements EmailCodeSender {
      * 将验证码及脱敏后的邮箱地址输出到标准输出。
      *
      *
-     * @param delivery 验证码交付内容
+     * @param message 验证码消息
      * @return 始终返回供应商已接受
      */
     @Override
-    public CodeSendResult send(EmailCodeDelivery delivery) {
+    public CodeSendResult send(EmailCodeMessage message) {
         System.out.println("DEVELOPMENT ONLY - Email verification code: namespace="
-                + delivery.namespace()
+                + message.namespace()
                 + ", purpose="
-                + delivery.purpose()
+                + message.purpose()
                 + ", email="
-                + mask(delivery.email())
+                + mask(message.email())
                 + ", code="
-                + delivery.code()
+                + message.code()
                 + ", expiresAt="
-                + delivery.expiresAt());
+                + message.expiresAt());
         return CodeSendResult.ACCEPTED;
     }
 
