@@ -10,13 +10,13 @@ import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
+
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Objects;
 
 /**
  * 统一编排验证码生成、存储、渠道派发、失败补偿和校验消费流程。
- *
  *
  * <p><strong>API 注意事项：</strong> 子类只需实现 {@link #dispatch(CodeDelivery)} 以完成邮件、短信等渠道的派发。
  */
