@@ -41,7 +41,7 @@ public class VerificationAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    CodeGenerator verificationCodeGenerator() {
+    CodeGenerator numericCodeGenerator() {
         return new NumericCodeGenerator();
     }
 

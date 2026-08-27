@@ -121,6 +121,8 @@ class VerificationAutoConfigurationTest {
     void configuresInMemoryStoreWhenEnabled() {
         contextRunner.withPropertyValues("ringo.boot.verification.enabled=true").run(context -> {
             assertThat(context).hasNotFailed();
+            assertThat(context).hasBean("numericCodeGenerator");
+            assertThat(context).doesNotHaveBean("verificationCodeGenerator");
             assertThat(context).hasSingleBean(VerificationStore.class);
             assertThat(context.getBean(VerificationStore.class)).isInstanceOf(InMemoryVerificationStore.class);
             assertThat(context.getBean(EmailCodeSender.class)).isInstanceOf(StdoutEmailCodeSender.class);
