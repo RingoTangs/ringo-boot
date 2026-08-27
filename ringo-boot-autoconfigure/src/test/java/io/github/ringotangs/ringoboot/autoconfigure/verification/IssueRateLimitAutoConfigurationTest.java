@@ -28,7 +28,6 @@ class IssueRateLimitAutoConfigurationTest {
     @Test
     void doesNotConfigureRateLimitingByDefault() {
         contextRunner.run(context -> {
-            assertThat(context).doesNotHaveBean(IssueRateLimitProperties.class);
             assertThat(context).doesNotHaveBean(IssueContextResolver.class);
             assertThat(context).doesNotHaveBean(IssueRateLimitStore.class);
             assertThat(context).doesNotHaveBean(IssueRateLimiter.class);
@@ -39,9 +38,9 @@ class IssueRateLimitAutoConfigurationTest {
     void configuresDefaultInMemoryRateLimitingWhenVerificationIsEnabled() {
         contextRunner.withPropertyValues("ringo.boot.verification.enabled=true").run(context -> {
             assertThat(context).hasNotFailed();
-            assertThat(context).hasSingleBean(IssueRateLimitProperties.class);
             assertThat(context).hasSingleBean(IssueContextResolver.class);
             assertThat(context).hasSingleBean(IssueRateLimitRule.class);
+            assertThat(context.getBean(IssueRateLimitRule.class).window()).isEqualTo(Duration.ofSeconds(60));
             assertThat(context).hasSingleBean(IssueRateLimitStore.class);
             assertThat(context.getBean(IssueRateLimitStore.class)).isInstanceOf(InMemoryIssueRateLimitStore.class);
             assertThat(context).hasSingleBean(IssueRateLimiter.class);
@@ -69,20 +68,20 @@ class IssueRateLimitAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context.getBean(IssueContextResolver.class)).isSameAs(resolver);
-                    assertThat(context).getBeans(IssueRateLimitRule.class).hasSize(2);
+                    assertThat(context).hasSingleBean(IssueRateLimitRule.class);
+                    assertThat(context.getBean(IssueRateLimitRule.class)).isSameAs(rule);
                     assertThat(context.getBean(IssueRateLimiter.class).acquire(key, Instant.EPOCH))
                             .isInstanceOf(IssueLimitResult.Allowed.class);
                 });
     }
 
     @Test
-    void zeroIntervalDisablesOnlyDefaultRule() {
+    void customRuleReplacesDefaultRule() {
         IssueRateLimitRule customRule = IssueRateLimitRule.of(
                 "subject-hour", context -> IssueLimitBucket.of(context.key().subject()), 1, Duration.ofHours(1));
 
         contextRunner
-                .withPropertyValues(
-                        "ringo.boot.verification.enabled=true", "ringo.boot.verification.issue-rate-limit.interval=0")
+                .withPropertyValues("ringo.boot.verification.enabled=true")
                 .withBean("customRule", IssueRateLimitRule.class, () -> customRule)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
@@ -93,29 +92,20 @@ class IssueRateLimitAutoConfigurationTest {
     }
 
     @Test
-    void zeroIntervalWithoutAnyOtherRuleFailsFast() {
-        contextRunner
-                .withPropertyValues(
-                        "ringo.boot.verification.enabled=true", "ringo.boot.verification.issue-rate-limit.interval=0")
-                .run(context -> assertThat(context.getStartupFailure())
-                        .hasRootCauseInstanceOf(MissingIssueRateLimitRuleException.class)
-                        .hasRootCauseMessage("at least one issue rate limit rule is required"));
-    }
-
-    @Test
-    void configuredPartialRuleRejectsUncoveredVerificationKeys() {
+    void partialRuleBeanRejectsUncoveredVerificationKeys() {
         VerificationKey uncovered = new VerificationKey("payment", "confirm", "+8613800000000");
+        IssueRateLimitRule rule = IssueRateLimitRule.of(
+                "account-login-hour",
+                context -> context.key().namespace().equals("account")
+                        && context.key().purpose().equals("login"),
+                context -> IssueLimitBucket.of(
+                        context.key().namespace(), context.key().purpose()),
+                10,
+                Duration.ofHours(1));
 
         contextRunner
-                .withPropertyValues(
-                        "ringo.boot.verification.enabled=true",
-                        "ringo.boot.verification.issue-rate-limit.interval=0",
-                        "ringo.boot.verification.issue-rate-limit.rules[0].id=account-login-hour",
-                        "ringo.boot.verification.issue-rate-limit.rules[0].scope=purpose",
-                        "ringo.boot.verification.issue-rate-limit.rules[0].namespace=account",
-                        "ringo.boot.verification.issue-rate-limit.rules[0].purpose=login",
-                        "ringo.boot.verification.issue-rate-limit.rules[0].max-issues=10",
-                        "ringo.boot.verification.issue-rate-limit.rules[0].window=1h")
+                .withPropertyValues("ringo.boot.verification.enabled=true")
+                .withBean("accountLoginRule", IssueRateLimitRule.class, () -> rule)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThatThrownBy(() ->
@@ -142,31 +132,21 @@ class IssueRateLimitAutoConfigurationTest {
     }
 
     @Test
-    void bindsConfiguredRulesAndCombinesThemWithRuleBeans() {
+    void collectsMultipleRuleBeans() {
+        IssueRateLimitRule applicationRule = IssueRateLimitRule.of(
+                "application-minute", context -> IssueLimitBucket.of("application"), 1, Duration.ofMinutes(1));
         IssueRateLimitRule customRule = IssueRateLimitRule.of(
                 "custom-hour", context -> IssueLimitBucket.of("custom"), 100, Duration.ofHours(1));
         VerificationKey first = new VerificationKey("account", "login", "user@example.com");
         VerificationKey second = new VerificationKey("payment", "confirm", "+8613800000000");
 
         contextRunner
-                .withPropertyValues(
-                        "ringo.boot.verification.enabled=true",
-                        "ringo.boot.verification.issue-rate-limit.interval=0",
-                        "ringo.boot.verification.issue-rate-limit.rules[0].id=application-minute",
-                        "ringo.boot.verification.issue-rate-limit.rules[0].scope=global",
-                        "ringo.boot.verification.issue-rate-limit.rules[0].max-issues=1",
-                        "ringo.boot.verification.issue-rate-limit.rules[0].window=1m")
+                .withPropertyValues("ringo.boot.verification.enabled=true")
+                .withBean("applicationRule", IssueRateLimitRule.class, () -> applicationRule)
                 .withBean("customRule", IssueRateLimitRule.class, () -> customRule)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(IssueRateLimitRule.class);
-                    assertThat(context.getBean(IssueRateLimitRule.class)).isSameAs(customRule);
-                    assertThat(context.getBean(IssueRateLimitProperties.class).getRules())
-                            .singleElement()
-                            .satisfies(rule -> {
-                                assertThat(rule.getScope()).isEqualTo(IssueRateLimitProperties.Scope.GLOBAL);
-                                assertThat(rule.getWindow()).isEqualTo(Duration.ofMinutes(1));
-                            });
+                    assertThat(context).getBeans(IssueRateLimitRule.class).hasSize(2);
                     IssueRateLimiter limiter = context.getBean(IssueRateLimiter.class);
                     assertThat(limiter.acquire(first, Instant.EPOCH)).isInstanceOf(IssueLimitResult.Allowed.class);
                     assertThat(limiter.acquire(second, Instant.EPOCH.plusSeconds(1)))
@@ -175,18 +155,16 @@ class IssueRateLimitAutoConfigurationTest {
     }
 
     @Test
-    void rejectsDuplicateIdsAcrossConfiguredAndBeanRules() {
-        IssueRateLimitRule duplicate = IssueRateLimitRule.of(
+    void rejectsDuplicateIdsAcrossRuleBeans() {
+        IssueRateLimitRule first = IssueRateLimitRule.of(
                 "application-minute", context -> IssueLimitBucket.of("custom"), 100, Duration.ofHours(1));
+        IssueRateLimitRule second = IssueRateLimitRule.of(
+                "application-minute", context -> IssueLimitBucket.of("other"), 10, Duration.ofMinutes(1));
 
         contextRunner
-                .withPropertyValues(
-                        "ringo.boot.verification.enabled=true",
-                        "ringo.boot.verification.issue-rate-limit.rules[0].id=application-minute",
-                        "ringo.boot.verification.issue-rate-limit.rules[0].scope=global",
-                        "ringo.boot.verification.issue-rate-limit.rules[0].max-issues=10",
-                        "ringo.boot.verification.issue-rate-limit.rules[0].window=1m")
-                .withBean("duplicate", IssueRateLimitRule.class, () -> duplicate)
+                .withPropertyValues("ringo.boot.verification.enabled=true")
+                .withBean("firstRule", IssueRateLimitRule.class, () -> first)
+                .withBean("secondRule", IssueRateLimitRule.class, () -> second)
                 .run(context -> assertThat(context.getStartupFailure())
                         .hasRootCauseMessage("duplicate issue rate limit rule id: application-minute"));
     }

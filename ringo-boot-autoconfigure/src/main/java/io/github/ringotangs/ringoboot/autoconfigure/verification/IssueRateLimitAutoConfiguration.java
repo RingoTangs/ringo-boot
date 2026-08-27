@@ -9,7 +9,7 @@ import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitManager;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitStore;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
-import java.util.ArrayList;
+import java.time.Duration;
 import java.util.List;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -17,9 +17,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Conditional;
 
 /**
  * 自动配置验证码签发限流上下文、规则、状态存储和统一管理器。
@@ -29,8 +27,9 @@ import org.springframework.context.annotation.Conditional;
 @AutoConfiguration(after = RedisIssueRateLimitAutoConfiguration.class)
 @ConditionalOnClass(IssueRateLimiter.class)
 @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "enabled", havingValue = "true")
-@EnableConfigurationProperties(IssueRateLimitProperties.class)
 public class IssueRateLimitAutoConfiguration {
+
+    private static final Duration DEFAULT_KEY_COOLDOWN = Duration.ofSeconds(60);
 
     /**
      * 在应用未提供上下文解析器时，仅使用验证码键创建签发上下文。
@@ -60,15 +59,13 @@ public class IssueRateLimitAutoConfiguration {
     }
 
     /**
-     * 使用配置的签发间隔创建完整验证码键默认冷却规则。
+     * 在应用没有提供规则时创建完整验证码键默认冷却规则。
      *
-     * @param properties 签发限流配置属性
      * @return 默认完整验证码键冷却规则
      */
     @Bean
-    @Conditional(OnPositiveIssueRateLimitIntervalCondition.class)
-    @ConditionalOnMissingBean(IssueRateLimiter.class)
-    IssueRateLimitRule defaultKeyCooldownIssueRateLimitRule(IssueRateLimitProperties properties) {
+    @ConditionalOnMissingBean({IssueRateLimiter.class, IssueRateLimitRule.class})
+    IssueRateLimitRule defaultKeyCooldownIssueRateLimitRule() {
         return IssueRateLimitRule.of(
                 "default-key-cooldown",
                 context -> IssueLimitBucket.of(
@@ -76,14 +73,13 @@ public class IssueRateLimitAutoConfiguration {
                         context.key().purpose(),
                         context.key().subject()),
                 1,
-                properties.getInterval());
+                DEFAULT_KEY_COOLDOWN);
     }
 
     /**
      * 收集容器内全部签发规则并创建统一限流管理器。
      *
      * @param rules 容器内的签发限流规则
-     * @param properties 签发限流配置属性
      * @param store 签发限流状态存储
      * @param contextResolver 签发上下文解析器
      * @return 统一签发限流入口
@@ -92,14 +88,8 @@ public class IssueRateLimitAutoConfiguration {
     @ConditionalOnBean(IssueRateLimitStore.class)
     @ConditionalOnMissingBean(IssueRateLimiter.class)
     IssueRateLimiter issueRateLimiter(
-            ObjectProvider<IssueRateLimitRule> rules,
-            IssueRateLimitProperties properties,
-            IssueRateLimitStore store,
-            IssueContextResolver contextResolver) {
-        List<IssueRateLimitRule> configuredRules = properties.toRules();
-        List<IssueRateLimitRule> allRules = new ArrayList<>(configuredRules.size() + 1);
-        allRules.addAll(configuredRules);
-        rules.orderedStream().forEach(allRules::add);
-        return new IssueRateLimitManager(List.copyOf(allRules), store, contextResolver);
+            ObjectProvider<IssueRateLimitRule> rules, IssueRateLimitStore store, IssueContextResolver contextResolver) {
+        List<IssueRateLimitRule> ruleBeans = rules.orderedStream().toList();
+        return new IssueRateLimitManager(ruleBeans, store, contextResolver);
     }
 }

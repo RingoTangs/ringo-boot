@@ -13,9 +13,8 @@ flowchart LR
     C --> B[IssueContextResolver]
     B --> I[IssueContext]
     I --> C
-    R1[YAML 标准规则] --> C
-    R2[默认冷却 Rule Bean] --> C
-    R3[业务自定义 Rule Bean] --> C
+    R1[默认冷却 Rule Bean] --> C
+    R2[业务自定义 Rule Bean] --> C
     C --> D[IssueLimitQuota 列表]
     D --> E{IssueRateLimitStore}
     E --> F[InMemory store]
@@ -118,7 +117,7 @@ Spring Boot 自动配置默认注册 `default-key-cooldown`：
 ```text
 bucket = namespace + purpose + subject
 maxIssues = 1
-window = ringo.boot.verification.issue-rate-limit.interval
+window = 60 seconds
 ```
 
 默认窗口是 60 秒。例如：
@@ -127,11 +126,11 @@ window = ringo.boot.verification.issue-rate-limit.interval
 account + login + user@example.com
 ```
 
-这表示同一个邮箱的登录验证码 60 秒内只能签发一次。将 `interval` 配置为 `0` 只会关闭这条默认规则，不会关闭应用注册的
-其他 Rule Bean。默认冷却规则属于有效额度配置，并覆盖全部验证码键。
+这表示同一个邮箱的登录验证码 60 秒内只能签发一次。只有应用没有提供任何 `IssueRateLimitRule` Bean 时，自动配置才会注册
+这条安全兜底规则；应用提供规则 Bean 后，默认规则自动回退。
 
 限流管理器采用严格拒绝策略：规则集合为空时无法创建；存在规则但没有任何规则匹配当前 `VerificationKey` 时，签发请求抛出
-`MissingIssueRateLimitRuleException`。因此关闭默认冷却规则后，应用必须提供能够覆盖全部预期业务的 YAML 或 Bean 规则。
+`MissingIssueRateLimitRuleException`。因此应用自定义规则后，必须让这些 Bean 覆盖全部预期业务。
 如果应用确实需要完全关闭限流，必须显式使用 `IssueRateLimiter.permitAll()`，不能通过遗漏配置隐式关闭。
 
 `IssueLimitBucket` 只是额度累计身份，`IssueLimitQuota` 才定义窗口和最大次数。Store 中尚不存在某个桶的历史记录表示这是新桶，
@@ -285,58 +284,44 @@ v2:login-ip-hour:{bucketDigest}
 
 1. 根据 `store=memory|redis` 注册对应的 `IssueRateLimitStore`。
 2. 在应用未提供时注册只包含 `VerificationKey` 的默认 `IssueContextResolver`。
-3. 将 `issue-rate-limit.rules` 转换成标准额度规则。
-4. 当 `interval` 不为零时注册 `default-key-cooldown` Rule Bean。
-5. 收集容器内所有 `IssueRateLimitRule` Bean。
-6. 合并 YAML 规则与 Bean 规则，创建唯一默认 `IssueRateLimiter`。
-7. 邮件和短信验证码服务注入该 `IssueRateLimiter`。
+3. 应用没有提供规则 Bean 时注册固定 60 秒的 `default-key-cooldown` Rule Bean。
+4. 收集容器内所有 `IssueRateLimitRule` Bean。
+5. 使用这些规则创建唯一默认 `IssueRateLimiter`。
+6. 邮件和短信验证码服务注入该 `IssueRateLimiter`。
 
-`interval=0` 且没有任何 YAML 或 Bean 规则时，应用会在创建限流管理器时启动失败。如果只配置了部分业务规则，应用可以启动，
+限流规则不支持 YAML 配置。应用提供任意规则 Bean 后，默认冷却规则自动回退。如果自定义规则只覆盖部分业务，应用可以启动，
 但未被任何规则覆盖的 `namespace + purpose` 会在首次签发时抛出配置异常，不会生成、存储或发送验证码。
 
-配置支持四种范围：
+下面展示如何在代码中定义应用级、业务级和接收方级规则：
 
-| scope | 匹配条件 | 额度桶 |
-| --- | --- | --- |
-| `global` | 全部签发请求 | 当前 Store 隔离范围共享一个桶 |
-| `namespace` | 精确匹配 `namespace` | `namespace` |
-| `purpose` | 精确匹配 `namespace + purpose` | `namespace + purpose` |
-| `subject` | 精确匹配 `namespace + purpose` | `namespace + purpose + subject` |
+```java
+@Bean
+IssueRateLimitRule applicationHourlyRule() {
+    return new GlobalIssueRateLimitRule("application-hour", 1_000, Duration.ofHours(1));
+}
 
-```yaml
-ringo:
-  boot:
-    verification:
-      issue-rate-limit:
-        interval: 60s
-        rules:
-          - id: application-hour
-            scope: global
-            max-issues: 1000
-            window: 1h
-          - id: account-login-hour
-            scope: purpose
-            namespace: account
-            purpose: login
-            max-issues: 500
-            window: 1h
-          - id: account-login-subject-hour
-            scope: subject
-            namespace: account
-            purpose: login
-            max-issues: 10
-            window: 1h
+@Bean
+IssueRateLimitRule accountLoginSubjectHourlyRule() {
+    return IssueRateLimitRule.of(
+            "account-login-subject-hour",
+            context -> context.key().namespace().equals("account")
+                    && context.key().purpose().equals("login"),
+            context -> IssueLimitBucket.of(
+                    context.key().namespace(),
+                    context.key().purpose(),
+                    context.key().subject()),
+            10,
+            Duration.ofHours(1));
+}
 ```
 
-`subject` 表示运行时按每个 `VerificationKey.subject` 独立累计，YAML 中不配置具体邮箱或手机号。所有规则 ID（包括
-YAML 规则、默认冷却规则和 Bean 规则）必须全局唯一，重复时应用启动失败。YAML 适合声明只依赖验证码键的静态标准规则；
-依赖 IP、设备、租户或动态策略的规则仍应实现 `IssueRateLimitRule` Bean。
+接收方地址来自运行时 `VerificationKey.subject`，不应硬编码邮箱或手机号。所有 Rule Bean 的 ID 必须全局唯一，重复时应用启动失败。
 
 扩展和回退规则：
 
 | 应用提供的 Bean | 自动配置行为 |
 | --- | --- |
-| `IssueRateLimitRule` | 与 YAML 规则及默认规则叠加 |
+| `IssueRateLimitRule` | 收集所有应用规则，并使固定 60 秒默认规则回退 |
 | `IssueContextResolver` | 替换默认解析器，为规则提供 IP、设备等应用信号 |
 | `IssueRateLimitStore` | 使用自定义限流状态存储，仍自动收集所有规则 |
 | `IssueRateLimiter` | 完全替换默认管理器和限流状态存储；显式关闭限流时使用 `IssueRateLimiter.permitAll()` |

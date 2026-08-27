@@ -32,16 +32,3 @@ ringo:
       length: 6
       ttl: 5m
       max-attempts: 5
-      issue-rate-limit:
-        interval: 60s
-        rules:
-          - id: application-hour
-            scope: global
-            max-issues: 1000
-            window: 1h
-          - id: account-email-verification-subject-hour
-            scope: subject
-            namespace: account
-            purpose: email-verification
-            max-issues: 10
-            window: 1h

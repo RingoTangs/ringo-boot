@@ -250,8 +250,7 @@ class VerificationAutoConfigurationTest {
                         "ringo.boot.verification.enabled=true",
                         "ringo.boot.verification.length=8",
                         "ringo.boot.verification.ttl=10m",
-                        "ringo.boot.verification.max-attempts=3",
-                        "ringo.boot.verification.issue-rate-limit.interval=30s")
+                        "ringo.boot.verification.max-attempts=3")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(CodeGenerator.class);
@@ -268,8 +267,6 @@ class VerificationAutoConfigurationTest {
                     assertThat(policy.length()).isEqualTo(8);
                     assertThat(policy.ttl()).isEqualTo(Duration.ofMinutes(10));
                     assertThat(policy.maxAttempts()).isEqualTo(3);
-                    assertThat(context.getBean(IssueRateLimitProperties.class).getInterval())
-                            .isEqualTo(Duration.ofSeconds(30));
                 });
     }
 
@@ -400,8 +397,7 @@ class VerificationAutoConfigurationTest {
             strings = {
                 "ringo.boot.verification.length=0",
                 "ringo.boot.verification.ttl=0s",
-                "ringo.boot.verification.max-attempts=0",
-                "ringo.boot.verification.issue-rate-limit.interval=-1s"
+                "ringo.boot.verification.max-attempts=0"
             })
     void failsForInvalidPolicy(String property) {
         contextRunner
