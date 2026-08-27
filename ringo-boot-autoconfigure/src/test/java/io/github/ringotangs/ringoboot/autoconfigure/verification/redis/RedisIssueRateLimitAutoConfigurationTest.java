@@ -4,11 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import io.github.ringotangs.ringoboot.autoconfigure.verification.IssueRateLimitAutoConfiguration;
+import io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationHmacKey;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitManager;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitStore;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
+import org.springframework.beans.factory.NoUniqueBeanDefinitionException;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -29,7 +32,7 @@ class RedisIssueRateLimitAutoConfigurationTest {
     @Test
     void configuresRedisRateLimitStoreAndManager() {
         contextRunner
-                .withBean(RedisVerificationHmacKey.class, RedisIssueRateLimitAutoConfigurationTest::hmacKey)
+                .withBean(VerificationHmacKey.class, RedisIssueRateLimitAutoConfigurationTest::hmacKey)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(IssueRateLimitStore.class);
@@ -41,23 +44,17 @@ class RedisIssueRateLimitAutoConfigurationTest {
 
     @Test
     void failsWhenHmacKeyIsMissing() {
-        contextRunner.run(context -> assertThat(context.getStartupFailure())
-                .hasRootCauseMessage("exactly one RedisVerificationHmacKey bean must be configured"));
+        contextRunner.run(context ->
+                assertThat(context.getStartupFailure()).hasRootCauseInstanceOf(NoSuchBeanDefinitionException.class));
     }
 
     @Test
     void failsWhenMultipleHmacKeysAreConfigured() {
         contextRunner
-                .withBean(
-                        "firstHmacKey",
-                        RedisVerificationHmacKey.class,
-                        RedisIssueRateLimitAutoConfigurationTest::hmacKey)
-                .withBean(
-                        "secondHmacKey",
-                        RedisVerificationHmacKey.class,
-                        RedisIssueRateLimitAutoConfigurationTest::hmacKey)
+                .withBean("firstHmacKey", VerificationHmacKey.class, RedisIssueRateLimitAutoConfigurationTest::hmacKey)
+                .withBean("secondHmacKey", VerificationHmacKey.class, RedisIssueRateLimitAutoConfigurationTest::hmacKey)
                 .run(context -> assertThat(context.getStartupFailure())
-                        .hasRootCauseMessage("exactly one RedisVerificationHmacKey bean must be configured"));
+                        .hasRootCauseInstanceOf(NoUniqueBeanDefinitionException.class));
     }
 
     @Test
@@ -71,7 +68,7 @@ class RedisIssueRateLimitAutoConfigurationTest {
         });
     }
 
-    private static RedisVerificationHmacKey hmacKey() {
-        return RedisVerificationHmacKey.fromBase64(SECRET);
+    private static VerificationHmacKey hmacKey() {
+        return VerificationHmacKey.fromBase64(SECRET);
     }
 }

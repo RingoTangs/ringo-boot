@@ -1,10 +1,10 @@
 package io.github.ringotangs.ringoboot.autoconfigure.verification.redis;
 
 import io.github.ringotangs.ringoboot.autoconfigure.verification.IssueRateLimitAutoConfiguration;
+import io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationHmacKey;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationProperties;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitStore;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -32,20 +32,15 @@ public class RedisIssueRateLimitAutoConfiguration {
      * 使用 Redis 和共享 HMAC 密钥创建跨实例签发限流状态存储。
      *
      * @param redisTemplate Redis 字符串操作模板
-     * @param hmacKeys 应用提供的 Redis 验证码 HMAC 密钥
+     * @param hmacKey 应用提供的验证码 HMAC 密钥
      * @param environment Spring 环境
      * @return Redis 验证码签发限流状态存储
      */
     @Bean
     @ConditionalOnMissingBean({IssueRateLimiter.class, IssueRateLimitStore.class})
     IssueRateLimitStore redisIssueRateLimitStore(
-            StringRedisTemplate redisTemplate,
-            ObjectProvider<RedisVerificationHmacKey> hmacKeys,
-            Environment environment) {
-        RedisVerificationHmacKey hmacKey = RedisVerificationConfigurationSupport.hmacKey(hmacKeys);
+            StringRedisTemplate redisTemplate, VerificationHmacKey hmacKey, Environment environment) {
         return new RedisIssueRateLimitStore(
-                redisTemplate,
-                hmacKey.getEncoded(),
-                RedisVerificationConfigurationSupport.applicationName(environment));
+                redisTemplate, hmacKey.getEncoded(), environment.getRequiredProperty("spring.application.name"));
     }
 }

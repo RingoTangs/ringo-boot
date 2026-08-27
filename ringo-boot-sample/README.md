@@ -70,7 +70,7 @@ ringo:
       store: redis
 ```
 
-sample 会读取环境变量 `VERIFICATION_HMAC_KEY` 并创建 `RedisVerificationHmacKey` Bean。该值必须是 Base64
+sample 会读取环境变量 `VERIFICATION_HMAC_KEY` 并创建 `VerificationHmacKey` Bean。该值必须是 Base64
 编码且解码后至少 32 字节的共享密钥，所有应用实例必须使用相同值。
 Redis 中只保存验证码及验证键的 HMAC 摘要，不保存验证码、邮箱或手机号明文。
 

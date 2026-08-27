@@ -6,7 +6,6 @@ import static org.mockito.Mockito.mock;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisIssueRateLimitAutoConfiguration;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisIssueRateLimitStore;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationAutoConfiguration;
-import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationHmacKey;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationStore;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
@@ -35,6 +34,7 @@ import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.test.context.FilteredClassLoader;
@@ -61,10 +61,9 @@ class VerificationAutoConfigurationTest {
                 .withConfiguration(AutoConfigurations.of(RedisVerificationAutoConfiguration.class))
                 .withPropertyValues("ringo.boot.verification.enabled=true", "ringo.boot.verification.store=redis")
                 .withBean(StringRedisTemplate.class, () -> mock(StringRedisTemplate.class))
-                .withBean(RedisVerificationHmacKey.class, VerificationAutoConfigurationTest::hmacKey)
+                .withBean(VerificationHmacKey.class, VerificationAutoConfigurationTest::hmacKey)
                 .run(context -> assertThat(context.getStartupFailure())
-                        .hasRootCauseMessage(
-                                "spring.application.name must be configured for Redis verification storage"));
+                        .hasRootCauseMessage("Required key 'spring.application.name' not found"));
     }
 
     @Test
@@ -72,7 +71,7 @@ class VerificationAutoConfigurationTest {
         contextRunner
                 .withPropertyValues("ringo.boot.verification.enabled=true", "ringo.boot.verification.store=redis")
                 .withBean(StringRedisTemplate.class, () -> mock(StringRedisTemplate.class))
-                .withBean(RedisVerificationHmacKey.class, VerificationAutoConfigurationTest::hmacKey)
+                .withBean(VerificationHmacKey.class, VerificationAutoConfigurationTest::hmacKey)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(RedisVerificationStore.class);
@@ -87,7 +86,7 @@ class VerificationAutoConfigurationTest {
                         "ringo.boot.verification.enabled=true",
                         "ringo.boot.verification.store=redis")
                 .withBean(StringRedisTemplate.class, () -> mock(StringRedisTemplate.class))
-                .withBean(RedisVerificationHmacKey.class, VerificationAutoConfigurationTest::hmacKey)
+                .withBean(VerificationHmacKey.class, VerificationAutoConfigurationTest::hmacKey)
                 .run(
                         context -> assertThat(context.getStartupFailure())
                                 .hasRootCauseMessage(
@@ -159,7 +158,7 @@ class VerificationAutoConfigurationTest {
         contextRunner
                 .withPropertyValues("ringo.boot.verification.enabled=true", "ringo.boot.verification.store=redis")
                 .withBean(StringRedisTemplate.class, () -> redisTemplate)
-                .withBean(RedisVerificationHmacKey.class, VerificationAutoConfigurationTest::hmacKey)
+                .withBean(VerificationHmacKey.class, VerificationAutoConfigurationTest::hmacKey)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(VerificationStore.class);
@@ -188,7 +187,7 @@ class VerificationAutoConfigurationTest {
                         "ringo.boot.verification.enabled=true",
                         "ringo.boot.verification.store=redis")
                 .withBean(RedisConnectionFactory.class, () -> mock(RedisConnectionFactory.class))
-                .withBean(RedisVerificationHmacKey.class, VerificationAutoConfigurationTest::hmacKey)
+                .withBean(VerificationHmacKey.class, VerificationAutoConfigurationTest::hmacKey)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(StringRedisTemplate.class);
@@ -203,12 +202,12 @@ class VerificationAutoConfigurationTest {
     void failsWhenRedisIsSelectedWithoutTemplate() {
         contextRunner
                 .withPropertyValues("ringo.boot.verification.enabled=true", "ringo.boot.verification.store=redis")
-                .withBean(RedisVerificationHmacKey.class, VerificationAutoConfigurationTest::hmacKey)
+                .withBean(VerificationHmacKey.class, VerificationAutoConfigurationTest::hmacKey)
                 .run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(context.getStartupFailure())
                             .hasRootCauseMessage(
-                                    "Redis verification storage requires Spring Data Redis, a StringRedisTemplate, and a RedisVerificationHmacKey bean");
+                                    "Redis verification storage requires Spring Data Redis, a StringRedisTemplate, and a VerificationHmacKey bean");
                 });
     }
 
@@ -217,7 +216,7 @@ class VerificationAutoConfigurationTest {
         contextRunner
                 .withClassLoader(new FilteredClassLoader(StringRedisTemplate.class))
                 .withPropertyValues("ringo.boot.verification.enabled=true", "ringo.boot.verification.store=redis")
-                .withBean(RedisVerificationHmacKey.class, VerificationAutoConfigurationTest::hmacKey)
+                .withBean(VerificationHmacKey.class, VerificationAutoConfigurationTest::hmacKey)
                 .run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(context.getStartupFailure()).hasRootCauseInstanceOf(IllegalStateException.class);
@@ -231,8 +230,7 @@ class VerificationAutoConfigurationTest {
                 .withBean(StringRedisTemplate.class, () -> mock(StringRedisTemplate.class))
                 .run(context -> {
                     assertThat(context).hasFailed();
-                    assertThat(context.getStartupFailure())
-                            .hasRootCauseMessage("exactly one RedisVerificationHmacKey bean must be configured");
+                    assertThat(context.getStartupFailure()).hasRootCauseInstanceOf(NoSuchBeanDefinitionException.class);
                 });
     }
 
@@ -418,8 +416,8 @@ class VerificationAutoConfigurationTest {
                 });
     }
 
-    private static RedisVerificationHmacKey hmacKey() {
-        return RedisVerificationHmacKey.fromBase64(SECRET);
+    private static VerificationHmacKey hmacKey() {
+        return VerificationHmacKey.fromBase64(SECRET);
     }
 
     private static final class TestVerificationStore implements VerificationStore {

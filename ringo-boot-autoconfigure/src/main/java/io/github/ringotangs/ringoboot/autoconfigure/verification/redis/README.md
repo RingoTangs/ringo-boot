@@ -263,12 +263,12 @@ ringo:
       store: redis
 ```
 
-应用还必须提供唯一的 `RedisVerificationHmacKey` Bean。下面示例从环境变量读取 Base64 密钥：
+应用还必须提供唯一的 `VerificationHmacKey` Bean。下面示例从环境变量读取 Base64 密钥：
 
 ```java
 @Bean
-RedisVerificationHmacKey redisVerificationHmacKey(Environment environment) {
-    return RedisVerificationHmacKey.fromBase64(
+VerificationHmacKey verificationHmacKey(Environment environment) {
+    return VerificationHmacKey.fromBase64(
             environment.getRequiredProperty("VERIFICATION_HMAC_KEY"));
 }
 ```

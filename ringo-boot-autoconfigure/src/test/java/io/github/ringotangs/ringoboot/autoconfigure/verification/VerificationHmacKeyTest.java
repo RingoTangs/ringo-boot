@@ -1,4 +1,4 @@
-package io.github.ringotangs.ringoboot.autoconfigure.verification.redis;
+package io.github.ringotangs.ringoboot.autoconfigure.verification;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
@@ -7,14 +7,14 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import java.util.Base64;
 import org.junit.jupiter.api.Test;
 
-class RedisVerificationHmacKeyTest {
+class VerificationHmacKeyTest {
 
     @Test
     void protectsKeyBytesWithDefensiveCopies() {
         byte[] source = new byte[32];
         source[0] = 1;
 
-        RedisVerificationHmacKey hmacKey = RedisVerificationHmacKey.of(source);
+        VerificationHmacKey hmacKey = VerificationHmacKey.of(source);
         source[0] = 2;
         byte[] returned = hmacKey.getEncoded();
         returned[0] = 3;
@@ -27,8 +27,8 @@ class RedisVerificationHmacKeyTest {
         byte[] source = new byte[32];
         source[31] = 1;
 
-        RedisVerificationHmacKey hmacKey =
-                RedisVerificationHmacKey.fromBase64(Base64.getEncoder().encodeToString(source));
+        VerificationHmacKey hmacKey =
+                VerificationHmacKey.fromBase64(Base64.getEncoder().encodeToString(source));
 
         assertThat(hmacKey.getEncoded()).containsExactly(source);
     }
@@ -36,28 +36,28 @@ class RedisVerificationHmacKeyTest {
     @Test
     void rejectsNullKey() {
         assertThatNullPointerException()
-                .isThrownBy(() -> RedisVerificationHmacKey.of(null))
+                .isThrownBy(() -> VerificationHmacKey.of(null))
                 .withMessage("encoded must not be null");
         assertThatNullPointerException()
-                .isThrownBy(() -> RedisVerificationHmacKey.fromBase64(null))
+                .isThrownBy(() -> VerificationHmacKey.fromBase64(null))
                 .withMessage("encoded must not be null");
     }
 
     @Test
     void rejectsShortKey() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> RedisVerificationHmacKey.of(new byte[31]))
+                .isThrownBy(() -> VerificationHmacKey.of(new byte[31]))
                 .withMessage("encoded must contain at least 32 bytes");
         assertThatIllegalArgumentException()
-                .isThrownBy(() ->
-                        RedisVerificationHmacKey.fromBase64(Base64.getEncoder().encodeToString(new byte[31])))
+                .isThrownBy(
+                        () -> VerificationHmacKey.fromBase64(Base64.getEncoder().encodeToString(new byte[31])))
                 .withMessage("encoded must be valid Base64 and contain at least 32 bytes");
     }
 
     @Test
     void rejectsInvalidBase64() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> RedisVerificationHmacKey.fromBase64("not-base64!"))
+                .isThrownBy(() -> VerificationHmacKey.fromBase64("not-base64!"))
                 .withMessage("encoded must be valid Base64 and contain at least 32 bytes");
     }
 }
