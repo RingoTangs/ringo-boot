@@ -5,7 +5,6 @@ import static org.mockito.Mockito.mock;
 
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisIssueRateLimitAutoConfiguration;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisIssueRateLimitStore;
-import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationAutoConfiguration;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationStore;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
@@ -48,7 +47,6 @@ class VerificationAutoConfigurationTest {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(
-                    RedisVerificationAutoConfiguration.class,
                     RedisIssueRateLimitAutoConfiguration.class,
                     VerificationAutoConfiguration.class,
                     IssueRateLimitAutoConfiguration.class,
@@ -58,7 +56,7 @@ class VerificationAutoConfigurationTest {
     @Test
     void failsWhenRedisApplicationNameIsMissing() {
         new ApplicationContextRunner()
-                .withConfiguration(AutoConfigurations.of(RedisVerificationAutoConfiguration.class))
+                .withConfiguration(AutoConfigurations.of(VerificationAutoConfiguration.class))
                 .withPropertyValues("ringo.boot.verification.enabled=true", "ringo.boot.verification.store=redis")
                 .withBean(StringRedisTemplate.class, () -> mock(StringRedisTemplate.class))
                 .withBean(VerificationHmacKey.class, VerificationAutoConfigurationTest::hmacKey)
@@ -176,7 +174,6 @@ class VerificationAutoConfigurationTest {
     void configuresRedisStoreAfterSpringBootCreatesStringRedisTemplate() {
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
-                        RedisVerificationAutoConfiguration.class,
                         RedisIssueRateLimitAutoConfiguration.class,
                         VerificationAutoConfiguration.class,
                         IssueRateLimitAutoConfiguration.class,
@@ -207,7 +204,7 @@ class VerificationAutoConfigurationTest {
                     assertThat(context).hasFailed();
                     assertThat(context.getStartupFailure())
                             .hasRootCauseMessage(
-                                    "Redis verification storage requires Spring Data Redis, a StringRedisTemplate, and a VerificationHmacKey bean");
+                                    "Redis verification storage requires Spring Data Redis and a StringRedisTemplate");
                 });
     }
 

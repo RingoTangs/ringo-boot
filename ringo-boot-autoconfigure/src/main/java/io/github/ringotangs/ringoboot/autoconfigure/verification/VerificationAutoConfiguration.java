@@ -1,5 +1,6 @@
 package io.github.ringotangs.ringoboot.autoconfigure.verification;
 
+import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationStore;
 import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.email.StdoutEmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
@@ -8,19 +9,25 @@ import io.github.ringotangs.ringoboot.verification.sms.SmsCodeSender;
 import io.github.ringotangs.ringoboot.verification.sms.StdoutSmsCodeSender;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
+import java.time.Duration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 /**
  * 自动配置验证码生成器、状态存储和渠道发送器。
  *
  * <p>仅在显式启用验证码功能时生效。每个默认组件都会在应用提供同类型 Bean 时回退。</p>
  */
-@AutoConfiguration
+@AutoConfiguration(after = RedisAutoConfiguration.class)
 @ConditionalOnClass(VerificationStore.class)
 @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "enabled", havingValue = "true")
 @EnableConfigurationProperties(VerificationProperties.class)
@@ -54,17 +61,19 @@ public class VerificationAutoConfiguration {
     }
 
     /**
-     * 当显式选择 Redis 但没有可用实现时快速失败。
+     * 当显式选择 Redis 但没有可用操作模板时快速失败。
      *
      * @return 此方法不会正常返回
      * @throws IllegalStateException 始终抛出，用于报告 Redis 存储依赖或配置缺失
      */
     @Bean
-    @ConditionalOnMissingBean(VerificationStore.class)
+    @ConditionalOnMissingBean(
+            value = VerificationStore.class,
+            type = "org.springframework.data.redis.core.StringRedisTemplate")
     @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "store", havingValue = "redis")
-    VerificationStore missingRedisVerificationStore() {
+    VerificationStore unavailableRedisVerificationStore() {
         throw new IllegalStateException(
-                "Redis verification storage requires Spring Data Redis, a StringRedisTemplate, and a VerificationHmacKey bean");
+                "Redis verification storage requires Spring Data Redis and a StringRedisTemplate");
     }
 
     /**
@@ -87,5 +96,35 @@ public class VerificationAutoConfiguration {
     @ConditionalOnMissingBean(SmsCodeSender.class)
     SmsCodeSender stdoutSmsCodeSender() {
         return new StdoutSmsCodeSender();
+    }
+
+    /** Redis 验证码状态存储配置。 */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(StringRedisTemplate.class)
+    @ConditionalOnBean(StringRedisTemplate.class)
+    @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "store", havingValue = "redis")
+    static class RedisStoreConfiguration {
+
+        private static final Duration EXPIRED_RETENTION = Duration.ofMinutes(1);
+
+        /**
+         * 使用 Redis 操作模板和共享密钥创建验证码状态存储。
+         *
+         * @param redisTemplate Redis 字符串操作模板
+         * @param hmacKey 应用提供的验证码 HMAC 密钥
+         * @param environment Spring 环境，用于读取应用名称
+         * @return Redis 验证码状态存储
+         * @throws IllegalStateException 当共享密钥或应用名称无效时
+         */
+        @Bean
+        @ConditionalOnMissingBean(VerificationStore.class)
+        VerificationStore redisVerificationStore(
+                StringRedisTemplate redisTemplate, VerificationHmacKey hmacKey, Environment environment) {
+            return new RedisVerificationStore(
+                    redisTemplate,
+                    hmacKey.getEncoded(),
+                    EXPIRED_RETENTION,
+                    environment.getRequiredProperty("spring.application.name"));
+        }
     }
 }
