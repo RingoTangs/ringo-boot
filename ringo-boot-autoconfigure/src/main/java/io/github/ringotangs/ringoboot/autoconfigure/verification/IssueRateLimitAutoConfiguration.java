@@ -26,7 +26,7 @@ import org.springframework.context.annotation.Conditional;
  *
  * <p>应用提供自定义解析器、存储或限流器时，对应默认组件会自动回退。容器内的规则 Bean 会按照 Spring 顺序统一收集。</p>
  */
-@AutoConfiguration(after = {VerificationAutoConfiguration.class, RedisIssueRateLimitAutoConfiguration.class})
+@AutoConfiguration(after = RedisIssueRateLimitAutoConfiguration.class)
 @ConditionalOnClass(IssueRateLimiter.class)
 @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "enabled", havingValue = "true")
 @EnableConfigurationProperties(IssueRateLimitProperties.class)

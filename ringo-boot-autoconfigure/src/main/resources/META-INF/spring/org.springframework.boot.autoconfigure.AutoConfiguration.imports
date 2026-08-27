@@ -3,4 +3,3 @@ io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationProblemAut
 io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisIssueRateLimitAutoConfiguration
 io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationAutoConfiguration
 io.github.ringotangs.ringoboot.autoconfigure.verification.IssueRateLimitAutoConfiguration
-io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationChannelAutoConfiguration

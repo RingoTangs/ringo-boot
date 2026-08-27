@@ -49,8 +49,7 @@ class VerificationAutoConfigurationTest {
             .withConfiguration(AutoConfigurations.of(
                     RedisIssueRateLimitAutoConfiguration.class,
                     VerificationAutoConfiguration.class,
-                    IssueRateLimitAutoConfiguration.class,
-                    VerificationChannelAutoConfiguration.class))
+                    IssueRateLimitAutoConfiguration.class))
             .withPropertyValues("spring.application.name=test-application");
 
     @Test
@@ -106,8 +105,7 @@ class VerificationAutoConfigurationTest {
     @Test
     void verificationConfigurationDoesNotOwnRateLimitInfrastructure() {
         new ApplicationContextRunner()
-                .withConfiguration(AutoConfigurations.of(
-                        VerificationAutoConfiguration.class, VerificationChannelAutoConfiguration.class))
+                .withConfiguration(AutoConfigurations.of(VerificationAutoConfiguration.class))
                 .withPropertyValues("ringo.boot.verification.enabled=true")
                 .run(context -> {
                     assertThat(context).hasSingleBean(CodeGenerator.class);
@@ -177,7 +175,6 @@ class VerificationAutoConfigurationTest {
                         RedisIssueRateLimitAutoConfiguration.class,
                         VerificationAutoConfiguration.class,
                         IssueRateLimitAutoConfiguration.class,
-                        VerificationChannelAutoConfiguration.class,
                         RedisAutoConfiguration.class))
                 .withPropertyValues(
                         "spring.application.name=test-application",
