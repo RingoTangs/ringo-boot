@@ -6,7 +6,25 @@ import java.util.Objects;
 /**
  * Redis 验证码能力使用的 HMAC 密钥。
  *
- * <p>同一环境中的所有应用实例必须使用相同密钥。密钥应由环境变量或 Secret Manager 提供，不应写入源码或日志。</p>
+ * <p>密钥应由至少 32 字节的密码学安全随机数据生成，再编码为 Base64 字符串。Base64 只负责将二进制数据转换为文本，
+ * 不会增加密钥的随机性或安全强度。推荐使用 OpenSSL 生成：</p>
+ *
+ * <pre>{@code
+ * openssl rand -base64 32
+ * }</pre>
+ *
+ * <p>也可以使用 Java 生成：</p>
+ *
+ * <pre>{@code
+ * byte[] bytes = new byte[32];
+ * new java.security.SecureRandom().nextBytes(bytes);
+ * String encoded = java.util.Base64.getEncoder().encodeToString(bytes);
+ * RedisVerificationHmacKey hmacKey = RedisVerificationHmacKey.fromBase64(encoded);
+ * }</pre>
+ *
+ * <p>同一应用的所有实例必须使用相同密钥。生产环境应通过环境变量或 Secret Manager 注入，不应写入源码、提交到配置
+ * 仓库或输出到日志。更换密钥后，使用旧密钥生成的验证码状态将无法继续读取，签发限流计数也会重新开始，因此应等待
+ * 旧验证码和限流窗口过期后再完成轮换。</p>
  */
 public final class RedisVerificationHmacKey {
 
@@ -36,6 +54,8 @@ public final class RedisVerificationHmacKey {
 
     /**
      * 解码 Base64 字符串并创建 HMAC 密钥。
+     *
+     * <p>Base64 字符串可以使用 {@code openssl rand -base64 32} 生成。解码后的内容必须包含至少 32 字节的随机数据。</p>
      *
      * @param encoded Base64 编码的密钥
      * @return HMAC 密钥

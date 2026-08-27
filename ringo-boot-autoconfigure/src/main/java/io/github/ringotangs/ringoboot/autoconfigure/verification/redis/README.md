@@ -296,11 +296,22 @@ Lua 脚本原子检查和消费额度。ZSET score 是签发时间戳，member �
 export REDIS_PASSWORD="$(cat /opt/ringo-redis/secrets/redis-password.txt)"
 ```
 
-验证码 HMAC 密钥需要单独生成：
+验证码 HMAC 密钥需要单独生成。推荐使用 OpenSSL 创建 32 字节的密码学安全随机数据，并直接输出 Base64 字符串：
 
 ```shell
 export VERIFICATION_HMAC_KEY="$(openssl rand -base64 32)"
 ```
+
+没有 OpenSSL 时，也可以使用 Java 的 `SecureRandom` 生成：
+
+```java
+byte[] bytes = new byte[32];
+new SecureRandom().nextBytes(bytes);
+String encoded = Base64.getEncoder().encodeToString(bytes);
+```
+
+Base64 只是把二进制密钥转换成便于配置的文本，不会增加随机性或安全强度。不要使用密码、手机号、UUID 或普通
+`Random` 的输出代替密码学安全随机数据。
 
 两个密钥的职责不同：
 
@@ -310,6 +321,9 @@ export VERIFICATION_HMAC_KEY="$(openssl rand -base64 32)"
 
 生产环境应通过部署平台的 Secret Manager 注入应用密钥，不要将真实密码、HMAC secret 或
 `secrets/redis-password.txt` 提交到 Git，也不要输出到日志。
+
+更换 HMAC 密钥后，使用旧密钥生成的验证码状态将无法继续读取，签发限流计数也会从新桶重新开始。轮换密钥时，
+应先停止签发并等待现有验证码 TTL 和最长限流窗口结束，再让所有应用实例统一切换到新密钥。
 
 ## 跨服务器连接
 

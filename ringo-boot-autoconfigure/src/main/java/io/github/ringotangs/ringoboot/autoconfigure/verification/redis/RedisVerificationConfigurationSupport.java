@@ -8,8 +8,7 @@ import org.springframework.core.env.Environment;
  */
 final class RedisVerificationConfigurationSupport {
 
-    private RedisVerificationConfigurationSupport() {
-    }
+    private RedisVerificationConfigurationSupport() {}
 
     /**
      * 根据 Spring 应用名称解析 Redis key 使用的应用名称。
