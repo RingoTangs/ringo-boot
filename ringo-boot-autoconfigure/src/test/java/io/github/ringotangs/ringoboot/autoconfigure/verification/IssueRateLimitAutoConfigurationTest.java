@@ -57,7 +57,7 @@ class IssueRateLimitAutoConfigurationTest {
 
     @Test
     void customRuleReplacesDefaultRule() {
-        IssueRateLimitRule customRule = IssueRateLimitRule.of(
+        IssueRateLimitRule customRule = new TestIssueRateLimitRule(
                 "subject-hour", context -> IssueLimitBucket.of(context.key().subject()), 1, Duration.ofHours(1));
 
         contextRunner
@@ -78,7 +78,7 @@ class IssueRateLimitAutoConfigurationTest {
     @Test
     void partialRuleBeanRejectsUncoveredVerificationKeys() {
         VerificationKey uncovered = new VerificationKey("payment", "confirm", "+8613800000000");
-        IssueRateLimitRule rule = IssueRateLimitRule.of(
+        IssueRateLimitRule rule = new TestIssueRateLimitRule(
                 "account-login-hour",
                 context -> context.key().namespace().equals("account")
                         && context.key().purpose().equals("login"),
@@ -117,9 +117,9 @@ class IssueRateLimitAutoConfigurationTest {
 
     @Test
     void collectsMultipleRuleBeans() {
-        IssueRateLimitRule applicationRule = IssueRateLimitRule.of(
+        IssueRateLimitRule applicationRule = new TestIssueRateLimitRule(
                 "application-minute", context -> IssueLimitBucket.of("application"), 1, Duration.ofMinutes(1));
-        IssueRateLimitRule customRule = IssueRateLimitRule.of(
+        IssueRateLimitRule customRule = new TestIssueRateLimitRule(
                 "custom-hour", context -> IssueLimitBucket.of("custom"), 100, Duration.ofHours(1));
         VerificationKey first = new VerificationKey("account", "login", "user@example.com");
         VerificationKey second = new VerificationKey("payment", "confirm", "+8613800000000");
@@ -142,9 +142,9 @@ class IssueRateLimitAutoConfigurationTest {
 
     @Test
     void rejectsDuplicateIdsAcrossRuleBeans() {
-        IssueRateLimitRule first = IssueRateLimitRule.of(
+        IssueRateLimitRule first = new TestIssueRateLimitRule(
                 "application-minute", context -> IssueLimitBucket.of("custom"), 100, Duration.ofHours(1));
-        IssueRateLimitRule second = IssueRateLimitRule.of(
+        IssueRateLimitRule second = new TestIssueRateLimitRule(
                 "application-minute", context -> IssueLimitBucket.of("other"), 10, Duration.ofMinutes(1));
 
         contextRunner
@@ -227,7 +227,7 @@ class IssueRateLimitAutoConfigurationTest {
     }
 
     private static IssueRateLimitRule rule() {
-        return IssueRateLimitRule.of(
+        return new TestIssueRateLimitRule(
                 "subject-minute", context -> IssueLimitBucket.of(context.key().subject()), 1, Duration.ofMinutes(1));
     }
 }

@@ -15,6 +15,7 @@ import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitManager;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.limit.MissingIssueRateLimitRuleException;
+import io.github.ringotangs.ringoboot.verification.limit.TestIssueRateLimitRule;
 import io.github.ringotangs.ringoboot.verification.sender.CodeDeliveryRejectedException;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSenderException;
@@ -319,7 +320,7 @@ class AbstractVerificationServiceTest {
     }
 
     private IssueRateLimiter testIssueRateLimiter() {
-        IssueRateLimitRule rule = IssueRateLimitRule.of(
+        IssueRateLimitRule rule = new TestIssueRateLimitRule(
                 "test-key-cooldown",
                 context -> IssueLimitBucket.of(
                         context.key().namespace(),

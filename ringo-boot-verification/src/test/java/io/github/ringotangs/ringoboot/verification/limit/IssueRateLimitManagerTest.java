@@ -42,6 +42,18 @@ class IssueRateLimitManagerTest {
     }
 
     @Test
+    void fixedBucketSharesQuotaAcrossDifferentVerificationKeys() {
+        IssueRateLimitRule rule = new TestIssueRateLimitRule(
+                "application-minute", context -> IssueLimitBucket.of("application"), 1, Duration.ofMinutes(1));
+        IssueRateLimitManager manager = new IssueRateLimitManager(List.of(rule), new InMemoryIssueRateLimitStore());
+        IssueContext otherContext =
+                IssueContext.of(new VerificationKey("payment", "confirm", "+8613800000000"), VerificationChannel.SMS);
+
+        assertInstanceOf(IssueLimitResult.Allowed.class, manager.acquire(CONTEXT, NOW));
+        assertInstanceOf(IssueLimitResult.Throttled.class, manager.acquire(otherContext, NOW.plusSeconds(1)));
+    }
+
+    @Test
     void rejectsWhenNoRulesMatchWithoutCallingStore() {
         AtomicInteger calls = new AtomicInteger();
         IssueRateLimitManager manager = new IssueRateLimitManager(
@@ -60,7 +72,7 @@ class IssueRateLimitManagerTest {
     @Test
     void resolvesAllBucketsBeforeCallingStore() {
         AtomicInteger calls = new AtomicInteger();
-        IssueRateLimitRule missingIp = IssueRateLimitRule.of(
+        IssueRateLimitRule missingIp = new TestIssueRateLimitRule(
                 "ip-hour",
                 context -> IssueLimitBucket.of(context.attribute("ip-address").orElseThrow()),
                 10,
@@ -129,7 +141,7 @@ class IssueRateLimitManagerTest {
     @Test
     void usesContextAttributesWhenEvaluatingRules() {
         AtomicReference<IssueLimitQuota> captured = new AtomicReference<>();
-        IssueRateLimitRule ipRule = IssueRateLimitRule.of(
+        IssueRateLimitRule ipRule = new TestIssueRateLimitRule(
                 "ip-hour",
                 context -> IssueLimitBucket.of(context.attribute("ip-address").orElseThrow()),
                 10,
@@ -146,7 +158,7 @@ class IssueRateLimitManagerTest {
 
     private IssueRateLimitRule rule(
             String id, java.util.function.Predicate<IssueContext> matcher, String bucketSegment) {
-        return IssueRateLimitRule.of(
+        return new TestIssueRateLimitRule(
                 id, matcher, context -> IssueLimitBucket.of(bucketSegment), 1, Duration.ofMinutes(1));
     }
 }
