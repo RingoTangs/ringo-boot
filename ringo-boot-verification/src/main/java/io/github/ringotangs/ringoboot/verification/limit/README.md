@@ -274,12 +274,10 @@ sequenceDiagram
 示例 key：
 
 ```text
-identity-service:verification:issue-limit:
-{identity-service:verification:issue-limit}:
-v2:login-ip-hour:{bucketDigest}
+{identity-service:verification:issue-limit}:v2:login-ip-hour:{bucketDigest}
 ```
 
-实际 key 是一行，上面仅为方便阅读进行了换行。更多 Redis 部署和密钥配置说明见
+花括号中的内容是 Redis Cluster hash tag，也是 key 的真实组成部分。更多 Redis 部署和密钥配置说明见
 `ringo-boot-autoconfigure/.../verification/redis/README.md`。
 
 ## 七、Spring Boot 自动配置

@@ -36,9 +36,7 @@ import org.springframework.data.redis.core.script.RedisScript;
  * <p>Redis key 的格式如下，实际内容为一行：
  *
  * <pre>{@code
- * identity-service:verification:issue-limit:
- * {identity-service:verification:issue-limit}:
- * v2:login-subject-minute:{bucketDigest}
+ * {identity-service:verification:issue-limit}:v2:login-subject-minute:{bucketDigest}
  * }</pre>
  *
  * <p>花括号中的应用级 hash tag 使同一次请求涉及的全部 key 位于 Redis Cluster 的同一个 slot，以满足多 key Lua
@@ -223,7 +221,7 @@ public final class RedisIssueRateLimitStore implements IssueRateLimitStore {
     /**
      * 创建一条规则下某个额度桶对应的 Redis key。
      *
-     * <p>应用名称同时出现在业务前缀和 Cluster hash tag 中。规则标识保持可读，额度桶只以 HMAC 摘要形式出现。
+     * <p>完整业务范围直接作为 Cluster hash tag，不再重复业务前缀。规则标识保持可读，额度桶只以 HMAC 摘要形式出现。
      *
      * @param ruleId 产生额度的稳定规则标识
      * @param bucket 包含业务累计身份分段的额度桶
@@ -231,8 +229,7 @@ public final class RedisIssueRateLimitStore implements IssueRateLimitStore {
      */
     private String redisKey(String ruleId, IssueLimitBucket bucket) {
         String hashTag = applicationName + ":verification:issue-limit";
-        return applicationName + ":verification:issue-limit:{" + hashTag + "}:" + STORAGE_VERSION + ':' + ruleId + ':'
-                + bucketDigest(ruleId, bucket);
+        return '{' + hashTag + "}:" + STORAGE_VERSION + ':' + ruleId + ':' + bucketDigest(ruleId, bucket);
     }
 
     /**

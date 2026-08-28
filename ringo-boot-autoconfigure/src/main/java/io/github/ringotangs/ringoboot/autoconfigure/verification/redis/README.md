@@ -281,8 +281,8 @@ VerificationHmacKey verificationHmacKey(Environment environment) {
 旧名称下尚未过期的验证码不可访问。
 
 签发限流使用 Redis ZSET，key 格式为
-`identity-service:verification:issue-limit:{identity-service:verification:issue-limit}:v2:{ruleId}:{bucketDigest}`。
-花括号中的应用级 hash tag 使同一次签发涉及的所有规则 key 位于同一个 Redis Cluster slot，从而可以通过一个
+`{identity-service:verification:issue-limit}:v2:{ruleId}:{bucketDigest}`。
+花括号中的应用及功能级 hash tag 使同一次签发涉及的所有规则 key 位于同一个 Redis Cluster slot，从而可以通过一个
 Lua 脚本原子检查和消费额度。ZSET score 是签发时间戳，member 是每次请求生成的随机标识；规则生成的手机号、
 邮箱、IP 等额度桶分段只参与 HMAC 摘要，不会以明文写入 key 或 value。
 
