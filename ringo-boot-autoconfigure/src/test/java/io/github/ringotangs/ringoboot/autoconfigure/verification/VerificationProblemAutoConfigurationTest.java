@@ -4,7 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.ringotangs.ringoboot.autoconfigure.problem.ProblemAutoConfiguration;
 import io.github.ringotangs.ringoboot.autoconfigure.problem.ProblemMessageResolver;
+import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
+import io.github.ringotangs.ringoboot.verification.VerificationThrottledException;
+import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
+import io.github.ringotangs.ringoboot.verification.limit.MissingIssueRateLimitRuleException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
+import java.time.Duration;
 import java.util.Locale;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -114,6 +119,44 @@ class VerificationProblemAutoConfigurationTest {
                             handler.handleVerificationException(new VerificationStoreException("internal"));
                     assertThat(problem.getTitle()).isEqualTo("验证码服务不可用");
                     assertThat(problem.getDetail()).isEqualTo("验证码服务暂时不可用");
+                });
+    }
+
+    @Test
+    void usesCodeDefaultsForEnglishVerificationMessages() {
+        LocaleContextHolder.setLocale(Locale.ENGLISH);
+
+        contextRunner
+                .withPropertyValues(
+                        "ringo.boot.problem.enabled=true",
+                        "ringo.boot.problem.i18n=true",
+                        "ringo.boot.problem.handlers.verification=true",
+                        "ringo.boot.verification.enabled=true")
+                .run(context -> {
+                    VerificationExceptionHandler handler = context.getBean(VerificationExceptionHandler.class);
+
+                    assertThat(handler.handleVerificationThrottled(
+                                    new VerificationThrottledException(Duration.ofSeconds(2))))
+                            .extracting(ProblemDetail::getTitle, ProblemDetail::getDetail)
+                            .containsExactly("Too many verification code requests", "Please retry after 2 seconds");
+                    assertThat(handler.handleInvalidVerificationCode(new InvalidVerificationCodeException()))
+                            .extracting(ProblemDetail::getTitle, ProblemDetail::getDetail)
+                            .containsExactly("Invalid verification code", "The verification code is invalid");
+                    assertThat(handler.handleVerificationException(new CodeGenerationException("internal")))
+                            .extracting(ProblemDetail::getTitle, ProblemDetail::getDetail)
+                            .containsExactly(
+                                    "Verification code generation failed",
+                                    "The verification service encountered an internal error");
+                    assertThat(handler.handleVerificationException(new MissingIssueRateLimitRuleException()))
+                            .extracting(ProblemDetail::getTitle, ProblemDetail::getDetail)
+                            .containsExactly(
+                                    "Verification configuration error",
+                                    "The verification service is not configured for this operation");
+                    assertThat(handler.handleVerificationException(new VerificationStoreException("internal")))
+                            .extracting(ProblemDetail::getTitle, ProblemDetail::getDetail)
+                            .containsExactly(
+                                    "Verification service unavailable",
+                                    "The verification service is temporarily unavailable");
                 });
     }
 }

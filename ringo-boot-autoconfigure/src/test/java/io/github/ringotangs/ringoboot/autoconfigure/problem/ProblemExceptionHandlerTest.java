@@ -42,7 +42,9 @@ class ProblemExceptionHandlerTest {
     }
 
     @Test
-    void fallsBackToDefaultMessages() {
+    void fallsBackToDefaultMessagesWhenLocalizedKeysAreMissing() {
+        LocaleContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
+
         ProblemDetail problem = handler.handleProblemException(ProblemException.withArguments(PROBLEM_TYPE, 42));
 
         assertEquals("User not found", problem.getTitle());
