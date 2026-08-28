@@ -3,6 +3,7 @@ package io.github.ringotangs.ringoboot.autoconfigure.verification.redis;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.IssueRateLimitAutoConfiguration;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationHmacKey;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationProperties;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitStore;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -37,6 +38,7 @@ public class RedisIssueRateLimitAutoConfiguration {
      * @return Redis 验证码签发限流状态存储
      */
     @Bean
+    @ConditionalOnBean(IssueRateLimitRule.class)
     @ConditionalOnMissingBean({IssueRateLimiter.class, IssueRateLimitStore.class})
     IssueRateLimitStore redisIssueRateLimitStore(
             StringRedisTemplate redisTemplate, VerificationHmacKey hmacKey, Environment environment) {

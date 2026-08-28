@@ -114,28 +114,15 @@ final class WebEmailVerificationService extends EmailVerificationService {
 规则 ID 必须是全局唯一的 kebab-case，例如 `login-ip-hour`。ID 会参与内存桶和 Redis key 的生成，修改 ID 等同于创建一条
 全新的规则，其历史额度不会延续。
 
-### 默认完整 Key 冷却规则
+### 默认行为与严格管理器
 
-Spring Boot 自动配置默认注册 `default-key-cooldown`：
-
-```text
-bucket = namespace + purpose + subject
-maxIssues = 1
-window = 60 seconds
-```
-
-默认窗口是 60 秒。例如：
-
-```text
-account + login + user@example.com
-```
-
-这表示同一个邮箱的登录验证码 60 秒内只能签发一次。只有应用没有提供任何 `IssueRateLimitRule` Bean 时，自动配置才会注册
-这条安全兜底规则；应用提供规则 Bean 后，默认规则自动回退。
+Spring Boot 自动配置不注册内置 `IssueRateLimitRule`。应用没有提供规则或自定义限流器时，自动配置使用
+`IssueRateLimiter.permitAll()`，不会创建限流状态 Store。应用注册任意规则 Bean 后才会创建 Store 和
+`IssueRateLimitManager`，正式启用签发限流。
 
 限流管理器采用严格拒绝策略：规则集合为空时无法创建；存在规则但没有任何规则匹配当前 `VerificationKey` 时，签发请求抛出
 `MissingIssueRateLimitRuleException`。因此应用自定义规则后，必须让这些 Bean 覆盖全部预期业务。
-如果应用确实需要完全关闭限流，必须显式使用 `IssueRateLimiter.permitAll()`，不能通过遗漏配置隐式关闭。
+应用也可以提供自定义 `IssueRateLimiter`，完全替换基于规则和 Store 的默认管理器。
 
 `IssueLimitBucket` 只是额度累计身份，`IssueLimitQuota` 才定义窗口和最大次数。Store 中尚不存在某个桶的历史记录表示这是新桶，
 第一次请求拥有完整初始额度；没有匹配出任何 `IssueLimitQuota` 才属于配置缺失。
@@ -284,14 +271,13 @@ sequenceDiagram
 
 启用验证码功能后，自动配置执行以下操作：
 
-1. 根据 `store=memory|redis` 注册对应的 `IssueRateLimitStore`。
-2. 应用没有提供规则 Bean 时注册固定 60 秒的 `default-key-cooldown` Rule Bean。
-3. 收集容器内所有 `IssueRateLimitRule` Bean。
-4. 使用这些规则创建唯一默认 `IssueRateLimiter`。
-5. 邮件和短信验证码服务注入该 `IssueRateLimiter`。
+1. 应用没有提供规则或自定义 Limiter 时，注册 `IssueRateLimiter.permitAll()`。
+2. 应用提供规则 Bean 时，根据 `store=memory|redis` 注册对应的 `IssueRateLimitStore`。
+3. 收集容器内所有 `IssueRateLimitRule` Bean，并创建 `IssueRateLimitManager`。
+4. 邮件和短信验证码服务注入最终的 `IssueRateLimiter`。
 
-限流规则不支持 YAML 配置。应用提供任意规则 Bean 后，默认冷却规则自动回退。如果自定义规则只覆盖部分业务，应用可以启动，
-但未被任何规则覆盖的 `namespace + purpose` 会在首次签发时抛出配置异常，不会生成、存储或发送验证码。
+限流规则不支持 YAML 配置。应用提供任意规则 Bean 即表示启用限流。如果自定义规则只覆盖部分业务，应用可以启动，但未被任何规则
+覆盖的 `namespace + purpose` 会在首次签发时抛出配置异常，不会生成、存储或发送验证码。
 
 下面展示如何在代码中定义应用级、业务级和接收方级规则：
 
@@ -322,9 +308,10 @@ IssueRateLimitRule accountLoginSubjectHourlyRule() {
 
 | 应用提供的 Bean | 自动配置行为 |
 | --- | --- |
-| `IssueRateLimitRule` | 收集所有应用规则，并使固定 60 秒默认规则回退 |
+| 无 | 使用 `IssueRateLimiter.permitAll()`，不创建限流 Store |
+| `IssueRateLimitRule` | 收集所有应用规则，并自动创建 Store 和 `IssueRateLimitManager` |
 | `IssueRateLimitStore` | 使用自定义限流状态存储，仍自动收集所有规则 |
-| `IssueRateLimiter` | 完全替换默认管理器和限流状态存储；显式关闭限流时使用 `IssueRateLimiter.permitAll()` |
+| `IssueRateLimiter` | 完全替换默认管理器和框架自动创建的限流状态存储 |
 
 需要向上下文增加 IP、设备或租户等应用信号时，应继承对应的 `EmailVerificationService` 或
 `SmsVerificationService`，覆盖 `customizeIssueContext`，再将自定义服务注册为 Bean，使自动配置中的默认服务回退。

@@ -118,7 +118,7 @@ class RedisVerificationStoreIT extends VerificationStoreContract {
 
     private static IssueLimitQuota quota(VerificationKey key) {
         return new IssueLimitQuota(
-                "default-key-cooldown",
+                "verification-key-cooldown",
                 IssueLimitBucket.of(key.namespace(), key.purpose(), key.subject()),
                 1,
                 Duration.ofMillis(500));

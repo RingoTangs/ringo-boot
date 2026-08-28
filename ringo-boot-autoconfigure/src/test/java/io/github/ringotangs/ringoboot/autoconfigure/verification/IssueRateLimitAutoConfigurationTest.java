@@ -34,22 +34,17 @@ class IssueRateLimitAutoConfigurationTest {
     }
 
     @Test
-    void configuresDefaultInMemoryRateLimitingWhenVerificationIsEnabled() {
+    void permitsAllIssuesWhenVerificationIsEnabledWithoutRules() {
         contextRunner.withPropertyValues("ringo.boot.verification.enabled=true").run(context -> {
             assertThat(context).hasNotFailed();
-            assertThat(context).hasSingleBean(IssueRateLimitRule.class);
-            assertThat(context.getBean(IssueRateLimitRule.class).window()).isEqualTo(Duration.ofSeconds(60));
-            assertThat(context).hasSingleBean(IssueRateLimitStore.class);
-            assertThat(context.getBean(IssueRateLimitStore.class)).isInstanceOf(InMemoryIssueRateLimitStore.class);
+            assertThat(context).doesNotHaveBean(IssueRateLimitRule.class);
+            assertThat(context).doesNotHaveBean(IssueRateLimitStore.class);
             assertThat(context).hasSingleBean(IssueRateLimiter.class);
-            assertThat(context.getBean(IssueRateLimiter.class)).isInstanceOf(IssueRateLimitManager.class);
-            assertThat(context.getBean(IssueRateLimiter.class)
-                            .acquire(
-                                    IssueContext.of(
-                                            new VerificationKey("account", "login", "user@example.com"),
-                                            VerificationChannel.EMAIL),
-                                    Instant.EPOCH))
-                    .isInstanceOf(IssueLimitResult.Allowed.class);
+            IssueRateLimiter limiter = context.getBean(IssueRateLimiter.class);
+            IssueContext issueContext = IssueContext.of(
+                    new VerificationKey("account", "login", "user@example.com"), VerificationChannel.EMAIL);
+            assertThat(limiter.acquire(issueContext, Instant.EPOCH)).isInstanceOf(IssueLimitResult.Allowed.class);
+            assertThat(limiter.acquire(issueContext, Instant.EPOCH)).isInstanceOf(IssueLimitResult.Allowed.class);
         });
     }
 
@@ -65,7 +60,11 @@ class IssueRateLimitAutoConfigurationTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(IssueRateLimitRule.class);
                     assertThat(context.getBean(IssueRateLimitRule.class)).isSameAs(customRule);
+                    assertThat(context).hasSingleBean(IssueRateLimitStore.class);
+                    assertThat(context.getBean(IssueRateLimitStore.class))
+                            .isInstanceOf(InMemoryIssueRateLimitStore.class);
                     assertThat(context).hasSingleBean(IssueRateLimiter.class);
+                    assertThat(context.getBean(IssueRateLimiter.class)).isInstanceOf(IssueRateLimitManager.class);
                 });
     }
 

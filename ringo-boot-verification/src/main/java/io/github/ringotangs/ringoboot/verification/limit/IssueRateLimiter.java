@@ -19,8 +19,8 @@ import java.util.Objects;
  * <p>参数、规则声明和上下文数据违反契约时使用 Java 标准运行时异常；只有底层存储或原子操作等技术故障才使用
  * {@link IssueRateLimitException}。正常限流始终通过 {@link IssueLimitResult.Throttled} 返回。
  *
- * <p>默认管理器采用严格拒绝策略，没有规则覆盖当前验证码键时抛出 {@link MissingIssueRateLimitRuleException}。确实需要关闭限流的
- * 应用必须显式使用 {@link #permitAll()}。
+ * <p>默认管理器采用严格拒绝策略，没有规则覆盖当前验证码键时抛出 {@link MissingIssueRateLimitRuleException}。不需要限制签发频率时
+ * 可以使用 {@link #permitAll()}；Spring Boot 自动配置在应用没有提供规则或限流器时使用该实现。
  */
 @FunctionalInterface
 public interface IssueRateLimiter {
