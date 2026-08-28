@@ -21,7 +21,9 @@ public class ProblemProperties {
      */
     private boolean i18n;
 
-    /** 创建默认关闭的 Problem Details 自动配置属性。 */
+    /**
+     * 创建默认关闭的 Problem Details 自动配置属性。
+     */
     public ProblemProperties() {}
 
     /**

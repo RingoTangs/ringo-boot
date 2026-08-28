@@ -6,7 +6,9 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-/** 将 {@link ProblemException} 转换为 RFC 9457 Problem Details 响应。 */
+/**
+ * 将 {@link ProblemException} 转换为 RFC 9457 Problem Details 响应。
+ */
 @RestControllerAdvice
 @Order(0)
 public class ProblemExceptionHandler {

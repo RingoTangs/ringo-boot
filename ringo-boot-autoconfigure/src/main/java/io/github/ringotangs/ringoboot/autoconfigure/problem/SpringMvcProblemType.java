@@ -22,7 +22,9 @@ import org.springframework.web.multipart.support.MissingServletRequestPartExcept
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
-/** 定义 Spring MVC 异常对应的稳定 Problem Details 类型。 */
+/**
+ * 定义 Spring MVC 异常对应的稳定 Problem Details 类型。
+ */
 enum SpringMvcProblemType {
     METHOD_NOT_ALLOWED("method-not-allowed"),
     UNSUPPORTED_MEDIA_TYPE("unsupported-media-type"),

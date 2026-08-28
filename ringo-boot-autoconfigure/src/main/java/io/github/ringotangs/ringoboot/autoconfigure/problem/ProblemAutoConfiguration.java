@@ -24,13 +24,17 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @EnableConfigurationProperties(ProblemProperties.class)
 public class ProblemAutoConfiguration {
 
-    /** 配置 Spring MVC 内置异常的稳定 Problem Details 映射。 */
+    /**
+     * 配置 Spring MVC 内置异常的稳定 Problem Details 映射。
+     */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(ResponseEntityExceptionHandler.class)
     @ConditionalOnProperty(prefix = ProblemConfigurationConstants.HANDLERS_PREFIX, name = "mvc", havingValue = "true")
     static class SpringMvcConfiguration {
 
-        /** 用户提供 ResponseEntityExceptionHandler 时不创建默认 MVC 处理器。 */
+        /**
+         * 用户提供 ResponseEntityExceptionHandler 时不创建默认 MVC 处理器。
+         */
         @Bean
         @ConditionalOnMissingBean(ResponseEntityExceptionHandler.class)
         SpringMvcExceptionHandler springMvcExceptionHandler(
@@ -39,7 +43,9 @@ public class ProblemAutoConfiguration {
         }
     }
 
-    /** 在业务问题异常处理开关开启时装配处理器。 */
+    /**
+     * 在业务问题异常处理开关开启时装配处理器。
+     */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnProperty(
             prefix = ProblemConfigurationConstants.HANDLERS_PREFIX,
@@ -47,7 +53,9 @@ public class ProblemAutoConfiguration {
             havingValue = "true")
     static class ApplicationConfiguration {
 
-        /** 用户提供自定义处理器时不创建默认实现。 */
+        /**
+         * 用户提供自定义处理器时不创建默认实现。
+         */
         @Bean
         @ConditionalOnMissingBean
         ProblemExceptionHandler problemExceptionHandler(ProblemMessageResolver messageResolver) {
@@ -55,7 +63,9 @@ public class ProblemAutoConfiguration {
         }
     }
 
-    /** 在未知异常兜底开关开启时装配处理器。 */
+    /**
+     * 在未知异常兜底开关开启时装配处理器。
+     */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnProperty(
             prefix = ProblemConfigurationConstants.HANDLERS_PREFIX,
@@ -63,7 +73,9 @@ public class ProblemAutoConfiguration {
             havingValue = "true")
     static class FallbackConfiguration {
 
-        /** 用户提供自定义处理器时不创建默认实现。 */
+        /**
+         * 用户提供自定义处理器时不创建默认实现。
+         */
         @Bean
         @ConditionalOnMissingBean
         FallbackExceptionHandler fallbackExceptionHandler(
@@ -74,11 +86,15 @@ public class ProblemAutoConfiguration {
         }
     }
 
-    /** 装配应用、验证码和兜底异常处理器共享的消息解析器。 */
+    /**
+     * 装配应用、验证码和兜底异常处理器共享的消息解析器。
+     */
     @Configuration(proxyBeanMethods = false)
     static class ProblemMessageResolverConfiguration {
 
-        /** 根据国际化开关选择消息解析器，用户可以提供自定义 Bean。 */
+        /**
+         * 根据国际化开关选择消息解析器，用户可以提供自定义 Bean。
+         */
         @Bean
         @ConditionalOnMissingBean
         ProblemMessageResolver problemMessageResolver(

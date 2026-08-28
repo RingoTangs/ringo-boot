@@ -6,7 +6,9 @@ import java.util.Objects;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 
-/** 根据 {@link ProblemException} 创建 Problem Details。 */
+/**
+ * 根据 {@link ProblemException} 创建 Problem Details。
+ */
 public final class ProblemDetailFactory {
 
     private final ProblemMessageResolver messageResolver;

@@ -46,8 +46,8 @@ public class FallbackExceptionHandler {
      * 使用消息解析器创建全局异常兜底处理器。
      *
      * @param messageResolver 问题消息解析器
-     * @param messageSource Spring 消息源
-     * @param properties 异常处理配置
+     * @param messageSource   Spring 消息源
+     * @param properties      异常处理配置
      */
     public FallbackExceptionHandler(
             ProblemMessageResolver messageResolver, MessageSource messageSource, ProblemProperties properties) {

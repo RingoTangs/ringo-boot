@@ -24,7 +24,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
-/** 从 Spring MVC 异常中提取安全的结构化校验错误。 */
+/**
+ * 从 Spring MVC 异常中提取安全的结构化校验错误。
+ */
 final class ValidationErrorExtractor {
 
     private static final String FALLBACK_CODE = "Validation";

@@ -30,7 +30,7 @@ public class SpringMvcExceptionHandler extends ResponseEntityExceptionHandler {
      * 使用消息源和异常处理配置创建 Spring MVC 异常处理器。
      *
      * @param messageSource Spring 消息源
-     * @param properties 异常处理配置
+     * @param properties    异常处理配置
      */
     public SpringMvcExceptionHandler(MessageSource messageSource, ProblemProperties properties) {
         setMessageSource(Objects.requireNonNull(messageSource, "messageSource must not be null"));
