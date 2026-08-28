@@ -5,19 +5,19 @@ import java.util.Objects;
 
 /**
  * 同一验证键在签发限制周期内被重复签发时抛出的业务异常。
- *
  */
 public final class VerificationThrottledException extends VerificationException {
 
-    /** 再次签发验证码前需要等待的时间。 */
+    /**
+     * 再次签发验证码前需要等待的时间。
+     */
     private final Duration retryAfter;
 
     /**
      * 使用剩余等待时间创建异常。
      *
-     *
      * @param retryAfter 再次签发前需要等待的时间
-     * @throws NullPointerException 当等待时间为 {@code null} 时
+     * @throws NullPointerException     当等待时间为 {@code null} 时
      * @throws IllegalArgumentException 当等待时间为负数时
      */
     public VerificationThrottledException(Duration retryAfter) {
@@ -30,7 +30,6 @@ public final class VerificationThrottledException extends VerificationException 
 
     /**
      * 返回再次签发前需要等待的时间。
-     *
      *
      * @return 剩余等待时间
      */

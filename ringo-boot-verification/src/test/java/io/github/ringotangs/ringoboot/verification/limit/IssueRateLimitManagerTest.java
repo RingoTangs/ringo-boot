@@ -84,6 +84,11 @@ class IssueRateLimitManagerTest {
             }
 
             @Override
+            public boolean matches(IssueContext context) {
+                return true;
+            }
+
+            @Override
             public IssueLimitBucket bucket(IssueContext context) {
                 return IssueLimitBucket.of("subject");
             }

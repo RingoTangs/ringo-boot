@@ -29,15 +29,13 @@ public interface IssueRateLimitRule {
     /**
      * 判断规则是否适用于本次签发请求。
      *
-     * <p>该方法只用于选择业务范围，不应通过返回 {@code false} 静默忽略已适用规则缺失的安全属性。默认对所有请求生效。
+     * <p>实现必须明确判断业务适用范围，不应通过返回 {@code false} 静默忽略已适用规则缺失的安全属性。
      *
      * @param context 签发上下文
      * @return 规则适用时返回 {@code true}
      * @throws NullPointerException 当上下文为 {@code null} 且实现不接受空值时
      */
-    default boolean matches(IssueContext context) {
-        return true;
-    }
+    boolean matches(IssueContext context);
 
     /**
      * 从签发上下文解析本规则的额度桶。
@@ -45,7 +43,7 @@ public interface IssueRateLimitRule {
      * @param context 签发上下文
      * @return 非空额度桶
      * @throws NullPointerException 当上下文为 {@code null}，或者实现依赖的值为 {@code null} 时
-     * @throws RuntimeException 当实现无法从上下文解析所需额度桶时
+     * @throws RuntimeException     当实现无法从上下文解析所需额度桶时
      */
     IssueLimitBucket bucket(IssueContext context);
 
@@ -66,12 +64,12 @@ public interface IssueRateLimitRule {
     /**
      * 创建对所有请求生效的简单规则。
      *
-     * @param id 全局唯一的 kebab-case 规则标识
+     * @param id             全局唯一的 kebab-case 规则标识
      * @param bucketResolver 额度桶解析函数
-     * @param maxIssues 滚动窗口内允许签发的最大次数
-     * @param window 滚动窗口长度
+     * @param maxIssues      滚动窗口内允许签发的最大次数
+     * @param window         滚动窗口长度
      * @return 不可变简单规则
-     * @throws NullPointerException 当任一引用参数为 {@code null} 时
+     * @throws NullPointerException     当任一引用参数为 {@code null} 时
      * @throws IllegalArgumentException 当规则标识、最大次数或窗口非法时
      */
     static IssueRateLimitRule of(
@@ -82,13 +80,13 @@ public interface IssueRateLimitRule {
     /**
      * 创建带业务匹配条件的简单规则。
      *
-     * @param id 全局唯一的 kebab-case 规则标识
-     * @param matcher 业务适用范围判断函数
+     * @param id             全局唯一的 kebab-case 规则标识
+     * @param matcher        业务适用范围判断函数
      * @param bucketResolver 额度桶解析函数
-     * @param maxIssues 滚动窗口内允许签发的最大次数
-     * @param window 滚动窗口长度
+     * @param maxIssues      滚动窗口内允许签发的最大次数
+     * @param window         滚动窗口长度
      * @return 不可变简单规则
-     * @throws NullPointerException 当任一引用参数为 {@code null} 时
+     * @throws NullPointerException     当任一引用参数为 {@code null} 时
      * @throws IllegalArgumentException 当规则标识、最大次数或窗口非法时
      */
     static IssueRateLimitRule of(
