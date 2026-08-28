@@ -274,7 +274,7 @@ sequenceDiagram
 示例 key：
 
 ```text
-{identity-service:verification:issue-limit}:v2:login-ip-hour:{bucketDigest}
+{identity-service:verification:issue-limit}:v1:login-ip-hour:{bucketDigest}
 ```
 
 花括号中的内容是 Redis Cluster hash tag，也是 key 的真实组成部分。更多 Redis 部署和密钥配置说明见

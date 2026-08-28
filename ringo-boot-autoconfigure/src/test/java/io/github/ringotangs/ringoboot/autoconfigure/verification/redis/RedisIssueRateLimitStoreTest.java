@@ -62,7 +62,7 @@ class RedisIssueRateLimitStoreTest {
         assertThat(keys.getValue())
                 .hasSize(2)
                 .allSatisfy(key -> assertThat(key)
-                        .startsWith("{test-application:verification:issue-limit}:v2:")
+                        .startsWith("{test-application:verification:issue-limit}:v1:")
                         .doesNotContain("user@example.com", "203.0.113.10"));
     }
 

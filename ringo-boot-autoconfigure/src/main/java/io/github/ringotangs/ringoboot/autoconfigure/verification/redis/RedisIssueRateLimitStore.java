@@ -36,7 +36,7 @@ import org.springframework.data.redis.core.script.RedisScript;
  * <p>Redis key 的格式如下，实际内容为一行：
  *
  * <pre>{@code
- * {identity-service:verification:issue-limit}:v2:login-subject-minute:{bucketDigest}
+ * {identity-service:verification:issue-limit}:v1:login-subject-minute:{bucketDigest}
  * }</pre>
  *
  * <p>花括号中的应用级 hash tag 使同一次请求涉及的全部 key 位于 Redis Cluster 的同一个 slot，以满足多 key Lua
@@ -52,12 +52,12 @@ public final class RedisIssueRateLimitStore implements IssueRateLimitStore {
     /**
      * Redis key 与摘要协议的版本，用于隔离未来不兼容的存储格式。
      */
-    private static final String STORAGE_VERSION = "v2";
+    private static final String STORAGE_VERSION = "v1";
 
     /**
      * 写入 HMAC 的固定摘要域，避免相同输入被其他摘要用途复用。
      */
-    private static final String KEY_DIGEST_DOMAIN = "issue-limit-bucket:v2";
+    private static final String KEY_DIGEST_DOMAIN = "issue-limit-bucket:v1";
 
     /**
      * 额度桶摘要使用的 HMAC 算法。
