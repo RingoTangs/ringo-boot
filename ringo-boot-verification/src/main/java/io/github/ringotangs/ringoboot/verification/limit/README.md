@@ -127,15 +127,19 @@ Spring Boot 自动配置不注册内置 `IssueRateLimitRule`。应用没有提�
 `IssueLimitBucket` 只是额度累计身份，`IssueLimitQuota` 才定义窗口和最大次数。Store 中尚不存在某个桶的历史记录表示这是新桶，
 第一次请求拥有完整初始额度；没有匹配出任何 `IssueLimitQuota` 才属于配置缺失。
 
-### 内置全局规则
+### 全局额度规则
 
-`GlobalIssueRateLimitRule` 让当前 `IssueRateLimitStore` 隔离范围内的全部验证码签发共享一个额度桶。内存 Store 下它只覆盖
-当前 JVM；Redis Store 的 key 包含应用名称，因此默认覆盖同一应用名称的全部实例。它适合作为应用级突发流量兜底，不能替代
-短信或邮件供应商自己的发送配额和告警。
+使用固定的 `IssueLimitBucket` 可以让当前 `IssueRateLimitStore` 隔离范围内的全部验证码签发共享额度。内存 Store 下它只覆盖
+当前 JVM；Redis Store 的 key 包含应用名称，因此默认覆盖同一应用名称的全部实例。该规则适合作为应用级突发流量兜底，不能
+替代短信或邮件供应商自己的发送配额和告警。
 
 ```java
 IssueRateLimitRule applicationHourly =
-        new GlobalIssueRateLimitRule("application-hour", 1_000, Duration.ofHours(1));
+        IssueRateLimitRule.of(
+                "application-hour",
+                context -> IssueLimitBucket.of("application"),
+                1_000,
+                Duration.ofHours(1));
 ```
 
 ### 自定义 IP 规则
@@ -284,7 +288,11 @@ sequenceDiagram
 ```java
 @Bean
 IssueRateLimitRule applicationHourlyRule() {
-    return new GlobalIssueRateLimitRule("application-hour", 1_000, Duration.ofHours(1));
+    return IssueRateLimitRule.of(
+            "application-hour",
+            context -> IssueLimitBucket.of("application"),
+            1_000,
+            Duration.ofHours(1));
 }
 
 @Bean
