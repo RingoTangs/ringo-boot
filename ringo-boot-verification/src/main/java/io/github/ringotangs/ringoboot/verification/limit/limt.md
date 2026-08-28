@@ -7,7 +7,7 @@
 
 | 限流层次   | 常用维度                   | 主要解决的问题             |
 | :--------- | :------------------------- | :------------------------- |
-| 重发冷却   | 业务用途 + 手机号/邮箱     | 防止用户连续点击           |
+| 重发冷却   | 业务用途 + 渠道 + 手机号/邮箱 | 防止用户连续点击           |
 | 接收方配额 | 手机号/邮箱 + 分钟/小时/天 | 防短信轰炸、骚扰和成本攻击 |
 | 来源配额   | IP、设备指纹、会话         | 防攻击者批量轰炸不同号码   |
 | 账号配额   | 用户账号 + 时间窗口        | 防登录、找回密码接口滥用   |
@@ -20,11 +20,11 @@
 
 这是项目当前已经实现的规则：
 
-namespace + purpose + subject
+namespace + purpose + channel + subject
 
 例如同一个邮箱用于登录：
 
-account:login:user@example.com
+account:login:email:user@example.com
 
 一般设置为 30～60 秒一次。Twilio 也建议针对同一号码设置发送间隔，并在连续请求时使用递增延迟。Twilio 防欺诈建议
 (https://www.twilio.com/docs/verify/preventing-toll-fraud)

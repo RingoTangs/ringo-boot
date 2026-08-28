@@ -11,7 +11,7 @@
 flowchart LR
     A[VerificationService.issue VerificationKey] --> B[创建并定制 IssueContext]
     B --> C[IssueRateLimitManager]
-    R1[默认冷却 Rule Bean] --> C
+    R1[应用注册的冷却 Rule Bean] --> C
     R2[业务自定义 Rule Bean] --> C
     C --> D[IssueLimitQuota 列表]
     D --> E{IssueRateLimitStore}
@@ -126,6 +126,24 @@ Spring Boot 自动配置不注册内置 `IssueRateLimitRule`。应用没有提�
 
 `IssueLimitBucket` 只是额度累计身份，`IssueLimitQuota` 才定义窗口和最大次数。Store 中尚不存在某个桶的历史记录表示这是新桶，
 第一次请求拥有完整初始额度；没有匹配出任何 `IssueLimitQuota` 才属于配置缺失。
+
+### 重发冷却规则
+
+`ResendCooldownRule` 限制同一 namespace、purpose、channel 和 subject 的连续签发。每个实例只覆盖一个业务和一个邮件或短信渠道，
+应用需要为实际使用的渠道分别注册 Bean。规则 ID 根据业务范围自动生成，每个冷却窗口固定只允许签发一次。
+
+```java
+@Bean
+IssueRateLimitRule loginEmailResendCooldownRule() {
+    return new ResendCooldownRule(
+            "account",
+            "login",
+            VerificationChannel.EMAIL,
+            Duration.ofSeconds(60));
+}
+```
+
+Spring Boot 不会默认注册该规则；只有应用主动提供规则 Bean 时才会启用签发限流。
 
 ### 全局额度规则
 
@@ -331,7 +349,7 @@ IssueRateLimitRule accountLoginSubjectHourlyRule() {
 | 规则 | bucket | 示例阈值 |
 | --- | --- | --- |
 | 应用级兜底 | global | 1 小时按实际容量配置 |
-| 重发冷却 | namespace + purpose + subject | 60 秒 1 次 |
+| 重发冷却 | namespace + purpose + channel + subject | 60 秒 1 次 |
 | 接收方小时配额 | namespace + purpose + subject | 1 小时 10 次 |
 | 来源小时配额 | IP + purpose | 1 小时 50 次 |
 
