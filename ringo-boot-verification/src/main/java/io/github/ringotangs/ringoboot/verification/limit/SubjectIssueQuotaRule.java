@@ -1,0 +1,143 @@
+package io.github.ringotangs.ringoboot.verification.limit;
+
+import io.github.ringotangs.ringoboot.core.KebabCase;
+import io.github.ringotangs.ringoboot.verification.IssueContext;
+
+import java.time.Duration;
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
+/**
+ * 按验证主体限制指定业务用途的验证码签发次数。
+ *
+ * <p>该规则匹配指定 namespace 和 purpose 下的全部渠道，额度桶由 namespace、purpose 和运行时 subject 组成。因此同一业务主体通过
+ * SMS、Voice 等不同渠道签发验证码时共享周期额度，不同主体互不影响。
+ *
+ * @param id        全局唯一且稳定的规则标识
+ * @param namespace 需要限制的业务命名空间
+ * @param purpose   需要限制的验证码用途
+ * @param maxIssues 每个验证主体在滚动窗口内允许签发的最大次数
+ * @param window    滚动窗口长度
+ */
+public record SubjectIssueQuotaRule(String id, String namespace, String purpose, int maxIssues, Duration window)
+        implements IssueRateLimitRule {
+
+    /**
+     * 创建并校验验证主体配额规则。
+     *
+     * @throws NullPointerException     当规则标识、业务范围或窗口为 {@code null} 时
+     * @throws IllegalArgumentException 当规则定义非法时
+     */
+    public SubjectIssueQuotaRule {
+        KebabCase.validate("namespace", namespace);
+        KebabCase.validate("purpose", purpose);
+        IssueRateLimitValidator.validateRuleDefinition(id, maxIssues, window);
+    }
+
+    /**
+     * 创建验证主体配额规则 Builder。
+     *
+     * @return 尚未配置任何字段的 Builder
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    @Override
+    public boolean matches(IssueContext context) {
+        Objects.requireNonNull(context, "context must not be null");
+        return namespace.equals(context.key().namespace())
+                && purpose.equals(context.key().purpose());
+    }
+
+    @Override
+    public IssueLimitBucket bucket(IssueContext context) {
+        Objects.requireNonNull(context, "context must not be null");
+        return IssueLimitBucket.of(namespace, purpose, context.key().subject());
+    }
+
+    /**
+     * 使用具名配置项构建验证主体配额规则。
+     */
+    public static final class Builder {
+
+        private @Nullable String id;
+        private @Nullable String namespace;
+        private @Nullable String purpose;
+        private @Nullable Integer maxIssues;
+        private @Nullable Duration window;
+
+        private Builder() {
+        }
+
+        /**
+         * 设置规则标识。
+         *
+         * @param id 全局唯一且稳定的规则标识
+         * @return 当前 Builder
+         */
+        public Builder id(String id) {
+            this.id = Objects.requireNonNull(id, "id must not be null");
+            return this;
+        }
+
+        /**
+         * 设置业务命名空间。
+         *
+         * @param namespace 业务命名空间
+         * @return 当前 Builder
+         */
+        public Builder namespace(String namespace) {
+            this.namespace = Objects.requireNonNull(namespace, "namespace must not be null");
+            return this;
+        }
+
+        /**
+         * 设置验证码用途。
+         *
+         * @param purpose 验证码用途
+         * @return 当前 Builder
+         */
+        public Builder purpose(String purpose) {
+            this.purpose = Objects.requireNonNull(purpose, "purpose must not be null");
+            return this;
+        }
+
+        /**
+         * 设置每个验证主体在窗口内允许签发的最大次数。
+         *
+         * @param maxIssues 最大签发次数
+         * @return 当前 Builder
+         */
+        public Builder maxIssues(int maxIssues) {
+            this.maxIssues = maxIssues;
+            return this;
+        }
+
+        /**
+         * 设置滚动窗口长度。
+         *
+         * @param window 滚动窗口长度
+         * @return 当前 Builder
+         */
+        public Builder window(Duration window) {
+            this.window = Objects.requireNonNull(window, "window must not be null");
+            return this;
+        }
+
+        /**
+         * 使用当前配置创建规则。
+         *
+         * @return 完整并经过校验的验证主体配额规则
+         */
+        public SubjectIssueQuotaRule build() {
+            return new SubjectIssueQuotaRule(
+                    Objects.requireNonNull(id, "id must be configured"),
+                    Objects.requireNonNull(namespace, "namespace must be configured"),
+                    Objects.requireNonNull(purpose, "purpose must be configured"),
+                    Objects.requireNonNull(maxIssues, "maxIssues must be configured"),
+                    Objects.requireNonNull(window, "window must be configured"));
+        }
+    }
+}

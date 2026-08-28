@@ -134,21 +134,82 @@ Spring Boot 自动配置不注册内置 `IssueRateLimitRule`。应用没有提�
 规则 ID 根据业务范围自动生成，每个冷却窗口固定只允许签发一次。
 
 固定的一次额度是“冷却”的必要语义：例如 60 秒冷却意味着两次签发至少间隔 60 秒。如果一个 60 秒窗口允许两次，用户可以在同一时刻
-连续签发两次，这属于窗口配额而不是重发冷却。需要“一个窗口最多 N 次”时，应实现一个具有明确业务名称的
-`IssueRateLimitRule`。
+连续签发两次，这属于窗口配额而不是重发冷却。需要“一个窗口最多 N 次”时，应使用后文的周期配额规则。
 
 ```java
 @Bean
 IssueRateLimitRule loginEmailResendCooldownRule() {
-    return new ResendCooldownRule(
-            "account",
-            "login",
-            VerificationChannel.EMAIL,
-            Duration.ofSeconds(60));
+    return ResendCooldownRule.builder()
+            .namespace("account")
+            .purpose("login")
+            .channel(VerificationChannel.EMAIL)
+            .cooldown(Duration.ofSeconds(60))
+            .build();
 }
 ```
 
 Spring Boot 不会默认注册该规则；只有应用主动提供规则 Bean 时才会启用签发限流。
+
+### 周期配额规则
+
+core 提供三种周期配额规则。它们覆盖的范围逐级扩大，并且可以作为多个 Spring Bean 同时注册：
+
+| 规则 | 匹配范围 | 额度桶 |
+| --- | --- | --- |
+| `SubjectIssueQuotaRule` | namespace + purpose | namespace + purpose + subject |
+| `PurposeIssueQuotaRule` | namespace + purpose | namespace + purpose |
+| `NamespaceIssueQuotaRule` | namespace | namespace |
+
+`SubjectIssueQuotaRule` 不按渠道拆分，同一个业务主体通过 SMS、Voice 等不同渠道签发时共享额度。如果业务需要渠道隔离，应实现自定义
+`IssueRateLimitRule`。同一范围需要小时、天等多个窗口时，每个规则必须使用不同且稳定的 ID：
+
+```java
+@Bean
+IssueRateLimitRule loginSubjectHourlyRule() {
+    return SubjectIssueQuotaRule.builder()
+            .id("login-subject-hour")
+            .namespace("account")
+            .purpose("login")
+            .maxIssues(5)
+            .window(Duration.ofHours(1))
+            .build();
+}
+
+@Bean
+IssueRateLimitRule loginSubjectDailyRule() {
+    return SubjectIssueQuotaRule.builder()
+            .id("login-subject-day")
+            .namespace("account")
+            .purpose("login")
+            .maxIssues(10)
+            .window(Duration.ofDays(1))
+            .build();
+}
+
+@Bean
+IssueRateLimitRule loginPurposeMinuteRule() {
+    return PurposeIssueQuotaRule.builder()
+            .id("login-purpose-minute")
+            .namespace("account")
+            .purpose("login")
+            .maxIssues(100)
+            .window(Duration.ofMinutes(1))
+            .build();
+}
+
+@Bean
+IssueRateLimitRule accountNamespaceHourlyRule() {
+    return NamespaceIssueQuotaRule.builder()
+            .id("account-namespace-hour")
+            .namespace("account")
+            .maxIssues(1000)
+            .window(Duration.ofHours(1))
+            .build();
+}
+```
+
+所有匹配规则以 AND 关系一次性提交给 Store。任何一条配额不足时，本次签发不会消费其他规则的额度。上述数值仅用于展示 API，框架不提供
+默认阈值，也不会自动注册这些规则。
 
 ### 全局额度规则
 
@@ -347,8 +408,8 @@ IssueRateLimitRule loginIpHourlyRule() {
 }
 ```
 
-需要业务级或接收方级配额时，同样应创建具有明确业务名称的规则实现。接收方地址来自运行时 `VerificationKey.subject`，不应硬编码
-邮箱或手机号。所有 Rule Bean 的 ID 必须全局唯一，重复时应用启动失败。
+业务级或接收方级配额可以直接注册 `NamespaceIssueQuotaRule`、`PurposeIssueQuotaRule` 或 `SubjectIssueQuotaRule`。
+接收方地址来自运行时 `VerificationKey.subject`，不应硬编码邮箱或手机号。所有 Rule Bean 的 ID 必须全局唯一，重复时应用启动失败。
 
 扩展和回退规则：
 
