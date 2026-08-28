@@ -18,6 +18,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>io.github.ringotangs</groupId>
+            <artifactId>ringo-boot-core</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.jspecify</groupId>
             <artifactId>jspecify</artifactId>
         </dependency>

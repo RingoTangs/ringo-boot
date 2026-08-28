@@ -14,7 +14,7 @@
 
     <artifactId>ringo-boot-core</artifactId>
     <name>Ringo Boot Core</name>
-    <description>Framework-neutral Problem Details foundations for Ringo Boot.</description>
+    <description>Framework-neutral foundations and Problem Details support for Ringo Boot.</description>
 
     <dependencies>
         <dependency>
