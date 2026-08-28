@@ -9,12 +9,12 @@ import java.util.Objects;
 /**
  * 限制同一验证码业务、渠道和接收方的重发频率。
  *
- * <p>该规则只适用于邮件和短信渠道。每个冷却窗口只允许签发一次，额度桶由 namespace、purpose、channel 和 subject 组成，
- * 因此不同业务、渠道或接收方不会共享冷却额度。
+ * <p>该规则适用于任意验证码渠道。每个冷却窗口只允许签发一次，额度桶由 namespace、purpose、channel 和 subject 组成，
+ * 因此不同业务、渠道或验证主体不会共享冷却额度。
  *
  * @param namespace 需要限制的业务命名空间
  * @param purpose   需要限制的验证码用途
- * @param channel   邮件或短信渠道
+ * @param channel   需要限制的验证码渠道
  * @param cooldown  两次签发之间的最短间隔
  */
 public record ResendCooldownRule(String namespace, String purpose, VerificationChannel channel, Duration cooldown)
@@ -29,16 +29,13 @@ public record ResendCooldownRule(String namespace, String purpose, VerificationC
      * 创建并校验重发冷却规则。
      *
      * @throws NullPointerException     当任一参数为 {@code null} 时
-     * @throws IllegalArgumentException 当 namespace 或 purpose 不是小写 kebab-case、渠道不是邮件或短信，或者冷却时间不为正数时
+     * @throws IllegalArgumentException 当 namespace 或 purpose 不是小写 kebab-case，或者冷却时间不为正数时
      */
     public ResendCooldownRule {
         Objects.requireNonNull(channel, "channel must not be null");
         Objects.requireNonNull(cooldown, "cooldown must not be null");
         KebabCase.validate("namespace", namespace);
         KebabCase.validate("purpose", purpose);
-        if (!channel.equals(VerificationChannel.EMAIL) && !channel.equals(VerificationChannel.SMS)) {
-            throw new IllegalArgumentException("channel must be EMAIL or SMS: " + channel);
-        }
         if (cooldown.isZero() || cooldown.isNegative()) {
             throw new IllegalArgumentException("cooldown must be positive: " + cooldown);
         }

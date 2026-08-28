@@ -129,8 +129,9 @@ Spring Boot 自动配置不注册内置 `IssueRateLimitRule`。应用没有提�
 
 ### 重发冷却规则
 
-`ResendCooldownRule` 限制同一 namespace、purpose、channel 和 subject 的连续签发。每个实例只覆盖一个业务和一个邮件或短信渠道，
-应用需要为实际使用的渠道分别注册 Bean。规则 ID 根据业务范围自动生成，每个冷却窗口固定只允许签发一次。
+`ResendCooldownRule` 限制同一 namespace、purpose、channel 和 subject 的连续签发。每个实例只覆盖一个业务和一个验证码渠道，
+邮件、短信以及应用通过 `VerificationChannel.of(...)` 创建的自定义渠道都可以使用。应用需要为实际使用的渠道分别注册 Bean。
+规则 ID 根据业务范围自动生成，每个冷却窗口固定只允许签发一次。
 
 固定的一次额度是“冷却”的必要语义：例如 60 秒冷却意味着两次签发至少间隔 60 秒。如果一个 60 秒窗口允许两次，用户可以在同一时刻
 连续签发两次，这属于窗口配额而不是重发冷却。需要“一个窗口最多 N 次”时，应使用 `IssueRateLimitRule.of(...)` 创建普通配额规则。

@@ -74,6 +74,17 @@ class ResendCooldownRuleTest {
     }
 
     @Test
+    void supportsCustomVerificationChannels() {
+        VerificationChannel imageCode = VerificationChannel.of("image-code");
+        IssueContext context = context("security", "challenge", "challenge-123", imageCode);
+        ResendCooldownRule rule = new ResendCooldownRule("security", "challenge", imageCode, Duration.ofSeconds(10));
+
+        assertEquals("resend-cooldown-8-security-9-challenge-image-code", rule.id());
+        assertTrue(rule.matches(context));
+        assertEquals(IssueLimitBucket.of("security", "challenge", "image-code", "challenge-123"), rule.bucket(context));
+    }
+
+    @Test
     void rejectsInvalidDefinitionsAndNullContexts() {
         assertThrows(
                 NullPointerException.class,
@@ -95,10 +106,6 @@ class ResendCooldownRuleTest {
                 IllegalArgumentException.class,
                 () -> new ResendCooldownRule(
                         "account", "reset_password", VerificationChannel.EMAIL, Duration.ofSeconds(60)));
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> new ResendCooldownRule(
-                        "account", "login", VerificationChannel.of("voice"), Duration.ofSeconds(60)));
         assertThrows(
                 IllegalArgumentException.class,
                 () -> new ResendCooldownRule("account", "login", VerificationChannel.EMAIL, Duration.ZERO));
