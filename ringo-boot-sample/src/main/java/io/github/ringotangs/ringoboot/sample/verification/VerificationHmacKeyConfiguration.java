@@ -2,9 +2,6 @@ package io.github.ringotangs.ringoboot.sample.verification;
 
 import io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationHmacKey;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationProperties;
-import io.github.ringotangs.ringoboot.verification.VerificationChannel;
-import io.github.ringotangs.ringoboot.verification.limit.SubjectIssueQuotaRule;
-import java.time.Duration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,17 +24,5 @@ class VerificationHmacKeyConfiguration {
             throw new IllegalStateException("VERIFICATION_HMAC_KEY must be configured");
         }
         return VerificationHmacKey.fromBase64(encoded);
-    }
-
-    @Bean
-    SubjectIssueQuotaRule resendCooldownRule() {
-        return SubjectIssueQuotaRule.builder()
-                .id("email-verification-resend-cooldown")
-                .namespace("account")
-                .purpose("email-verification")
-                .channel(VerificationChannel.EMAIL)
-                .maxIssues(1)
-                .window(Duration.ofMinutes(1L))
-                .build();
     }
 }

@@ -5,9 +5,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.email.EmailCodeMessage;
 import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
+import io.github.ringotangs.ringoboot.verification.limit.NamespaceIssueQuotaRule;
+import io.github.ringotangs.ringoboot.verification.limit.PurposeIssueQuotaRule;
+import io.github.ringotangs.ringoboot.verification.limit.SubjectIssueQuotaRule;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
+import java.time.Duration;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -31,12 +38,16 @@ class EmailVerificationControllerTest {
 
     private static final String VALIDATION_FAILED_TYPE = "urn:problem:mvc:validation-failed";
     private static final String INVALID_CODE_TYPE = "urn:problem:business:verification:invalid-code";
+    private static final String THROTTLED_TYPE = "urn:problem:business:verification:throttled";
 
     @Autowired
     private MockMvc mockMvc;
 
     @Autowired
     private CapturingEmailCodeSender sender;
+
+    @Autowired
+    private List<IssueRateLimitRule> issueRateLimitRules;
 
     @Test
     void issuesDeliversVerifiesAndConsumesCode() throws Exception {
@@ -63,7 +74,7 @@ class EmailVerificationControllerTest {
     }
 
     @Test
-    void allowsRepeatedIssuanceWhenRateLimitRulesAreAbsent() throws Exception {
+    void throttlesRepeatedIssuanceAndSeparatesSubjects() throws Exception {
         String email = uniqueEmail();
         issue(email);
         EmailCodeMessage originalMessage = sender.latest(email);
@@ -71,9 +82,39 @@ class EmailVerificationControllerTest {
         mockMvc.perform(post("/verification/email/code")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(issueRequest(email)))
-                .andExpect(status().isAccepted());
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.type").value(THROTTLED_TYPE))
+                .andExpect(jsonPath("$.status").value(429));
 
-        org.assertj.core.api.Assertions.assertThat(sender.latest(email)).isNotSameAs(originalMessage);
+        org.assertj.core.api.Assertions.assertThat(sender.latest(email)).isSameAs(originalMessage);
+
+        issue(uniqueEmail());
+    }
+
+    @Test
+    void registersLayeredIssueRateLimitRules() {
+        org.assertj.core.api.Assertions.assertThat(issueRateLimitRules)
+                .containsExactlyInAnyOrder(
+                        new NamespaceIssueQuotaRule(
+                                "account-email-hourly-quota",
+                                "account",
+                                VerificationChannel.EMAIL,
+                                1_000,
+                                Duration.ofHours(1L)),
+                        new PurposeIssueQuotaRule(
+                                "email-verification-hourly-quota",
+                                "account",
+                                "email-verification",
+                                VerificationChannel.EMAIL,
+                                100,
+                                Duration.ofHours(1L)),
+                        new SubjectIssueQuotaRule(
+                                "email-verification-resend-cooldown",
+                                "account",
+                                "email-verification",
+                                VerificationChannel.EMAIL,
+                                1,
+                                Duration.ofMinutes(1L)));
     }
 
     @Test
