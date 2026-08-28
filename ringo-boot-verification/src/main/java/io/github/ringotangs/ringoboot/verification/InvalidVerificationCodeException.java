@@ -6,7 +6,7 @@ package io.github.ringotangs.ringoboot.verification;
  *
  * <p><strong>API 注意事项：</strong> 此异常有意隐藏验证码不存在、过期、不匹配或尝试次数耗尽等内部原因，避免调用方泄露验证状态。
  */
-public final class InvalidVerificationCodeException extends RuntimeException {
+public final class InvalidVerificationCodeException extends VerificationException {
 
     /** 创建验证码无效异常。 */
     public InvalidVerificationCodeException() {

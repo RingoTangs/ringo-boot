@@ -8,10 +8,7 @@ import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeExcept
 import io.github.ringotangs.ringoboot.verification.VerificationException;
 import io.github.ringotangs.ringoboot.verification.VerificationThrottledException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitException;
 import io.github.ringotangs.ringoboot.verification.limit.MissingIssueRateLimitRuleException;
-import io.github.ringotangs.ringoboot.verification.sender.CodeSenderException;
-import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.core.annotation.Order;
@@ -42,18 +39,12 @@ public class VerificationExceptionHandler {
     }
 
     /**
-     * 记录验证码技术异常并构建不包含内部诊断信息的响应。
+     * 记录未由专用方法处理的验证码异常，并构建不包含内部诊断信息的响应。
      *
-     * @param exception 验证码技术异常
+     * @param exception 验证码异常
      * @return 安全的 Problem Details 响应
      */
-    @ExceptionHandler({
-        CodeGenerationException.class,
-        CodeSenderException.class,
-        VerificationStoreException.class,
-        IssueRateLimitException.class,
-        MissingIssueRateLimitRuleException.class
-    })
+    @ExceptionHandler(VerificationException.class)
     public ProblemDetail handleVerificationException(VerificationException exception) {
         logger.error("Verification operation failed", exception);
         ProblemType problemType =

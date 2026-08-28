@@ -3,11 +3,11 @@ package io.github.ringotangs.ringoboot.verification;
 import java.util.Objects;
 
 /**
- * 验证码签发、校验及相关基础设施操作异常的统一抽象父类。
+ * 验证码签发、校验、业务拒绝及相关基础设施操作异常的统一抽象父类。
  *
  *
  * <p><strong>API 注意事项：</strong> 调用方可以捕获此类型统一记录或转换验证码操作异常，同时仍可捕获具体子类以区分业务拒绝、
- * 配置错误和基础设施故障。
+ * 配置错误和基础设施故障。Web 层可以捕获该父类，为未知的验证码扩展异常提供安全兜底。
  */
 public abstract class VerificationException extends RuntimeException {
 

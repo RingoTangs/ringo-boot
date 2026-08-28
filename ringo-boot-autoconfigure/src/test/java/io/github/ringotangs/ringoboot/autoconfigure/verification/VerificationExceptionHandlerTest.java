@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.github.ringotangs.ringoboot.autoconfigure.problem.ProblemMessageResolver;
 import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
+import io.github.ringotangs.ringoboot.verification.VerificationException;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationThrottledException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
@@ -68,14 +69,31 @@ class VerificationExceptionHandlerTest {
     }
 
     @Test
-    void declaresRateLimitInfrastructureFailureMapping() {
+    void resolvesEveryVerificationExceptionToTheExpectedHandler() {
         ExceptionHandlerMethodResolver resolver =
                 new ExceptionHandlerMethodResolver(VerificationExceptionHandler.class);
 
-        assertThat(resolver.resolveMethod(new IssueRateLimitException("internal")))
-                .isNotNull()
-                .extracting(java.lang.reflect.Method::getName)
-                .isEqualTo("handleVerificationException");
+        assertHandler(resolver, new InvalidVerificationCodeException(), "handleInvalidVerificationCode");
+        assertHandler(
+                resolver, new VerificationThrottledException(Duration.ofSeconds(1)), "handleVerificationThrottled");
+        assertHandler(resolver, new CodeGenerationException("internal"), "handleVerificationException");
+        assertHandler(resolver, new CodeSenderException("internal"), "handleVerificationException");
+        assertHandler(resolver, new CodeDeliveryRejectedException(), "handleVerificationException");
+        assertHandler(resolver, new VerificationStoreException("internal"), "handleVerificationException");
+        assertHandler(resolver, new IssueRateLimitException("internal"), "handleVerificationException");
+        assertHandler(resolver, new MissingIssueRateLimitRuleException(), "handleVerificationException");
+        assertHandler(resolver, new UnknownVerificationException("internal"), "handleVerificationException");
+    }
+
+    @Test
+    void returnsSafeUnavailableProblemForUnknownVerificationException(CapturedOutput output) {
+        VerificationExceptionHandler handler = createDefaultHandler();
+
+        ProblemDetail problem = handler.handleVerificationException(new UnknownVerificationException("token=secret"));
+
+        assertServiceUnavailable(problem);
+        assertThat(problem.getDetail()).doesNotContain("token", "secret");
+        assertLogged(output, UnknownVerificationException.class);
     }
 
     @Test
@@ -148,5 +166,20 @@ class VerificationExceptionHandlerTest {
                 .contains("ERROR")
                 .contains("Verification operation failed")
                 .contains(exceptionType.getName());
+    }
+
+    private void assertHandler(
+            ExceptionHandlerMethodResolver resolver, Exception exception, String expectedMethodName) {
+        assertThat(resolver.resolveMethod(exception))
+                .isNotNull()
+                .extracting(java.lang.reflect.Method::getName)
+                .isEqualTo(expectedMethodName);
+    }
+
+    private static final class UnknownVerificationException extends VerificationException {
+
+        private UnknownVerificationException(String message) {
+            super(message);
+        }
     }
 }
