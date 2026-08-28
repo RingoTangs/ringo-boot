@@ -5,7 +5,6 @@ import io.github.ringotangs.ringoboot.verification.limit.IssueLimitQuota;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitException;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitStore;
-
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -19,7 +18,6 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
@@ -95,7 +93,7 @@ public final class RedisIssueRateLimitStore implements IssueRateLimitStore {
             local token = ARGV[2]
             local throttled = false
             local maxRetryAfter = 0
-            
+
             for i, key in ipairs(KEYS) do
                 local offset = 2 + (i - 1) * 2
                 local window = tonumber(ARGV[offset + 1])
@@ -110,11 +108,11 @@ public final class RedisIssueRateLimitStore implements IssueRateLimitStore {
                     throttled = true
                 end
             end
-            
+
             if throttled then
                 return {1, maxRetryAfter}
             end
-            
+
             for i, key in ipairs(KEYS) do
                 local offset = 2 + (i - 1) * 2
                 local window = tonumber(ARGV[offset + 1])

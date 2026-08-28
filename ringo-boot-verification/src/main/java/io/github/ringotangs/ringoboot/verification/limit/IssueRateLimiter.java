@@ -44,14 +44,14 @@ public interface IssueRateLimiter {
     /**
      * 尝试获取一次验证码签发名额。
      *
-     * @param context 当前签发流程的上下文
+     * @param context     当前签发流程的上下文
      * @param requestedAt 请求签发的时间
      * @return 允许签发或受限结果
-     * @throws NullPointerException 当任一参数为 {@code null} 时
-     * @throws IllegalArgumentException 当规则声明或解析出的上下文数据非法时
-     * @throws RuntimeException 当上下文解析失败或匹配规则无法解析额度桶时
+     * @throws NullPointerException               当任一参数为 {@code null} 时
+     * @throws IllegalArgumentException           当规则声明或解析出的上下文数据非法时
+     * @throws RuntimeException                   当上下文解析失败或匹配规则无法解析额度桶时
      * @throws MissingIssueRateLimitRuleException 当没有规则覆盖当前验证码键时
-     * @throws IssueRateLimitException 当底层限流操作失败时
+     * @throws IssueRateLimitException            当底层限流操作失败时
      */
     IssueLimitResult acquire(IssueContext context, Instant requestedAt) throws IssueRateLimitException;
 }

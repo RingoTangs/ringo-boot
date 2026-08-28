@@ -17,8 +17,7 @@ final class IssueRateLimitValidator {
     /**
      * 工具类不允许实例化。
      */
-    private IssueRateLimitValidator() {
-    }
+    private IssueRateLimitValidator() {}
 
     /**
      * 校验规则标识、最大签发次数和滚动窗口。
