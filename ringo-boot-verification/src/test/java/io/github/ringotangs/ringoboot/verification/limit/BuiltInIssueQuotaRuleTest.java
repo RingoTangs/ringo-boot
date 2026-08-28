@@ -2,6 +2,7 @@ package io.github.ringotangs.ringoboot.verification.limit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -88,6 +89,19 @@ class BuiltInIssueQuotaRuleTest {
         assertEquals(
                 List.of("login-email-subject-hour", "login-email-subject-day"),
                 captured.get().stream().map(IssueLimitQuota::ruleId).toList());
+    }
+
+    @Test
+    void subjectRuleWithOneIssueEnforcesResendCooldown() {
+        SubjectIssueQuotaRule cooldown = subjectRule("login-email-resend-cooldown", 1, Duration.ofMinutes(1));
+        Instant firstIssue = Instant.parse("2026-01-01T00:00:00Z");
+        IssueRateLimitManager manager = new IssueRateLimitManager(List.of(cooldown), new InMemoryIssueRateLimitStore());
+
+        assertInstanceOf(IssueLimitResult.Allowed.class, manager.acquire(LOGIN_EMAIL, firstIssue));
+        IssueLimitResult.Throttled throttled = assertInstanceOf(
+                IssueLimitResult.Throttled.class, manager.acquire(LOGIN_EMAIL, firstIssue.plusSeconds(59)));
+        assertEquals(Duration.ofSeconds(1), throttled.retryAfter());
+        assertInstanceOf(IssueLimitResult.Allowed.class, manager.acquire(LOGIN_EMAIL, firstIssue.plusSeconds(60)));
     }
 
     @Test
