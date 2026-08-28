@@ -156,20 +156,21 @@ core 提供三种周期配额规则。它们覆盖的范围逐级扩大，并且
 
 | 规则 | 匹配范围 | 额度桶 |
 | --- | --- | --- |
-| `SubjectIssueQuotaRule` | namespace + purpose | namespace + purpose + subject |
-| `PurposeIssueQuotaRule` | namespace + purpose | namespace + purpose |
-| `NamespaceIssueQuotaRule` | namespace | namespace |
+| `SubjectIssueQuotaRule` | namespace + purpose + channel | namespace + purpose + channel + subject |
+| `PurposeIssueQuotaRule` | namespace + purpose + channel | namespace + purpose + channel |
+| `NamespaceIssueQuotaRule` | namespace + channel | namespace + channel |
 
-`SubjectIssueQuotaRule` 不按渠道拆分，同一个业务主体通过 SMS、Voice 等不同渠道签发时共享额度。如果业务需要渠道隔离，应实现自定义
-`IssueRateLimitRule`。同一范围需要小时、天等多个窗口时，每个规则必须使用不同且稳定的 ID：
+三种规则都强制绑定一个 `VerificationChannel`，不同渠道拥有独立额度。应用需要为实际使用的渠道分别注册规则 Bean。同一范围需要小时、天等
+多个窗口时，每个规则必须使用不同且稳定的 ID；建议在 ID 中包含渠道和窗口：
 
 ```java
 @Bean
 IssueRateLimitRule loginSubjectHourlyRule() {
     return SubjectIssueQuotaRule.builder()
-            .id("login-subject-hour")
+            .id("login-email-subject-hour")
             .namespace("account")
             .purpose("login")
+            .channel(VerificationChannel.EMAIL)
             .maxIssues(5)
             .window(Duration.ofHours(1))
             .build();
@@ -178,9 +179,10 @@ IssueRateLimitRule loginSubjectHourlyRule() {
 @Bean
 IssueRateLimitRule loginSubjectDailyRule() {
     return SubjectIssueQuotaRule.builder()
-            .id("login-subject-day")
+            .id("login-email-subject-day")
             .namespace("account")
             .purpose("login")
+            .channel(VerificationChannel.EMAIL)
             .maxIssues(10)
             .window(Duration.ofDays(1))
             .build();
@@ -189,9 +191,10 @@ IssueRateLimitRule loginSubjectDailyRule() {
 @Bean
 IssueRateLimitRule loginPurposeMinuteRule() {
     return PurposeIssueQuotaRule.builder()
-            .id("login-purpose-minute")
+            .id("login-email-purpose-minute")
             .namespace("account")
             .purpose("login")
+            .channel(VerificationChannel.EMAIL)
             .maxIssues(100)
             .window(Duration.ofMinutes(1))
             .build();
@@ -200,8 +203,9 @@ IssueRateLimitRule loginPurposeMinuteRule() {
 @Bean
 IssueRateLimitRule accountNamespaceHourlyRule() {
     return NamespaceIssueQuotaRule.builder()
-            .id("account-namespace-hour")
+            .id("account-email-namespace-hour")
             .namespace("account")
+            .channel(VerificationChannel.EMAIL)
             .maxIssues(1000)
             .window(Duration.ofHours(1))
             .build();
@@ -431,7 +435,7 @@ IssueRateLimitRule loginIpHourlyRule() {
 | --- | --- | --- |
 | 应用级兜底 | global | 1 小时按实际容量配置 |
 | 重发冷却 | namespace + purpose + channel + subject | 60 秒 1 次 |
-| 接收方小时配额 | namespace + purpose + subject | 1 小时 10 次 |
+| 接收方小时配额 | namespace + purpose + channel + subject | 1 小时 10 次 |
 | 来源小时配额 | IP + purpose | 1 小时 50 次 |
 
 不要把 IP 阈值设置得和单个邮箱或手机号一样低，公司、校园和移动网络可能有大量用户共享公网 IP。

@@ -2,6 +2,7 @@ package io.github.ringotangs.ringoboot.verification.limit;
 
 import io.github.ringotangs.ringoboot.core.KebabCase;
 import io.github.ringotangs.ringoboot.verification.IssueContext;
+import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import java.time.Duration;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
@@ -9,23 +10,26 @@ import org.jspecify.annotations.Nullable;
 /**
  * 限制同一业务命名空间内的验证码签发总量。
  *
- * <p>该规则匹配指定 namespace 下的全部用途、渠道和验证主体，额度桶只包含 namespace。适合用作业务模块级的成本和突发流量兜底。
+ * <p>该规则匹配指定 namespace 和 channel 下的全部用途和验证主体，额度桶由 namespace 和 channel 组成。适合用作指定渠道的业务模块级成本和突发流量兜底。
  *
  * @param id        全局唯一且稳定的规则标识
  * @param namespace 需要限制的业务命名空间
+ * @param channel   需要限制的验证码渠道
  * @param maxIssues 滚动窗口内允许签发的最大次数
  * @param window    滚动窗口长度
  */
-public record NamespaceIssueQuotaRule(String id, String namespace, int maxIssues, Duration window)
+public record NamespaceIssueQuotaRule(
+        String id, String namespace, VerificationChannel channel, int maxIssues, Duration window)
         implements IssueRateLimitRule {
 
     /**
      * 创建并校验业务命名空间配额规则。
      *
-     * @throws NullPointerException     当规则标识、命名空间或窗口为 {@code null} 时
+     * @throws NullPointerException     当规则标识、命名空间、渠道或窗口为 {@code null} 时
      * @throws IllegalArgumentException 当规则定义非法时
      */
     public NamespaceIssueQuotaRule {
+        Objects.requireNonNull(channel, "channel must not be null");
         KebabCase.validate("namespace", namespace);
         IssueRateLimitValidator.validateRuleDefinition(id, maxIssues, window);
     }
@@ -42,13 +46,13 @@ public record NamespaceIssueQuotaRule(String id, String namespace, int maxIssues
     @Override
     public boolean matches(IssueContext context) {
         Objects.requireNonNull(context, "context must not be null");
-        return namespace.equals(context.key().namespace());
+        return namespace.equals(context.key().namespace()) && channel.equals(context.channel());
     }
 
     @Override
     public IssueLimitBucket bucket(IssueContext context) {
         Objects.requireNonNull(context, "context must not be null");
-        return IssueLimitBucket.of(namespace);
+        return IssueLimitBucket.of(namespace, channel.value());
     }
 
     /**
@@ -58,6 +62,7 @@ public record NamespaceIssueQuotaRule(String id, String namespace, int maxIssues
 
         private @Nullable String id;
         private @Nullable String namespace;
+        private @Nullable VerificationChannel channel;
         private @Nullable Integer maxIssues;
         private @Nullable Duration window;
 
@@ -82,6 +87,17 @@ public record NamespaceIssueQuotaRule(String id, String namespace, int maxIssues
          */
         public Builder namespace(String namespace) {
             this.namespace = Objects.requireNonNull(namespace, "namespace must not be null");
+            return this;
+        }
+
+        /**
+         * 设置验证码渠道。
+         *
+         * @param channel 验证码渠道
+         * @return 当前 Builder
+         */
+        public Builder channel(VerificationChannel channel) {
+            this.channel = Objects.requireNonNull(channel, "channel must not be null");
             return this;
         }
 
@@ -116,6 +132,7 @@ public record NamespaceIssueQuotaRule(String id, String namespace, int maxIssues
             return new NamespaceIssueQuotaRule(
                     Objects.requireNonNull(id, "id must be configured"),
                     Objects.requireNonNull(namespace, "namespace must be configured"),
+                    Objects.requireNonNull(channel, "channel must be configured"),
                     Objects.requireNonNull(maxIssues, "maxIssues must be configured"),
                     Objects.requireNonNull(window, "window must be configured"));
         }

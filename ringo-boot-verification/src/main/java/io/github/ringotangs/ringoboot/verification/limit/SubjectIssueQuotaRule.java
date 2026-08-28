@@ -2,6 +2,7 @@ package io.github.ringotangs.ringoboot.verification.limit;
 
 import io.github.ringotangs.ringoboot.core.KebabCase;
 import io.github.ringotangs.ringoboot.verification.IssueContext;
+import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import java.time.Duration;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
@@ -9,25 +10,28 @@ import org.jspecify.annotations.Nullable;
 /**
  * 按验证主体限制指定业务用途的验证码签发次数。
  *
- * <p>该规则匹配指定 namespace 和 purpose 下的全部渠道，额度桶由 namespace、purpose 和运行时 subject 组成。因此同一业务主体通过
- * SMS、Voice 等不同渠道签发验证码时共享周期额度，不同主体互不影响。
+ * <p>该规则匹配指定 namespace、purpose 和 channel，额度桶由 namespace、purpose、channel 和运行时 subject 组成。因此不同渠道
+ * 或验证主体拥有独立的周期额度。
  *
  * @param id        全局唯一且稳定的规则标识
  * @param namespace 需要限制的业务命名空间
  * @param purpose   需要限制的验证码用途
+ * @param channel   需要限制的验证码渠道
  * @param maxIssues 每个验证主体在滚动窗口内允许签发的最大次数
  * @param window    滚动窗口长度
  */
-public record SubjectIssueQuotaRule(String id, String namespace, String purpose, int maxIssues, Duration window)
+public record SubjectIssueQuotaRule(
+        String id, String namespace, String purpose, VerificationChannel channel, int maxIssues, Duration window)
         implements IssueRateLimitRule {
 
     /**
      * 创建并校验验证主体配额规则。
      *
-     * @throws NullPointerException     当规则标识、业务范围或窗口为 {@code null} 时
+     * @throws NullPointerException     当规则标识、业务范围、渠道或窗口为 {@code null} 时
      * @throws IllegalArgumentException 当规则定义非法时
      */
     public SubjectIssueQuotaRule {
+        Objects.requireNonNull(channel, "channel must not be null");
         KebabCase.validate("namespace", namespace);
         KebabCase.validate("purpose", purpose);
         IssueRateLimitValidator.validateRuleDefinition(id, maxIssues, window);
@@ -46,13 +50,15 @@ public record SubjectIssueQuotaRule(String id, String namespace, String purpose,
     public boolean matches(IssueContext context) {
         Objects.requireNonNull(context, "context must not be null");
         return namespace.equals(context.key().namespace())
-                && purpose.equals(context.key().purpose());
+                && purpose.equals(context.key().purpose())
+                && channel.equals(context.channel());
     }
 
     @Override
     public IssueLimitBucket bucket(IssueContext context) {
         Objects.requireNonNull(context, "context must not be null");
-        return IssueLimitBucket.of(namespace, purpose, context.key().subject());
+        return IssueLimitBucket.of(
+                namespace, purpose, channel.value(), context.key().subject());
     }
 
     /**
@@ -63,6 +69,7 @@ public record SubjectIssueQuotaRule(String id, String namespace, String purpose,
         private @Nullable String id;
         private @Nullable String namespace;
         private @Nullable String purpose;
+        private @Nullable VerificationChannel channel;
         private @Nullable Integer maxIssues;
         private @Nullable Duration window;
 
@@ -102,6 +109,17 @@ public record SubjectIssueQuotaRule(String id, String namespace, String purpose,
         }
 
         /**
+         * 设置验证码渠道。
+         *
+         * @param channel 验证码渠道
+         * @return 当前 Builder
+         */
+        public Builder channel(VerificationChannel channel) {
+            this.channel = Objects.requireNonNull(channel, "channel must not be null");
+            return this;
+        }
+
+        /**
          * 设置每个验证主体在窗口内允许签发的最大次数。
          *
          * @param maxIssues 最大签发次数
@@ -133,6 +151,7 @@ public record SubjectIssueQuotaRule(String id, String namespace, String purpose,
                     Objects.requireNonNull(id, "id must be configured"),
                     Objects.requireNonNull(namespace, "namespace must be configured"),
                     Objects.requireNonNull(purpose, "purpose must be configured"),
+                    Objects.requireNonNull(channel, "channel must be configured"),
                     Objects.requireNonNull(maxIssues, "maxIssues must be configured"),
                     Objects.requireNonNull(window, "window must be configured"));
         }
