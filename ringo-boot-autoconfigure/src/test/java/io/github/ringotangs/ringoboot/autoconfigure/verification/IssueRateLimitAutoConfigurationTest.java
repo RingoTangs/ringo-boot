@@ -2,7 +2,9 @@ package io.github.ringotangs.ringoboot.autoconfigure.verification;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 
+import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisIssueRateLimitStore;
 import io.github.ringotangs.ringoboot.verification.IssueContext;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
@@ -17,10 +19,15 @@ import io.github.ringotangs.ringoboot.verification.limit.MissingIssueRateLimitRu
 import java.time.Duration;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
+import org.springframework.beans.factory.NoUniqueBeanDefinitionException;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 class IssueRateLimitAutoConfigurationTest {
+
+    private static final String SECRET = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(IssueRateLimitAutoConfiguration.class));
@@ -146,5 +153,81 @@ class IssueRateLimitAutoConfigurationTest {
                 .withBean("secondRule", IssueRateLimitRule.class, () -> second)
                 .run(context -> assertThat(context.getStartupFailure())
                         .hasRootCauseMessage("duplicate issue rate limit rule id: application-minute"));
+    }
+
+    @Test
+    void permitsAllIssuesWithoutConfiguringRedisStoreWhenRulesAreMissing() {
+        redisContextRunner().run(context -> {
+            assertThat(context).hasNotFailed();
+            assertThat(context).doesNotHaveBean(IssueRateLimitRule.class);
+            assertThat(context).doesNotHaveBean(IssueRateLimitStore.class);
+            assertThat(context).hasSingleBean(IssueRateLimiter.class);
+        });
+    }
+
+    @Test
+    void configuresRedisRateLimitStoreAndManager() {
+        redisContextRunnerWithRule()
+                .withBean(VerificationHmacKey.class, IssueRateLimitAutoConfigurationTest::hmacKey)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(IssueRateLimitStore.class);
+                    assertThat(context.getBean(IssueRateLimitStore.class)).isInstanceOf(RedisIssueRateLimitStore.class);
+                    assertThat(context).hasSingleBean(IssueRateLimiter.class);
+                    assertThat(context.getBean(IssueRateLimiter.class)).isInstanceOf(IssueRateLimitManager.class);
+                });
+    }
+
+    @Test
+    void failsWhenRedisHmacKeyIsMissing() {
+        redisContextRunnerWithRule()
+                .run(context -> assertThat(context.getStartupFailure())
+                        .hasRootCauseInstanceOf(NoSuchBeanDefinitionException.class));
+    }
+
+    @Test
+    void failsWhenMultipleRedisHmacKeysAreConfigured() {
+        redisContextRunnerWithRule()
+                .withBean("firstHmacKey", VerificationHmacKey.class, IssueRateLimitAutoConfigurationTest::hmacKey)
+                .withBean("secondHmacKey", VerificationHmacKey.class, IssueRateLimitAutoConfigurationTest::hmacKey)
+                .run(context -> assertThat(context.getStartupFailure())
+                        .hasRootCauseInstanceOf(NoUniqueBeanDefinitionException.class));
+    }
+
+    @Test
+    void customRateLimitStoreOverridesRedisDefault() {
+        IssueRateLimitStore store = (quotas, requestedAt) -> new IssueLimitResult.Allowed();
+
+        redisContextRunnerWithRule()
+                .withBean(IssueRateLimitStore.class, () -> store)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context.getBean(IssueRateLimitStore.class)).isSameAs(store);
+                    assertThat(context).hasSingleBean(IssueRateLimiter.class);
+                });
+    }
+
+    private static ApplicationContextRunner redisContextRunner() {
+        return new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(IssueRateLimitAutoConfiguration.class))
+                .withPropertyValues(
+                        "spring.application.name=test-application",
+                        "ringo.boot.verification.enabled=true",
+                        "ringo.boot.verification.store=redis")
+                .withBean(StringRedisTemplate.class, () -> mock(StringRedisTemplate.class));
+    }
+
+    private static ApplicationContextRunner redisContextRunnerWithRule() {
+        return redisContextRunner()
+                .withBean("issueRateLimitRule", IssueRateLimitRule.class, IssueRateLimitAutoConfigurationTest::rule);
+    }
+
+    private static VerificationHmacKey hmacKey() {
+        return VerificationHmacKey.fromBase64(SECRET);
+    }
+
+    private static IssueRateLimitRule rule() {
+        return IssueRateLimitRule.of(
+                "subject-minute", context -> IssueLimitBucket.of(context.key().subject()), 1, Duration.ofMinutes(1));
     }
 }

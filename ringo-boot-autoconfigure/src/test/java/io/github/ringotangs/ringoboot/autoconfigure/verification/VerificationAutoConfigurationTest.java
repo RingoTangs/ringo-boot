@@ -3,7 +3,6 @@ package io.github.ringotangs.ringoboot.autoconfigure.verification;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisIssueRateLimitAutoConfiguration;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationStore;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
@@ -40,10 +39,8 @@ class VerificationAutoConfigurationTest {
     private static final String SECRET = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withConfiguration(AutoConfigurations.of(
-                    RedisIssueRateLimitAutoConfiguration.class,
-                    VerificationAutoConfiguration.class,
-                    IssueRateLimitAutoConfiguration.class))
+            .withConfiguration(
+                    AutoConfigurations.of(VerificationAutoConfiguration.class, IssueRateLimitAutoConfiguration.class))
             .withPropertyValues("spring.application.name=test-application");
 
     @Test
@@ -162,7 +159,6 @@ class VerificationAutoConfigurationTest {
     void configuresRedisStoreAfterSpringBootCreatesStringRedisTemplate() {
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
-                        RedisIssueRateLimitAutoConfiguration.class,
                         VerificationAutoConfiguration.class,
                         IssueRateLimitAutoConfiguration.class,
                         RedisAutoConfiguration.class))
