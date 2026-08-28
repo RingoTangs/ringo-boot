@@ -1,7 +1,6 @@
 package io.github.ringotangs.ringoboot.verification;
 
-import java.util.Objects;
-import java.util.regex.Pattern;
+import io.github.ringotangs.ringoboot.core.KebabCase;
 
 /**
  * 表示验证码签发和交付使用的稳定渠道。
@@ -12,8 +11,6 @@ import java.util.regex.Pattern;
  * @param value 小写 kebab-case 渠道标识
  */
 public record VerificationChannel(String value) {
-
-    private static final Pattern VALUE_PATTERN = Pattern.compile("[a-z0-9]+(?:-[a-z0-9]+)*");
 
     /**
      * 邮件验证码渠道。
@@ -32,10 +29,7 @@ public record VerificationChannel(String value) {
      * @throws IllegalArgumentException 当渠道标识不是小写 kebab-case 时
      */
     public VerificationChannel {
-        Objects.requireNonNull(value, "value must not be null");
-        if (!VALUE_PATTERN.matcher(value).matches()) {
-            throw new IllegalArgumentException("value must be lowercase kebab-case: " + value);
-        }
+        KebabCase.validate("value", value);
     }
 
     /**

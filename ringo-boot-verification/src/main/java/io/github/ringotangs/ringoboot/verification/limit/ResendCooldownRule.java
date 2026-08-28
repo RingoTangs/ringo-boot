@@ -1,11 +1,10 @@
 package io.github.ringotangs.ringoboot.verification.limit;
 
+import io.github.ringotangs.ringoboot.core.KebabCase;
 import io.github.ringotangs.ringoboot.verification.IssueContext;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
-
 import java.time.Duration;
 import java.util.Objects;
-import java.util.regex.Pattern;
 
 /**
  * 限制同一验证码业务、渠道和接收方的重发频率。
@@ -21,8 +20,6 @@ import java.util.regex.Pattern;
 public record ResendCooldownRule(String namespace, String purpose, VerificationChannel channel, Duration cooldown)
         implements IssueRateLimitRule {
 
-    private static final Pattern SEGMENT_PATTERN = Pattern.compile("[a-z0-9]+(?:-[a-z0-9]+)*");
-
     /**
      * 创建并校验重发冷却规则。
      *
@@ -30,12 +27,10 @@ public record ResendCooldownRule(String namespace, String purpose, VerificationC
      * @throws IllegalArgumentException 当 namespace 或 purpose 不是小写 kebab-case、渠道不是邮件或短信，或者冷却时间不为正数时
      */
     public ResendCooldownRule {
-        Objects.requireNonNull(namespace, "namespace must not be null");
-        Objects.requireNonNull(purpose, "purpose must not be null");
         Objects.requireNonNull(channel, "channel must not be null");
         Objects.requireNonNull(cooldown, "cooldown must not be null");
-        validateSegment("namespace", namespace);
-        validateSegment("purpose", purpose);
+        KebabCase.validate("namespace", namespace);
+        KebabCase.validate("purpose", purpose);
         if (!channel.equals(VerificationChannel.EMAIL) && !channel.equals(VerificationChannel.SMS)) {
             throw new IllegalArgumentException("channel must be EMAIL or SMS: " + channel);
         }
@@ -98,11 +93,5 @@ public record ResendCooldownRule(String namespace, String purpose, VerificationC
     @Override
     public Duration window() {
         return cooldown;
-    }
-
-    private static void validateSegment(String name, String value) {
-        if (!SEGMENT_PATTERN.matcher(value).matches()) {
-            throw new IllegalArgumentException(name + " must be lowercase kebab-case: " + value);
-        }
     }
 }
