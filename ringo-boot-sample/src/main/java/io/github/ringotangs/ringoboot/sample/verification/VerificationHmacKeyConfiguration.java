@@ -2,10 +2,14 @@ package io.github.ringotangs.ringoboot.sample.verification;
 
 import io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationHmacKey;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationProperties;
+import io.github.ringotangs.ringoboot.verification.VerificationChannel;
+import io.github.ringotangs.ringoboot.verification.limit.ResendCooldownRule;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+
+import java.time.Duration;
 
 /**
  * 为示例应用配置验证码 HMAC 密钥。
@@ -24,5 +28,10 @@ class VerificationHmacKeyConfiguration {
             throw new IllegalStateException("VERIFICATION_HMAC_KEY must be configured");
         }
         return VerificationHmacKey.fromBase64(encoded);
+    }
+
+    @Bean
+    ResendCooldownRule resendCooldownRule() {
+        return new ResendCooldownRule("account", "email-verification", VerificationChannel.EMAIL, Duration.ofSeconds(60L));
     }
 }
