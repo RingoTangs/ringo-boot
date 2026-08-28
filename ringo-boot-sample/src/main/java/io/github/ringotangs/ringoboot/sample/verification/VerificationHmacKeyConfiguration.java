@@ -7,12 +7,16 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 
-/** 为示例应用配置验证码 HMAC 密钥。 */
+/**
+ * 为示例应用配置验证码 HMAC 密钥。
+ */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "store", havingValue = "redis")
 class VerificationHmacKeyConfiguration {
 
-    /** 从环境变量读取 Base64 编码的 HMAC 密钥。 */
+    /**
+     * 从环境变量读取 Base64 编码的 HMAC 密钥。
+     */
     @Bean
     VerificationHmacKey verificationHmacKey(Environment environment) {
         String encoded = environment.getProperty("VERIFICATION_HMAC_KEY");
