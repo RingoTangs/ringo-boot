@@ -2,10 +2,8 @@ package io.github.ringotangs.ringoboot.verification.limit;
 
 import io.github.ringotangs.ringoboot.core.KebabCase;
 import io.github.ringotangs.ringoboot.verification.IssueContext;
-
 import java.time.Duration;
 import java.util.Objects;
-
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -68,8 +66,7 @@ public record SubjectIssueQuotaRule(String id, String namespace, String purpose,
         private @Nullable Integer maxIssues;
         private @Nullable Duration window;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         /**
          * 设置规则标识。

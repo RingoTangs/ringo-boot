@@ -187,7 +187,7 @@ public record ResendCooldownRule(String namespace, String purpose, VerificationC
          * 使用当前配置创建重发冷却规则。
          *
          * @return 完整并经过校验的重发冷却规则
-         * @throws NullPointerException 当存在未配置的必填项时
+         * @throws NullPointerException     当存在未配置的必填项时
          * @throws IllegalArgumentException 当命名空间、用途或冷却时间非法时
          */
         public ResendCooldownRule build() {
