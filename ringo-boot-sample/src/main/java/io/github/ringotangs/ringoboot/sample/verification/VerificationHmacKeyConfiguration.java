@@ -3,7 +3,7 @@ package io.github.ringotangs.ringoboot.sample.verification;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationHmacKey;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationProperties;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
-import io.github.ringotangs.ringoboot.verification.limit.ResendCooldownRule;
+import io.github.ringotangs.ringoboot.verification.limit.SubjectIssueQuotaRule;
 import java.time.Duration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -30,12 +30,14 @@ class VerificationHmacKeyConfiguration {
     }
 
     @Bean
-    ResendCooldownRule resendCooldownRule() {
-        return ResendCooldownRule.builder()
+    SubjectIssueQuotaRule resendCooldownRule() {
+        return SubjectIssueQuotaRule.builder()
+                .id("email-verification-resend-cooldown")
                 .namespace("account")
                 .purpose("email-verification")
                 .channel(VerificationChannel.EMAIL)
-                .cooldown(Duration.ofMinutes(1L))
+                .maxIssues(1)
+                .window(Duration.ofMinutes(1L))
                 .build();
     }
 }
