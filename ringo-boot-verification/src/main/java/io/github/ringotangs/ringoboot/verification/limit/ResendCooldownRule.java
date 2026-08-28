@@ -21,6 +21,11 @@ public record ResendCooldownRule(String namespace, String purpose, VerificationC
         implements IssueRateLimitRule {
 
     /**
+     * 每个冷却窗口固定只允许签发一次，用于保证两次签发之间存在完整的冷却间隔。
+     */
+    private static final int MAX_ISSUES_PER_COOLDOWN = 1;
+
+    /**
      * 创建并校验重发冷却规则。
      *
      * @throws NullPointerException     当任一参数为 {@code null} 时
@@ -81,10 +86,12 @@ public record ResendCooldownRule(String namespace, String purpose, VerificationC
 
     /**
      * 返回每个冷却窗口允许签发的一次额度。
+     *
+     * <p>该值固定为 {@code 1}。如果一个窗口允许多次签发，请使用普通窗口配额规则；否则同一时刻可能连续签发多次，不再符合重发冷却语义。
      */
     @Override
     public int maxIssues() {
-        return 1;
+        return MAX_ISSUES_PER_COOLDOWN;
     }
 
     /**

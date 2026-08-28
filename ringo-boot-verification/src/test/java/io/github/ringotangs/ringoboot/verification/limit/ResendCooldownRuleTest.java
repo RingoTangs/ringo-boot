@@ -63,6 +63,17 @@ class ResendCooldownRuleTest {
     }
 
     @Test
+    void allowsAnotherIssueWhenTheCompleteCooldownHasElapsed() {
+        ResendCooldownRule rule =
+                new ResendCooldownRule("account", "login", VerificationChannel.EMAIL, Duration.ofSeconds(60));
+        IssueRateLimitManager manager = new IssueRateLimitManager(List.of(rule), new InMemoryIssueRateLimitStore());
+
+        assertInstanceOf(IssueLimitResult.Allowed.class, manager.acquire(LOGIN_EMAIL, NOW));
+        assertInstanceOf(IssueLimitResult.Throttled.class, manager.acquire(LOGIN_EMAIL, NOW.plusSeconds(59)));
+        assertInstanceOf(IssueLimitResult.Allowed.class, manager.acquire(LOGIN_EMAIL, NOW.plusSeconds(60)));
+    }
+
+    @Test
     void rejectsInvalidDefinitionsAndNullContexts() {
         assertThrows(
                 NullPointerException.class,
