@@ -5,12 +5,24 @@ import io.github.ringotangs.ringoboot.verification.IssueContext;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import java.time.Duration;
 import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 限制同一验证码业务、渠道和接收方的重发频率。
  *
  * <p>该规则适用于任意验证码渠道。每个冷却窗口只允许签发一次，额度桶由 namespace、purpose、channel 和 subject 组成，
  * 因此不同业务、渠道或验证主体不会共享冷却额度。
+ *
+ * <p>推荐使用 Builder 创建规则，让每个配置项的含义更加清晰：
+ *
+ * <pre>{@code
+ * ResendCooldownRule rule = ResendCooldownRule.builder()
+ *         .namespace("account")
+ *         .purpose("email-verification")
+ *         .channel(VerificationChannel.EMAIL)
+ *         .cooldown(Duration.ofMinutes(1))
+ *         .build();
+ * }</pre>
  *
  * @param namespace 需要限制的业务命名空间
  * @param purpose   需要限制的验证码用途
@@ -39,6 +51,15 @@ public record ResendCooldownRule(String namespace, String purpose, VerificationC
         if (cooldown.isZero() || cooldown.isNegative()) {
             throw new IllegalArgumentException("cooldown must be positive: " + cooldown);
         }
+    }
+
+    /**
+     * 创建重发冷却规则 Builder。
+     *
+     * @return 一个尚未配置任何字段的 Builder
+     */
+    public static Builder builder() {
+        return new Builder();
     }
 
     /**
@@ -97,5 +118,84 @@ public record ResendCooldownRule(String namespace, String purpose, VerificationC
     @Override
     public Duration window() {
         return cooldown;
+    }
+
+    /**
+     * 使用具名配置项构建重发冷却规则。
+     *
+     * <p>所有配置项都是必填项，不提供隐式默认值。Builder 只负责收集参数，最终校验仍由
+     * {@link ResendCooldownRule#ResendCooldownRule(String, String, VerificationChannel, Duration)} 统一完成。
+     */
+    public static final class Builder {
+
+        private @Nullable String namespace;
+        private @Nullable String purpose;
+        private @Nullable VerificationChannel channel;
+        private @Nullable Duration cooldown;
+
+        private Builder() {}
+
+        /**
+         * 设置需要限制的业务命名空间。
+         *
+         * @param namespace 业务命名空间
+         * @return 当前 Builder
+         * @throws NullPointerException 当命名空间为 {@code null} 时
+         */
+        public Builder namespace(String namespace) {
+            this.namespace = Objects.requireNonNull(namespace, "namespace must not be null");
+            return this;
+        }
+
+        /**
+         * 设置需要限制的验证码用途。
+         *
+         * @param purpose 验证码用途
+         * @return 当前 Builder
+         * @throws NullPointerException 当验证码用途为 {@code null} 时
+         */
+        public Builder purpose(String purpose) {
+            this.purpose = Objects.requireNonNull(purpose, "purpose must not be null");
+            return this;
+        }
+
+        /**
+         * 设置需要限制的验证码渠道。
+         *
+         * @param channel 验证码渠道
+         * @return 当前 Builder
+         * @throws NullPointerException 当验证码渠道为 {@code null} 时
+         */
+        public Builder channel(VerificationChannel channel) {
+            this.channel = Objects.requireNonNull(channel, "channel must not be null");
+            return this;
+        }
+
+        /**
+         * 设置两次签发之间的最短间隔。
+         *
+         * @param cooldown 重发冷却时间
+         * @return 当前 Builder
+         * @throws NullPointerException 当冷却时间为 {@code null} 时
+         */
+        public Builder cooldown(Duration cooldown) {
+            this.cooldown = Objects.requireNonNull(cooldown, "cooldown must not be null");
+            return this;
+        }
+
+        /**
+         * 使用当前配置创建重发冷却规则。
+         *
+         * @return 完整并经过校验的重发冷却规则
+         * @throws NullPointerException 当存在未配置的必填项时
+         * @throws IllegalArgumentException 当命名空间、用途或冷却时间非法时
+         */
+        public ResendCooldownRule build() {
+            return new ResendCooldownRule(
+                    Objects.requireNonNull(namespace, "namespace must be configured"),
+                    Objects.requireNonNull(purpose, "purpose must be configured"),
+                    Objects.requireNonNull(channel, "channel must be configured"),
+                    Objects.requireNonNull(cooldown, "cooldown must be configured"));
+        }
     }
 }

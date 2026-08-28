@@ -31,7 +31,11 @@ class VerificationHmacKeyConfiguration {
 
     @Bean
     ResendCooldownRule resendCooldownRule() {
-        return new ResendCooldownRule(
-                "account", "email-verification", VerificationChannel.EMAIL, Duration.ofSeconds(60L));
+        return ResendCooldownRule.builder()
+                .namespace("account")
+                .purpose("email-verification")
+                .channel(VerificationChannel.EMAIL)
+                .cooldown(Duration.ofMinutes(1L))
+                .build();
     }
 }

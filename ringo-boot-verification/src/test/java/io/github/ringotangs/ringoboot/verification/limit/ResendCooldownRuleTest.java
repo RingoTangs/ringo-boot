@@ -22,8 +22,7 @@ class ResendCooldownRuleTest {
 
     @Test
     void describesCooldownQuotaAndMatchesExactBusinessScope() {
-        ResendCooldownRule rule =
-                new ResendCooldownRule("account", "login", VerificationChannel.EMAIL, Duration.ofSeconds(60));
+        ResendCooldownRule rule = rule("account", "login", VerificationChannel.EMAIL, Duration.ofSeconds(60));
 
         assertEquals("resend-cooldown-7-account-5-login-email", rule.id());
         assertEquals(1, rule.maxIssues());
@@ -38,10 +37,10 @@ class ResendCooldownRuleTest {
     @Test
     void isolatesCooldownByBusinessChannelAndSubject() {
         List<IssueRateLimitRule> rules = List.of(
-                new ResendCooldownRule("account", "login", VerificationChannel.EMAIL, Duration.ofSeconds(60)),
-                new ResendCooldownRule("account", "login", VerificationChannel.SMS, Duration.ofSeconds(60)),
-                new ResendCooldownRule("account", "register", VerificationChannel.EMAIL, Duration.ofSeconds(60)),
-                new ResendCooldownRule("payment", "login", VerificationChannel.EMAIL, Duration.ofSeconds(60)));
+                rule("account", "login", VerificationChannel.EMAIL, Duration.ofSeconds(60)),
+                rule("account", "login", VerificationChannel.SMS, Duration.ofSeconds(60)),
+                rule("account", "register", VerificationChannel.EMAIL, Duration.ofSeconds(60)),
+                rule("payment", "login", VerificationChannel.EMAIL, Duration.ofSeconds(60)));
         IssueRateLimitManager manager = new IssueRateLimitManager(rules, new InMemoryIssueRateLimitStore());
 
         assertInstanceOf(IssueLimitResult.Allowed.class, manager.acquire(LOGIN_EMAIL, NOW));
@@ -64,8 +63,7 @@ class ResendCooldownRuleTest {
 
     @Test
     void allowsAnotherIssueWhenTheCompleteCooldownHasElapsed() {
-        ResendCooldownRule rule =
-                new ResendCooldownRule("account", "login", VerificationChannel.EMAIL, Duration.ofSeconds(60));
+        ResendCooldownRule rule = rule("account", "login", VerificationChannel.EMAIL, Duration.ofSeconds(60));
         IssueRateLimitManager manager = new IssueRateLimitManager(List.of(rule), new InMemoryIssueRateLimitStore());
 
         assertInstanceOf(IssueLimitResult.Allowed.class, manager.acquire(LOGIN_EMAIL, NOW));
@@ -77,7 +75,7 @@ class ResendCooldownRuleTest {
     void supportsCustomVerificationChannels() {
         VerificationChannel imageCode = VerificationChannel.of("image-code");
         IssueContext context = context("security", "challenge", "challenge-123", imageCode);
-        ResendCooldownRule rule = new ResendCooldownRule("security", "challenge", imageCode, Duration.ofSeconds(10));
+        ResendCooldownRule rule = rule("security", "challenge", imageCode, Duration.ofSeconds(10));
 
         assertEquals("resend-cooldown-8-security-9-challenge-image-code", rule.id());
         assertTrue(rule.matches(context));
@@ -113,10 +111,76 @@ class ResendCooldownRuleTest {
                 IllegalArgumentException.class,
                 () -> new ResendCooldownRule("account", "login", VerificationChannel.EMAIL, Duration.ofSeconds(-1)));
 
-        ResendCooldownRule rule =
-                new ResendCooldownRule("account", "login", VerificationChannel.EMAIL, Duration.ofSeconds(60));
+        ResendCooldownRule rule = rule("account", "login", VerificationChannel.EMAIL, Duration.ofSeconds(60));
         assertThrows(NullPointerException.class, () -> rule.matches(null));
         assertThrows(NullPointerException.class, () -> rule.bucket(null));
+    }
+
+    @Test
+    void builderCreatesTheSameRuleAsTheCanonicalConstructor() {
+        ResendCooldownRule constructed =
+                new ResendCooldownRule("account", "login", VerificationChannel.EMAIL, Duration.ofMinutes(1));
+
+        assertEquals(constructed, rule("account", "login", VerificationChannel.EMAIL, Duration.ofMinutes(1)));
+    }
+
+    @Test
+    void builderRejectsMissingAndInvalidFields() {
+        assertThrows(
+                NullPointerException.class,
+                () -> ResendCooldownRule.builder()
+                        .purpose("login")
+                        .channel(VerificationChannel.EMAIL)
+                        .cooldown(Duration.ofMinutes(1))
+                        .build());
+        assertThrows(
+                NullPointerException.class,
+                () -> ResendCooldownRule.builder()
+                        .namespace("account")
+                        .channel(VerificationChannel.EMAIL)
+                        .cooldown(Duration.ofMinutes(1))
+                        .build());
+        assertThrows(
+                NullPointerException.class,
+                () -> ResendCooldownRule.builder()
+                        .namespace("account")
+                        .purpose("login")
+                        .cooldown(Duration.ofMinutes(1))
+                        .build());
+        assertThrows(
+                NullPointerException.class,
+                () -> ResendCooldownRule.builder()
+                        .namespace("account")
+                        .purpose("login")
+                        .channel(VerificationChannel.EMAIL)
+                        .build());
+        assertThrows(
+                NullPointerException.class, () -> ResendCooldownRule.builder().namespace(null));
+        assertThrows(
+                NullPointerException.class, () -> ResendCooldownRule.builder().purpose(null));
+        assertThrows(
+                NullPointerException.class, () -> ResendCooldownRule.builder().channel(null));
+        assertThrows(
+                NullPointerException.class, () -> ResendCooldownRule.builder().cooldown(null));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> rule("user_account", "login", VerificationChannel.EMAIL, Duration.ofMinutes(1)));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> rule("account", "reset_password", VerificationChannel.EMAIL, Duration.ofMinutes(1)));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> rule("account", "login", VerificationChannel.EMAIL, Duration.ZERO));
+    }
+
+    private static ResendCooldownRule rule(
+            String namespace, String purpose, VerificationChannel channel, Duration cooldown) {
+        return ResendCooldownRule.builder()
+                .namespace(namespace)
+                .purpose(purpose)
+                .channel(channel)
+                .cooldown(cooldown)
+                .build();
     }
 
     private static IssueContext context(String namespace, String purpose, String subject, VerificationChannel channel) {
