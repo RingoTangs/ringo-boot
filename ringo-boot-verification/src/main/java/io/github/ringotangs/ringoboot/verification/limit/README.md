@@ -134,7 +134,8 @@ Spring Boot 自动配置不注册内置 `IssueRateLimitRule`。应用没有提�
 规则 ID 根据业务范围自动生成，每个冷却窗口固定只允许签发一次。
 
 固定的一次额度是“冷却”的必要语义：例如 60 秒冷却意味着两次签发至少间隔 60 秒。如果一个 60 秒窗口允许两次，用户可以在同一时刻
-连续签发两次，这属于窗口配额而不是重发冷却。需要“一个窗口最多 N 次”时，应使用 `IssueRateLimitRule.of(...)` 创建普通配额规则。
+连续签发两次，这属于窗口配额而不是重发冷却。需要“一个窗口最多 N 次”时，应实现一个具有明确业务名称的
+`IssueRateLimitRule`。
 
 ```java
 @Bean
@@ -156,12 +157,27 @@ Spring Boot 不会默认注册该规则；只有应用主动提供规则 Bean �
 替代短信或邮件供应商自己的发送配额和告警。
 
 ```java
-IssueRateLimitRule applicationHourly =
-        IssueRateLimitRule.of(
-                "application-hour",
-                context -> IssueLimitBucket.of("application"),
-                1_000,
-                Duration.ofHours(1));
+final class ApplicationHourlyRule implements IssueRateLimitRule {
+    public String id() {
+        return "application-hour";
+    }
+
+    public boolean matches(IssueContext context) {
+        return true;
+    }
+
+    public IssueLimitBucket bucket(IssueContext context) {
+        return IssueLimitBucket.of("application");
+    }
+
+    public int maxIssues() {
+        return 1_000;
+    }
+
+    public Duration window() {
+        return Duration.ofHours(1);
+    }
+}
 ```
 
 ### 自定义 IP 规则
@@ -169,15 +185,27 @@ IssueRateLimitRule applicationHourly =
 下面的规则只限制登录业务，同一 IP 一小时最多签发 10 次：
 
 ```java
-@Bean
-IssueRateLimitRule loginIpHourlyRule() {
-    return IssueRateLimitRule.of(
-            "login-ip-hour",
-            context -> context.key().purpose().equals("login"),
-            context -> IssueLimitBucket.of(
-                    context.attribute("ip-address").orElseThrow()),
-            10,
-            Duration.ofHours(1));
+final class LoginIpHourlyRule implements IssueRateLimitRule {
+    public String id() {
+        return "login-ip-hour";
+    }
+
+    public boolean matches(IssueContext context) {
+        return context.key().purpose().equals("login");
+    }
+
+    public IssueLimitBucket bucket(IssueContext context) {
+        return IssueLimitBucket.of(
+                context.attribute("ip-address").orElseThrow());
+    }
+
+    public int maxIssues() {
+        return 10;
+    }
+
+    public Duration window() {
+        return Duration.ofHours(1);
+    }
 }
 ```
 
@@ -305,34 +333,22 @@ sequenceDiagram
 限流规则不支持 YAML 配置。应用提供任意规则 Bean 即表示启用限流。如果自定义规则只覆盖部分业务，应用可以启动，但未被任何规则
 覆盖的 `namespace + purpose` 会在首次签发时抛出配置异常，不会生成、存储或发送验证码。
 
-下面展示如何在代码中定义应用级、业务级和接收方级规则：
+下面展示如何把前文定义的具名规则注册到 Spring 容器：
 
 ```java
 @Bean
 IssueRateLimitRule applicationHourlyRule() {
-    return IssueRateLimitRule.of(
-            "application-hour",
-            context -> IssueLimitBucket.of("application"),
-            1_000,
-            Duration.ofHours(1));
+    return new ApplicationHourlyRule();
 }
 
 @Bean
-IssueRateLimitRule accountLoginSubjectHourlyRule() {
-    return IssueRateLimitRule.of(
-            "account-login-subject-hour",
-            context -> context.key().namespace().equals("account")
-                    && context.key().purpose().equals("login"),
-            context -> IssueLimitBucket.of(
-                    context.key().namespace(),
-                    context.key().purpose(),
-                    context.key().subject()),
-            10,
-            Duration.ofHours(1));
+IssueRateLimitRule loginIpHourlyRule() {
+    return new LoginIpHourlyRule();
 }
 ```
 
-接收方地址来自运行时 `VerificationKey.subject`，不应硬编码邮箱或手机号。所有 Rule Bean 的 ID 必须全局唯一，重复时应用启动失败。
+需要业务级或接收方级配额时，同样应创建具有明确业务名称的规则实现。接收方地址来自运行时 `VerificationKey.subject`，不应硬编码
+邮箱或手机号。所有 Rule Bean 的 ID 必须全局唯一，重复时应用启动失败。
 
 扩展和回退规则：
 

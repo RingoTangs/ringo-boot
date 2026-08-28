@@ -4,12 +4,11 @@ import io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationHma
 import io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationProperties;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.limit.ResendCooldownRule;
+import java.time.Duration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
-
-import java.time.Duration;
 
 /**
  * 为示例应用配置验证码 HMAC 密钥。
@@ -32,6 +31,7 @@ class VerificationHmacKeyConfiguration {
 
     @Bean
     ResendCooldownRule resendCooldownRule() {
-        return new ResendCooldownRule("account", "email-verification", VerificationChannel.EMAIL, Duration.ofSeconds(60L));
+        return new ResendCooldownRule(
+                "account", "email-verification", VerificationChannel.EMAIL, Duration.ofSeconds(60L));
     }
 }

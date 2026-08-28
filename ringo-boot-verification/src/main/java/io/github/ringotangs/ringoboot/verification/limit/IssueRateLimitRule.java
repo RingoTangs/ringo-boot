@@ -2,8 +2,6 @@ package io.github.ringotangs.ringoboot.verification.limit;
 
 import io.github.ringotangs.ringoboot.verification.IssueContext;
 import java.time.Duration;
-import java.util.function.Function;
-import java.util.function.Predicate;
 
 /**
  * 声明一条验证码签发滚动窗口配额规则。
@@ -60,41 +58,4 @@ public interface IssueRateLimitRule {
      * @return 大于零的窗口长度
      */
     Duration window();
-
-    /**
-     * 创建对所有请求生效的简单规则。
-     *
-     * @param id             全局唯一的 kebab-case 规则标识
-     * @param bucketResolver 额度桶解析函数
-     * @param maxIssues      滚动窗口内允许签发的最大次数
-     * @param window         滚动窗口长度
-     * @return 不可变简单规则
-     * @throws NullPointerException     当任一引用参数为 {@code null} 时
-     * @throws IllegalArgumentException 当规则标识、最大次数或窗口非法时
-     */
-    static IssueRateLimitRule of(
-            String id, Function<IssueContext, IssueLimitBucket> bucketResolver, int maxIssues, Duration window) {
-        return new SimpleIssueRateLimitRule(id, context -> true, bucketResolver, maxIssues, window);
-    }
-
-    /**
-     * 创建带业务匹配条件的简单规则。
-     *
-     * @param id             全局唯一的 kebab-case 规则标识
-     * @param matcher        业务适用范围判断函数
-     * @param bucketResolver 额度桶解析函数
-     * @param maxIssues      滚动窗口内允许签发的最大次数
-     * @param window         滚动窗口长度
-     * @return 不可变简单规则
-     * @throws NullPointerException     当任一引用参数为 {@code null} 时
-     * @throws IllegalArgumentException 当规则标识、最大次数或窗口非法时
-     */
-    static IssueRateLimitRule of(
-            String id,
-            Predicate<IssueContext> matcher,
-            Function<IssueContext, IssueLimitBucket> bucketResolver,
-            int maxIssues,
-            Duration window) {
-        return new SimpleIssueRateLimitRule(id, matcher, bucketResolver, maxIssues, window);
-    }
 }
