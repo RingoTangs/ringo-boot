@@ -63,19 +63,17 @@ class EmailVerificationControllerTest {
     }
 
     @Test
-    void throttlesRepeatedIssuanceWithoutReplacingDeliveredCode() throws Exception {
+    void allowsRepeatedIssuanceWhenRateLimitRulesAreAbsent() throws Exception {
         String email = uniqueEmail();
         issue(email);
-        String originalCode = sender.latest(email).code();
+        EmailCodeMessage originalMessage = sender.latest(email);
 
         mockMvc.perform(post("/verification/email/code")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(issueRequest(email)))
-                .andExpect(status().isTooManyRequests())
-                .andExpect(jsonPath("$.type").value("urn:problem:business:verification:throttled"))
-                .andExpect(jsonPath("$.status").value(429));
+                .andExpect(status().isAccepted());
 
-        org.assertj.core.api.Assertions.assertThat(sender.latest(email).code()).isEqualTo(originalCode);
+        org.assertj.core.api.Assertions.assertThat(sender.latest(email)).isNotSameAs(originalMessage);
     }
 
     @Test

@@ -21,10 +21,8 @@ sample 已引入 `spring-boot-starter-data-redis`。Spring Boot 创建 `StringRe
 渠道服务的默认 `VerificationPolicy` 由 `ringo.boot.verification.*` 配置直接创建，不注册为 Spring Bean；
 业务特定策略可通过 `VerificationService.issue(key, policy)` 在调用时传入。
 
-限流规则通过 `IssueRateLimitRule` Bean 在代码中定义，不支持 YAML 配置。应用没有提供规则或自定义 Limiter 时，自动配置使用
-`IssueRateLimiter.permitAll()`，不创建限流 Store；提供任意规则 Bean 后，自动配置才会创建 Store 和
-`IssueRateLimitManager`。sample 的 `IssueRateLimitConfiguration` 显式注册了 60 秒冷却、当前应用每小时 1000 次以及每个邮箱
-每小时 10 次三条规则。启用规则后，某个业务没有任何匹配规则时不会签发验证码。
+sample 不注册 `IssueRateLimitRule`，因此自动配置使用 `IssueRateLimiter.permitAll()`，不会创建签发限流 Store。Redis 仍用于
+保存验证码状态，但不会写入签发限流 ZSET。实际应用需要限流时，可以在代码中注册规则 Bean；限流规则不支持 YAML 配置。
 
 `VerificationService` 只定义签发和校验的业务契约。`AbstractVerificationService` 是该契约的抽象骨架实现，统一编排生成、
 存储、限流、派发、派发失败补偿和校验消费。core 已提供 `EmailVerificationService`
