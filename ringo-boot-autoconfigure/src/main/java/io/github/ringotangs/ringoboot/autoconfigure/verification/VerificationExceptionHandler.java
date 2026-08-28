@@ -12,7 +12,9 @@ import io.github.ringotangs.ringoboot.verification.limit.MissingIssueRateLimitRu
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -60,12 +62,22 @@ public class VerificationExceptionHandler {
      * 将签发限流转换为包含等待秒数的 429 Problem Details。
      *
      * @param exception 签发限流异常
-     * @return 限流 Problem Details
+     * @return 包含精确等待时间和友好 Problem Details 的限流响应
      */
     @ExceptionHandler(VerificationThrottledException.class)
-    public ProblemDetail handleVerificationThrottled(VerificationThrottledException exception) {
-        return problemDetailFactory.create(ProblemException.withArguments(
-                VerificationProblemType.THROTTLED, retryAfterSeconds(exception.retryAfter())));
+    public ResponseEntity<ProblemDetail> handleVerificationThrottled(VerificationThrottledException exception) {
+        long seconds = retryAfterSeconds(exception.retryAfter());
+        ProblemDetail problem = problemDetailFactory.create(ProblemException.withArguments(
+                VerificationProblemType.THROTTLED,
+                seconds,
+                Long.toString(seconds),
+                Long.toString(ceilDiv(seconds, 60L)),
+                Long.toString(ceilDiv(seconds, 3_600L)),
+                Long.toString(ceilDiv(seconds, 86_400L))));
+        problem.setProperty("retryAfterSeconds", seconds);
+        return ResponseEntity.status(problem.getStatus())
+                .header(HttpHeaders.RETRY_AFTER, Long.toString(seconds))
+                .body(problem);
     }
 
     /**
@@ -81,6 +93,10 @@ public class VerificationExceptionHandler {
 
     private long retryAfterSeconds(java.time.Duration retryAfter) {
         long seconds = retryAfter.toSeconds();
-        return retryAfter.minusSeconds(seconds).isZero() ? seconds : seconds + 1;
+        return retryAfter.minusSeconds(seconds).isZero() || seconds == Long.MAX_VALUE ? seconds : seconds + 1L;
+    }
+
+    private long ceilDiv(long value, long divisor) {
+        return value == 0L ? 0L : 1L + (value - 1L) / divisor;
     }
 }

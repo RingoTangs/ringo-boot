@@ -19,6 +19,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 
 class VerificationProblemAutoConfigurationTest {
 
@@ -119,6 +120,13 @@ class VerificationProblemAutoConfigurationTest {
                             handler.handleVerificationException(new VerificationStoreException("internal"));
                     assertThat(problem.getTitle()).isEqualTo("验证码服务不可用");
                     assertThat(problem.getDetail()).isEqualTo("验证码服务暂时不可用");
+
+                    ResponseEntity<ProblemDetail> throttled = handler.handleVerificationThrottled(
+                            new VerificationThrottledException(Duration.ofSeconds(3_478L)));
+                    assertThat(throttled.getBody())
+                            .isNotNull()
+                            .extracting(ProblemDetail::getDetail)
+                            .isEqualTo("请在约 58 分钟后重试");
                 });
     }
 
@@ -136,9 +144,12 @@ class VerificationProblemAutoConfigurationTest {
                     VerificationExceptionHandler handler = context.getBean(VerificationExceptionHandler.class);
 
                     assertThat(handler.handleVerificationThrottled(
-                                    new VerificationThrottledException(Duration.ofSeconds(2))))
+                                            new VerificationThrottledException(Duration.ofSeconds(2)))
+                                    .getBody())
                             .extracting(ProblemDetail::getTitle, ProblemDetail::getDetail)
-                            .containsExactly("Too many verification code requests", "Please retry after 2 seconds");
+                            .containsExactly(
+                                    "Too many verification code requests",
+                                    "Please retry after approximately 2 seconds");
                     assertThat(handler.handleInvalidVerificationCode(new InvalidVerificationCodeException()))
                             .extracting(ProblemDetail::getTitle, ProblemDetail::getDetail)
                             .containsExactly("Invalid verification code", "The verification code is invalid");

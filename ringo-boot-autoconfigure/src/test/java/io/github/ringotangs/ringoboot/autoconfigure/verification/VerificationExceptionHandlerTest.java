@@ -18,9 +18,13 @@ import java.net.URI;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.method.annotation.ExceptionHandlerMethodResolver;
 
 @ExtendWith(OutputCaptureExtension.class)
@@ -118,16 +122,21 @@ class VerificationExceptionHandlerTest {
     void mapsExpectedBusinessFailuresWithoutErrorLogging(CapturedOutput output) {
         VerificationExceptionHandler handler = createDefaultHandler();
 
-        ProblemDetail throttled =
+        ResponseEntity<ProblemDetail> throttledResponse =
                 handler.handleVerificationThrottled(new VerificationThrottledException(Duration.ofMillis(1201)));
+        ProblemDetail throttled = throttledResponse.getBody();
         ProblemDetail invalid = handler.handleInvalidVerificationCode(new InvalidVerificationCodeException());
 
+        assertThat(throttled).isNotNull();
         assertProblem(
                 throttled,
                 429,
                 "urn:problem:business:verification:throttled",
                 "Too many verification code requests",
-                "Please retry after 2 seconds");
+                "Please retry after approximately 2 seconds");
+        assertThat(throttledResponse.getHeaders().getFirst(HttpHeaders.RETRY_AFTER))
+                .isEqualTo("2");
+        assertThat(throttled.getProperties()).containsEntry("retryAfterSeconds", 2L);
         assertProblem(
                 invalid,
                 400,
@@ -135,6 +144,41 @@ class VerificationExceptionHandlerTest {
                 "Invalid verification code",
                 "The verification code is invalid");
         assertThat(output).doesNotContain("Verification operation failed");
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "0, 'Please retry shortly'",
+        "1, 'Please retry after 1 second'",
+        "89, 'Please retry after approximately 89 seconds'",
+        "90, 'Please retry after approximately 2 minutes'",
+        "5399, 'Please retry after approximately 90 minutes'",
+        "5400, 'Please retry after approximately 2 hours'",
+        "129599, 'Please retry after approximately 36 hours'",
+        "129600, 'Please retry after approximately 2 days'"
+    })
+    void formatsRetryAfterUsingAReadableUnit(long seconds, String expectedDetail) {
+        ResponseEntity<ProblemDetail> response = createDefaultHandler()
+                .handleVerificationThrottled(new VerificationThrottledException(Duration.ofSeconds(seconds)));
+
+        assertThat(response.getBody())
+                .isNotNull()
+                .extracting(ProblemDetail::getDetail)
+                .isEqualTo(expectedDetail);
+        assertThat(response.getHeaders().getFirst(HttpHeaders.RETRY_AFTER)).isEqualTo(Long.toString(seconds));
+        assertThat(response.getBody().getProperties()).containsEntry("retryAfterSeconds", seconds);
+    }
+
+    @Test
+    void roundsRetryAfterUpWithoutOverflowing() {
+        ResponseEntity<ProblemDetail> fractional = createDefaultHandler()
+                .handleVerificationThrottled(new VerificationThrottledException(Duration.ofNanos(1L)));
+        ResponseEntity<ProblemDetail> maximum = createDefaultHandler()
+                .handleVerificationThrottled(
+                        new VerificationThrottledException(Duration.ofSeconds(Long.MAX_VALUE, 999_999_999L)));
+
+        assertThat(fractional.getHeaders().getFirst(HttpHeaders.RETRY_AFTER)).isEqualTo("1");
+        assertThat(maximum.getHeaders().getFirst(HttpHeaders.RETRY_AFTER)).isEqualTo(Long.toString(Long.MAX_VALUE));
     }
 
     private VerificationExceptionHandler createDefaultHandler() {

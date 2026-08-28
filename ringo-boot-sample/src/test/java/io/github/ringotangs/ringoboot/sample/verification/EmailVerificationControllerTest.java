@@ -2,6 +2,7 @@ package io.github.ringotangs.ringoboot.sample.verification;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -77,16 +78,21 @@ class EmailVerificationControllerTest {
     void throttlesRepeatedIssuanceAndSeparatesSubjects() throws Exception {
         String email = uniqueEmail();
         issue(email);
-        EmailCodeMessage originalMessage = sender.latest(email);
+        for (int issued = 1; issued < 5; issued++) {
+            issue(email);
+        }
+        EmailCodeMessage latestMessage = sender.latest(email);
 
         mockMvc.perform(post("/verification/email/code")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(issueRequest(email)))
                 .andExpect(status().isTooManyRequests())
+                .andExpect(header().string(HttpHeaders.RETRY_AFTER, org.hamcrest.Matchers.matchesPattern("\\d+")))
                 .andExpect(jsonPath("$.type").value(THROTTLED_TYPE))
-                .andExpect(jsonPath("$.status").value(429));
+                .andExpect(jsonPath("$.status").value(429))
+                .andExpect(jsonPath("$.retryAfterSeconds").isNumber());
 
-        org.assertj.core.api.Assertions.assertThat(sender.latest(email)).isSameAs(originalMessage);
+        org.assertj.core.api.Assertions.assertThat(sender.latest(email)).isSameAs(latestMessage);
 
         issue(uniqueEmail());
     }
@@ -99,21 +105,21 @@ class EmailVerificationControllerTest {
                                 "account-email-hourly-quota",
                                 "account",
                                 VerificationChannel.EMAIL,
-                                1_000,
+                                100,
                                 Duration.ofHours(1L)),
                         new PurposeIssueQuotaRule(
                                 "email-verification-hourly-quota",
                                 "account",
                                 "email-verification",
                                 VerificationChannel.EMAIL,
-                                100,
+                                10,
                                 Duration.ofHours(1L)),
                         new SubjectIssueQuotaRule(
                                 "email-verification-resend-cooldown",
                                 "account",
                                 "email-verification",
                                 VerificationChannel.EMAIL,
-                                1,
+                                5,
                                 Duration.ofMinutes(1L)));
     }
 
