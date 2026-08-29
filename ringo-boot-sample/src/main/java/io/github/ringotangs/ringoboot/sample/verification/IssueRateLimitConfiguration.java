@@ -1,5 +1,6 @@
 package io.github.ringotangs.ringoboot.sample.verification;
 
+import io.github.ringotangs.ringoboot.autoconfigure.verification.ClientAddressIssueQuotaRule;
 import io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationProperties;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.limit.NamespaceIssueQuotaRule;
@@ -16,6 +17,18 @@ import org.springframework.context.annotation.Configuration;
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "enabled", havingValue = "true")
 class IssueRateLimitConfiguration {
+
+    @Bean
+    ClientAddressIssueQuotaRule emailVerificationClientAddressQuotaRule() {
+        return ClientAddressIssueQuotaRule.builder()
+                .id("email-verification-client-address-quota")
+                .namespace("account")
+                .purpose("email-verification")
+                .channel(VerificationChannel.EMAIL)
+                .maxIssues(20)
+                .window(Duration.ofMinutes(10L))
+                .build();
+    }
 
     @Bean
     NamespaceIssueQuotaRule accountEmailHourlyQuotaRule() {

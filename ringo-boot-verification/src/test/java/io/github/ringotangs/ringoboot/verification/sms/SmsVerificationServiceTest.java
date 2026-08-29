@@ -1,6 +1,6 @@
 package io.github.ringotangs.ringoboot.verification.sms;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -18,6 +18,7 @@ import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationSto
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.lang.reflect.Modifier;
 import java.time.Instant;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
@@ -73,27 +74,35 @@ class SmsVerificationServiceTest {
     void exposesOnlyStandardConstructor() {
         var constructors = SmsVerificationService.class.getConstructors();
 
-        assertEquals(1, constructors.length);
-        assertArrayEquals(
-                new Class<?>[] {
-                    CodeGenerator.class,
-                    VerificationStore.class,
-                    IssueRateLimiter.class,
-                    VerificationPolicy.class,
-                    SmsCodeSender.class
-                },
-                constructors[0].getParameterTypes());
+        assertEquals(2, constructors.length);
+        assertDoesNotThrow(() -> SmsVerificationService.class.getConstructor(
+                CodeGenerator.class,
+                VerificationStore.class,
+                IssueRateLimiter.class,
+                VerificationPolicy.class,
+                SmsCodeSender.class));
+        assertDoesNotThrow(() -> SmsVerificationService.class.getConstructor(
+                CodeGenerator.class,
+                VerificationStore.class,
+                IssueRateLimiter.class,
+                VerificationPolicy.class,
+                List.class,
+                SmsCodeSender.class));
     }
 
     @Test
-    void allowsContextCustomizationWithoutChangingSmsChannel() throws Exception {
+    void appliesContextContributorWithoutChangingSmsChannel() throws Exception {
         AtomicReference<IssueContext> captured = new AtomicReference<>();
         AtomicReference<IssueContext> dispatched = new AtomicReference<>();
-        CustomSmsVerificationService service = new CustomSmsVerificationService(
+        SmsVerificationService service = new SmsVerificationService(
+                length -> "123456",
+                new InMemoryVerificationStore(),
                 (context, requestedAt) -> {
                     captured.set(context);
                     return new io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult.Allowed();
                 },
+                VerificationPolicy.defaults(),
+                List.of(context -> context.with("device-id", "device-1")),
                 (context, code, expiresAt) -> {
                     dispatched.set(context);
                     return CodeSendResult.ACCEPTED;
@@ -107,17 +116,5 @@ class SmsVerificationServiceTest {
         assertEquals(VerificationPolicy.defaults(), dispatched.get().policy());
         assertTrue(Modifier.isFinal(
                 SmsVerificationService.class.getDeclaredMethod("channel").getModifiers()));
-    }
-
-    private static final class CustomSmsVerificationService extends SmsVerificationService {
-
-        private CustomSmsVerificationService(IssueRateLimiter limiter, SmsCodeSender sender) {
-            super(length -> "123456", new InMemoryVerificationStore(), limiter, VerificationPolicy.defaults(), sender);
-        }
-
-        @Override
-        protected IssueContext customizeIssueContext(IssueContext context) {
-            return context.with("device-id", "device-1");
-        }
     }
 }

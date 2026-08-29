@@ -1,6 +1,6 @@
 package io.github.ringotangs.ringoboot.verification.email;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -18,6 +18,7 @@ import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationSto
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.lang.reflect.Modifier;
 import java.time.Instant;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
@@ -73,27 +74,35 @@ class EmailVerificationServiceTest {
     void exposesOnlyStandardConstructor() {
         var constructors = EmailVerificationService.class.getConstructors();
 
-        assertEquals(1, constructors.length);
-        assertArrayEquals(
-                new Class<?>[] {
-                    CodeGenerator.class,
-                    VerificationStore.class,
-                    IssueRateLimiter.class,
-                    VerificationPolicy.class,
-                    EmailCodeSender.class
-                },
-                constructors[0].getParameterTypes());
+        assertEquals(2, constructors.length);
+        assertDoesNotThrow(() -> EmailVerificationService.class.getConstructor(
+                CodeGenerator.class,
+                VerificationStore.class,
+                IssueRateLimiter.class,
+                VerificationPolicy.class,
+                EmailCodeSender.class));
+        assertDoesNotThrow(() -> EmailVerificationService.class.getConstructor(
+                CodeGenerator.class,
+                VerificationStore.class,
+                IssueRateLimiter.class,
+                VerificationPolicy.class,
+                List.class,
+                EmailCodeSender.class));
     }
 
     @Test
-    void allowsContextCustomizationWithoutChangingEmailChannel() throws Exception {
+    void appliesContextContributorWithoutChangingEmailChannel() throws Exception {
         AtomicReference<IssueContext> captured = new AtomicReference<>();
         AtomicReference<IssueContext> dispatched = new AtomicReference<>();
-        CustomEmailVerificationService service = new CustomEmailVerificationService(
+        EmailVerificationService service = new EmailVerificationService(
+                length -> "123456",
+                new InMemoryVerificationStore(),
                 (context, requestedAt) -> {
                     captured.set(context);
                     return new io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult.Allowed();
                 },
+                VerificationPolicy.defaults(),
+                List.of(context -> context.with("tenant-id", "tenant-1")),
                 (context, code, expiresAt) -> {
                     dispatched.set(context);
                     return CodeSendResult.ACCEPTED;
@@ -107,17 +116,5 @@ class EmailVerificationServiceTest {
         assertEquals(VerificationPolicy.defaults(), dispatched.get().policy());
         assertTrue(Modifier.isFinal(
                 EmailVerificationService.class.getDeclaredMethod("channel").getModifiers()));
-    }
-
-    private static final class CustomEmailVerificationService extends EmailVerificationService {
-
-        private CustomEmailVerificationService(IssueRateLimiter limiter, EmailCodeSender sender) {
-            super(length -> "123456", new InMemoryVerificationStore(), limiter, VerificationPolicy.defaults(), sender);
-        }
-
-        @Override
-        protected IssueContext customizeIssueContext(IssueContext context) {
-            return context.with("tenant-id", "tenant-1");
-        }
     }
 }

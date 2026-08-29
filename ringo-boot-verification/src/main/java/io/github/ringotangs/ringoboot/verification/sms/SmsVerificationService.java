@@ -4,12 +4,14 @@ import io.github.ringotangs.ringoboot.verification.AbstractVerificationService;
 import io.github.ringotangs.ringoboot.verification.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.IssueContext;
+import io.github.ringotangs.ringoboot.verification.IssueContextContributor;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -35,6 +37,27 @@ public class SmsVerificationService extends AbstractVerificationService {
             VerificationPolicy verificationPolicy,
             SmsCodeSender sender) {
         super(codeGenerator, store, issueRateLimiter, verificationPolicy);
+        this.sender = Objects.requireNonNull(sender, "sender must not be null");
+    }
+
+    /**
+     * 使用指定上下文贡献器创建短信验证服务。
+     *
+     * @param codeGenerator       验证码生成器
+     * @param store               验证码存储
+     * @param issueRateLimiter    验证码签发限流器
+     * @param verificationPolicy  服务级验证码策略
+     * @param contextContributors 按顺序补充签发上下文的贡献器
+     * @param sender              短信发送器
+     */
+    public SmsVerificationService(
+            CodeGenerator codeGenerator,
+            VerificationStore store,
+            IssueRateLimiter issueRateLimiter,
+            VerificationPolicy verificationPolicy,
+            List<IssueContextContributor> contextContributors,
+            SmsCodeSender sender) {
+        super(codeGenerator, store, issueRateLimiter, verificationPolicy, contextContributors);
         this.sender = Objects.requireNonNull(sender, "sender must not be null");
     }
 

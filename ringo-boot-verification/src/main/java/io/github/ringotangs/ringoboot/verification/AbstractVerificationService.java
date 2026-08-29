@@ -16,7 +16,7 @@ import java.util.Objects;
  * 统一编排验证码生成、存储、渠道派发、失败补偿和校验消费流程。
  *
  * <p><strong>API 注意事项：</strong> 子类通过 {@link #channel()} 声明渠道，实现 {@link #dispatch(IssueContext, String, Instant)} 完成派发；
- * 需要额外流程属性时可以覆盖 {@link #customizeIssueContext(IssueContext)}。
+ * 请求级属性通过 {@link IssueContextContributor} 组合提供。
  */
 public abstract class AbstractVerificationService implements VerificationService {
 
@@ -24,6 +24,7 @@ public abstract class AbstractVerificationService implements VerificationService
     private final VerificationStore store;
     private final IssueRateLimiter issueRateLimiter;
     private final VerificationPolicy verificationPolicy;
+    private final List<IssueContextContributor> contextContributors;
     private final Clock clock;
 
     /**
@@ -40,7 +41,25 @@ public abstract class AbstractVerificationService implements VerificationService
             VerificationStore store,
             IssueRateLimiter issueRateLimiter,
             VerificationPolicy verificationPolicy) {
-        this(codeGenerator, store, issueRateLimiter, verificationPolicy, Clock.systemUTC());
+        this(codeGenerator, store, issueRateLimiter, verificationPolicy, List.of(), Clock.systemUTC());
+    }
+
+    /**
+     * 使用指定生成器、存储、签发限流器、服务级策略、上下文贡献器和 UTC 系统时钟创建渠道服务。
+     *
+     * @param codeGenerator       验证码生成器
+     * @param store               验证码状态存储
+     * @param issueRateLimiter    验证码签发限流器
+     * @param verificationPolicy  服务级验证码策略
+     * @param contextContributors 按顺序补充签发上下文的贡献器
+     */
+    protected AbstractVerificationService(
+            CodeGenerator codeGenerator,
+            VerificationStore store,
+            IssueRateLimiter issueRateLimiter,
+            VerificationPolicy verificationPolicy,
+            List<IssueContextContributor> contextContributors) {
+        this(codeGenerator, store, issueRateLimiter, verificationPolicy, contextContributors, Clock.systemUTC());
     }
 
     /**
@@ -59,10 +78,34 @@ public abstract class AbstractVerificationService implements VerificationService
             IssueRateLimiter issueRateLimiter,
             VerificationPolicy verificationPolicy,
             Clock clock) {
+        this(codeGenerator, store, issueRateLimiter, verificationPolicy, List.of(), clock);
+    }
+
+    /**
+     * 使用完整依赖和指定时钟创建渠道服务。
+     *
+     * @param codeGenerator       验证码生成器
+     * @param store               验证码状态存储
+     * @param issueRateLimiter    验证码签发限流器
+     * @param verificationPolicy  服务级验证码策略
+     * @param contextContributors 按顺序补充签发上下文的贡献器
+     * @param clock               提供签发和校验时间的时钟
+     */
+    protected AbstractVerificationService(
+            CodeGenerator codeGenerator,
+            VerificationStore store,
+            IssueRateLimiter issueRateLimiter,
+            VerificationPolicy verificationPolicy,
+            List<IssueContextContributor> contextContributors,
+            Clock clock) {
         this.codeGenerator = Objects.requireNonNull(codeGenerator, "codeGenerator must not be null");
         this.store = Objects.requireNonNull(store, "store must not be null");
         this.issueRateLimiter = Objects.requireNonNull(issueRateLimiter, "issueRateLimiter must not be null");
         this.verificationPolicy = Objects.requireNonNull(verificationPolicy, "verificationPolicy must not be null");
+        Objects.requireNonNull(contextContributors, "contextContributors must not be null");
+        this.contextContributors = List.copyOf(contextContributors);
+        this.contextContributors.forEach(
+                contributor -> Objects.requireNonNull(contributor, "context contributor must not be null"));
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
     }
 
@@ -78,6 +121,12 @@ public abstract class AbstractVerificationService implements VerificationService
                 baseContext,
                 Objects.requireNonNull(customizeIssueContext(baseContext), "customized issue context must not be null"),
                 "issue context customizer");
+        for (int index = 0; index < contextContributors.size(); index++) {
+            IssueContextContributor contributor = contextContributors.get(index);
+            IssueContext contributed = Objects.requireNonNull(
+                    contributor.contribute(context), "issue context contributor result must not be null: " + index);
+            context = requireEnrichedContext(context, contributed, "issue context contributor at index " + index);
+        }
         Instant issuedAt = clock.instant();
         IssueLimitResult limitResult = Objects.requireNonNull(
                 issueRateLimiter.acquire(context, issuedAt), "issue rate limiter result must not be null");
@@ -128,9 +177,12 @@ public abstract class AbstractVerificationService implements VerificationService
      *
      * <p>子类可以返回增加属性后的新上下文，但不能替换验证码键、渠道或策略。
      *
+     * @deprecated 使用构造器注入 {@link IssueContextContributor}；该继承扩展点将在下一个主版本移除
+     *
      * @param context 包含验证码键和渠道的基础签发上下文
      * @return 当前服务补充后的签发上下文
      */
+    @Deprecated(forRemoval = true)
     protected IssueContext customizeIssueContext(IssueContext context) {
         return context;
     }
@@ -164,6 +216,16 @@ public abstract class AbstractVerificationService implements VerificationService
         if (!actual.policy().equals(expected.policy())) {
             throw new IllegalArgumentException(source + " must preserve the verification policy");
         }
+        return actual;
+    }
+
+    private static IssueContext requireEnrichedContext(IssueContext expected, IssueContext actual, String source) {
+        requirePreservedContext(expected, actual, source);
+        expected.attributes().forEach((name, value) -> {
+            if (!value.equals(actual.attributes().get(name))) {
+                throw new IllegalArgumentException(source + " must preserve existing issue context attribute: " + name);
+            }
+        });
         return actual;
     }
 }
