@@ -4,11 +4,15 @@ import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-/** Ringo Boot 验证码自动配置属性。 */
+/**
+ * Ringo Boot 验证码自动配置属性。
+ */
 @ConfigurationProperties(VerificationProperties.PREFIX)
 public class VerificationProperties {
 
-    /** 配置属性前缀。 */
+    /**
+     * 配置属性前缀。
+     */
     public static final String PREFIX = "ringo.boot.verification";
 
     /**
@@ -131,7 +135,7 @@ public class VerificationProperties {
      *
      * @return 当前配置对应的验证码策略
      */
-    VerificationPolicy toPolicy() {
+    public VerificationPolicy toPolicy() {
         return new VerificationPolicy(length, ttl, maxAttempts);
     }
 }

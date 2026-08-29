@@ -1,12 +1,12 @@
 package io.github.ringotangs.ringoboot.autoconfigure.verification;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationStore;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
-import io.github.ringotangs.ringoboot.verification.VerificationService;
 import io.github.ringotangs.ringoboot.verification.VerifyResult;
 import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.email.EmailVerificationService;
@@ -14,7 +14,6 @@ import io.github.ringotangs.ringoboot.verification.email.StdoutEmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitStore;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
-import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.sms.SmsCodeSender;
 import io.github.ringotangs.ringoboot.verification.sms.SmsVerificationService;
 import io.github.ringotangs.ringoboot.verification.sms.StdoutSmsCodeSender;
@@ -99,12 +98,13 @@ class VerificationAutoConfigurationTest {
                 .withConfiguration(AutoConfigurations.of(VerificationAutoConfiguration.class))
                 .withPropertyValues("ringo.boot.verification.enabled=true")
                 .run(context -> {
-                    assertThat(context).hasSingleBean(CodeGenerator.class);
+                    assertThat(context).doesNotHaveBean(CodeGenerator.class);
                     assertThat(context).hasSingleBean(VerificationStore.class);
                     assertThat(context).hasSingleBean(EmailCodeSender.class);
                     assertThat(context).hasSingleBean(SmsCodeSender.class);
                     assertThat(context).doesNotHaveBean(IssueRateLimiter.class);
-                    assertThat(context).doesNotHaveBean(VerificationService.class);
+                    assertThat(context).doesNotHaveBean(EmailVerificationService.class);
+                    assertThat(context).doesNotHaveBean(SmsVerificationService.class);
                 });
     }
 
@@ -112,14 +112,13 @@ class VerificationAutoConfigurationTest {
     void configuresInMemoryStoreWhenEnabled() {
         contextRunner.withPropertyValues("ringo.boot.verification.enabled=true").run(context -> {
             assertThat(context).hasNotFailed();
-            assertThat(context).hasBean("numericCodeGenerator");
-            assertThat(context).doesNotHaveBean("verificationCodeGenerator");
+            assertThat(context).doesNotHaveBean(CodeGenerator.class);
             assertThat(context).hasSingleBean(VerificationStore.class);
             assertThat(context.getBean(VerificationStore.class)).isInstanceOf(InMemoryVerificationStore.class);
             assertThat(context.getBean(EmailCodeSender.class)).isInstanceOf(StdoutEmailCodeSender.class);
             assertThat(context.getBean(SmsCodeSender.class)).isInstanceOf(StdoutSmsCodeSender.class);
-            assertThat(context).hasSingleBean(EmailVerificationService.class);
-            assertThat(context).hasSingleBean(SmsVerificationService.class);
+            assertThat(context).doesNotHaveBean(EmailVerificationService.class);
+            assertThat(context).doesNotHaveBean(SmsVerificationService.class);
         });
     }
 
@@ -131,8 +130,9 @@ class VerificationAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(VerificationStore.class);
-                    assertThat(context).hasSingleBean(EmailVerificationService.class);
-                    assertThat(context).hasSingleBean(SmsVerificationService.class);
+                    assertThat(context).doesNotHaveBean(CodeGenerator.class);
+                    assertThat(context).doesNotHaveBean(EmailVerificationService.class);
+                    assertThat(context).doesNotHaveBean(SmsVerificationService.class);
                 });
     }
 
@@ -173,8 +173,9 @@ class VerificationAutoConfigurationTest {
                     assertThat(context).hasSingleBean(StringRedisTemplate.class);
                     assertThat(context).hasSingleBean(VerificationStore.class);
                     assertThat(context.getBean(VerificationStore.class)).isInstanceOf(RedisVerificationStore.class);
-                    assertThat(context).hasSingleBean(EmailVerificationService.class);
-                    assertThat(context).hasSingleBean(SmsVerificationService.class);
+                    assertThat(context).doesNotHaveBean(CodeGenerator.class);
+                    assertThat(context).doesNotHaveBean(EmailVerificationService.class);
+                    assertThat(context).doesNotHaveBean(SmsVerificationService.class);
                 });
     }
 
@@ -237,13 +238,14 @@ class VerificationAutoConfigurationTest {
                         "ringo.boot.verification.max-attempts=3")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(CodeGenerator.class);
+                    assertThat(context).doesNotHaveBean(CodeGenerator.class);
                     assertThat(context).doesNotHaveBean(VerificationPolicy.class);
                     assertThat(context).hasSingleBean(VerificationStore.class);
                     assertThat(context.getBean(VerificationStore.class)).isInstanceOf(InMemoryVerificationStore.class);
                     assertThat(context).hasSingleBean(IssueRateLimiter.class);
                     assertThat(context).doesNotHaveBean(IssueRateLimitStore.class);
-                    assertThat(context).getBeans(VerificationService.class).hasSize(2);
+                    assertThat(context).doesNotHaveBean(EmailVerificationService.class);
+                    assertThat(context).doesNotHaveBean(SmsVerificationService.class);
 
                     VerificationPolicy policy =
                             context.getBean(VerificationProperties.class).toPolicy();
@@ -254,22 +256,21 @@ class VerificationAutoConfigurationTest {
     }
 
     @Test
-    void backsOffForCustomGeneratorAndStore() {
-        CodeGenerator generator = length -> "1".repeat(length);
+    void backsOffForCustomStore() {
         VerificationStore store = new TestVerificationStore();
 
         contextRunner
                 .withPropertyValues("ringo.boot.verification.enabled=true")
-                .withBean(CodeGenerator.class, () -> generator)
                 .withBean(VerificationStore.class, () -> store)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context.getBean(CodeGenerator.class)).isSameAs(generator);
+                    assertThat(context).doesNotHaveBean(CodeGenerator.class);
                     assertThat(context).doesNotHaveBean(VerificationPolicy.class);
                     assertThat(context.getBean(VerificationStore.class)).isSameAs(store);
                     assertThat(context.getBeansOfType(InMemoryVerificationStore.class))
                             .isEmpty();
-                    assertThat(context).getBeans(VerificationService.class).hasSize(2);
+                    assertThat(context).doesNotHaveBean(EmailVerificationService.class);
+                    assertThat(context).doesNotHaveBean(SmsVerificationService.class);
                 });
     }
 
@@ -285,78 +286,12 @@ class VerificationAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).getBeans(VerificationPolicy.class).hasSize(2);
-                    assertThat(context).getBeans(VerificationService.class).hasSize(2);
+                    assertThat(context).doesNotHaveBean(EmailVerificationService.class);
+                    assertThat(context).doesNotHaveBean(SmsVerificationService.class);
                     assertThat(context.getBean(VerificationProperties.class)
                                     .toPolicy()
                                     .length())
                             .isEqualTo(6);
-                });
-    }
-
-    @Test
-    void configuresEmailServiceWhenSenderIsAvailable() {
-        EmailCodeSender sender = message -> CodeSendResult.ACCEPTED;
-
-        contextRunner
-                .withPropertyValues("ringo.boot.verification.enabled=true")
-                .withBean(EmailCodeSender.class, () -> sender)
-                .run(context -> {
-                    assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(EmailVerificationService.class);
-                    assertThat(context).hasSingleBean(SmsVerificationService.class);
-                    assertThat(context.getBean(EmailCodeSender.class)).isSameAs(sender);
-                    assertThat(context.getBean(SmsCodeSender.class)).isInstanceOf(StdoutSmsCodeSender.class);
-                });
-    }
-
-    @Test
-    void configuresSmsServiceWhenSenderIsAvailable() {
-        SmsCodeSender sender = message -> CodeSendResult.ACCEPTED;
-
-        contextRunner
-                .withPropertyValues("ringo.boot.verification.enabled=true")
-                .withBean(SmsCodeSender.class, () -> sender)
-                .run(context -> {
-                    assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(SmsVerificationService.class);
-                    assertThat(context).hasSingleBean(EmailVerificationService.class);
-                    assertThat(context.getBean(SmsCodeSender.class)).isSameAs(sender);
-                    assertThat(context.getBean(EmailCodeSender.class)).isInstanceOf(StdoutEmailCodeSender.class);
-                });
-    }
-
-    @Test
-    void configuresBothChannelServicesWhenBothSendersAreAvailable() {
-        contextRunner
-                .withPropertyValues("ringo.boot.verification.enabled=true")
-                .withBean(EmailCodeSender.class, () -> message -> CodeSendResult.ACCEPTED)
-                .withBean(SmsCodeSender.class, () -> message -> CodeSendResult.ACCEPTED)
-                .run(context -> {
-                    assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(EmailVerificationService.class);
-                    assertThat(context).hasSingleBean(SmsVerificationService.class);
-                    assertThat(context).getBeans(VerificationService.class).hasSize(2);
-                });
-    }
-
-    @Test
-    void backsOffForCustomEmailService() {
-        EmailCodeSender sender = message -> CodeSendResult.ACCEPTED;
-        EmailVerificationService service = new EmailVerificationService(
-                length -> "1".repeat(length),
-                new TestVerificationStore(),
-                IssueRateLimiter.permitAll(),
-                VerificationPolicy.defaults(),
-                sender);
-
-        contextRunner
-                .withPropertyValues("ringo.boot.verification.enabled=true")
-                .withBean(EmailCodeSender.class, () -> sender)
-                .withBean(EmailVerificationService.class, () -> service)
-                .run(context -> {
-                    assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(EmailVerificationService.class);
-                    assertThat(context.getBean(EmailVerificationService.class)).isSameAs(service);
                 });
     }
 
@@ -371,7 +306,8 @@ class VerificationAutoConfigurationTest {
                     assertThat(context).getBeans(VerificationStore.class).hasSize(2);
                     assertThat(context.getBeansOfType(InMemoryVerificationStore.class))
                             .isEmpty();
-                    assertThat(context).doesNotHaveBean(VerificationService.class);
+                    assertThat(context).doesNotHaveBean(EmailVerificationService.class);
+                    assertThat(context).doesNotHaveBean(SmsVerificationService.class);
                 });
     }
 
@@ -382,12 +318,14 @@ class VerificationAutoConfigurationTest {
                 "ringo.boot.verification.ttl=0s",
                 "ringo.boot.verification.max-attempts=0"
             })
-    void failsForInvalidPolicy(String property) {
+    void rejectsInvalidPolicyWhenConverted(String property) {
         contextRunner
                 .withPropertyValues("ringo.boot.verification.enabled=true", property)
                 .run(context -> {
-                    assertThat(context).hasFailed();
-                    assertThat(context.getStartupFailure()).hasRootCauseInstanceOf(IllegalArgumentException.class);
+                    assertThat(context).hasNotFailed();
+                    assertThatThrownBy(() -> context.getBean(VerificationProperties.class)
+                                    .toPolicy())
+                            .isInstanceOf(IllegalArgumentException.class);
                 });
     }
 

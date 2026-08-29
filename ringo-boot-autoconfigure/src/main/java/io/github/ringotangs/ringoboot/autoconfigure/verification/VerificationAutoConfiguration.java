@@ -2,13 +2,8 @@ package io.github.ringotangs.ringoboot.autoconfigure.verification;
 
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationStore;
 import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
-import io.github.ringotangs.ringoboot.verification.email.EmailVerificationService;
 import io.github.ringotangs.ringoboot.verification.email.StdoutEmailCodeSender;
-import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
-import io.github.ringotangs.ringoboot.verification.generator.NumericCodeGenerator;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.sms.SmsCodeSender;
-import io.github.ringotangs.ringoboot.verification.sms.SmsVerificationService;
 import io.github.ringotangs.ringoboot.verification.sms.StdoutSmsCodeSender;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
@@ -18,32 +13,20 @@ import org.springframework.boot.autoconfigure.condition.*;
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 /**
- * 自动配置验证码生成器、状态存储、渠道发送器和验证服务。
+ * 自动配置验证码状态存储和默认渠道发送器。
  *
- * <p>仅在显式启用验证码功能时生效。每个默认组件都会在应用提供同类型 Bean 时回退。</p>
+ * <p>仅在显式启用验证码功能时生效。验证服务和验证码生成器由应用显式组装；每个默认基础设施组件都会在应用提供同类型 Bean 时回退。</p>
  */
 @AutoConfiguration(after = {RedisAutoConfiguration.class, IssueRateLimitAutoConfiguration.class})
 @ConditionalOnClass(VerificationStore.class)
 @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "enabled", havingValue = "true")
 @EnableConfigurationProperties(VerificationProperties.class)
 public class VerificationAutoConfiguration {
-
-    /**
-     * 在用户未提供生成器时创建安全的数字验证码生成器。
-     *
-     * @return 安全的数字验证码生成器
-     */
-    @Bean
-    @ConditionalOnMissingBean
-    CodeGenerator numericCodeGenerator() {
-        return new NumericCodeGenerator();
-    }
 
     /**
      * 在用户未提供存储时创建内存实现。
@@ -100,52 +83,6 @@ public class VerificationAutoConfiguration {
     }
 
     /**
-     * 在邮件发送器、唯一状态存储和唯一签发限流器可用时创建邮件验证服务。
-     *
-     * @param codeGenerator    验证码生成器
-     * @param store            验证码状态存储
-     * @param issueRateLimiter 验证码签发限流器
-     * @param properties       验证码配置属性
-     * @param sender           邮件验证码发送器
-     * @return 邮件验证码服务
-     */
-    @Bean
-    @ConditionalOnBean(EmailCodeSender.class)
-    @Conditional(OnVerificationServiceDependenciesCondition.class)
-    @ConditionalOnMissingBean(EmailVerificationService.class)
-    EmailVerificationService emailVerificationService(
-            CodeGenerator codeGenerator,
-            VerificationStore store,
-            IssueRateLimiter issueRateLimiter,
-            VerificationProperties properties,
-            EmailCodeSender sender) {
-        return new EmailVerificationService(codeGenerator, store, issueRateLimiter, properties.toPolicy(), sender);
-    }
-
-    /**
-     * 在短信发送器、唯一状态存储和唯一签发限流器可用时创建短信验证服务。
-     *
-     * @param codeGenerator    验证码生成器
-     * @param store            验证码状态存储
-     * @param issueRateLimiter 验证码签发限流器
-     * @param properties       验证码配置属性
-     * @param sender           短信验证码发送器
-     * @return 短信验证码服务
-     */
-    @Bean
-    @ConditionalOnBean(SmsCodeSender.class)
-    @Conditional(OnVerificationServiceDependenciesCondition.class)
-    @ConditionalOnMissingBean(SmsVerificationService.class)
-    SmsVerificationService smsVerificationService(
-            CodeGenerator codeGenerator,
-            VerificationStore store,
-            IssueRateLimiter issueRateLimiter,
-            VerificationProperties properties,
-            SmsCodeSender sender) {
-        return new SmsVerificationService(codeGenerator, store, issueRateLimiter, properties.toPolicy(), sender);
-    }
-
-    /**
      * Redis 验证码状态存储配置。
      */
     @Configuration(proxyBeanMethods = false)
@@ -175,21 +112,5 @@ public class VerificationAutoConfiguration {
                     EXPIRED_RETENTION,
                     environment.getRequiredProperty("spring.application.name"));
         }
-    }
-
-    /**
-     * 同时检查验证码状态存储和签发限流器是否存在唯一候选 Bean。
-     */
-    static final class OnVerificationServiceDependenciesCondition extends AllNestedConditions {
-
-        OnVerificationServiceDependenciesCondition() {
-            super(ConfigurationPhase.REGISTER_BEAN);
-        }
-
-        @ConditionalOnSingleCandidate(VerificationStore.class)
-        static class SingleVerificationStore {}
-
-        @ConditionalOnSingleCandidate(IssueRateLimiter.class)
-        static class SingleIssueRateLimiter {}
     }
 }

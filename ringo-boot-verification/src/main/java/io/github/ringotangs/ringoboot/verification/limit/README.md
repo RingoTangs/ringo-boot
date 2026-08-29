@@ -426,7 +426,7 @@ IssueRateLimitRule loginIpHourlyRule() {
 | `IssueRateLimiter` | 完全替换默认管理器和框架自动创建的限流状态存储 |
 
 需要向上下文增加 IP、设备或租户等应用信号时，应继承对应的 `EmailVerificationService` 或
-`SmsVerificationService`，覆盖 `customizeIssueContext`，再将自定义服务注册为 Bean，使自动配置中的默认服务回退。
+`SmsVerificationService`，覆盖 `customizeIssueContext`，再由应用将自定义服务显式注册为 Bean。
 
 ## 八、推荐的初始规则
 

@@ -2,7 +2,7 @@
 
 ## 邮箱验证码示例 / Email verification example
 
-示例通过验证码自动配置创建服务。启用后默认提供邮件和短信 Stdout Sender，并使用 Redis 保存验证码状态：
+示例由应用显式组装邮件验证服务。启用后自动配置提供邮件和短信 Stdout Sender，并使用 Redis 保存验证码状态：
 
 ```yaml
 ringo:
@@ -17,8 +17,9 @@ ringo:
 
 sample 已引入 `spring-boot-starter-data-redis`。Spring Boot 创建 `StringRedisTemplate` 后，Ringo Boot
 自动配置会创建 `RedisVerificationStore`；应用不需要自行提供 Redis Store Bean。
-`CodeGenerator`、`VerificationStore` 和 Sender 均可通过自定义 Bean 覆盖。
-渠道服务的默认 `VerificationPolicy` 由 `ringo.boot.verification.*` 配置直接创建，不注册为 Spring Bean；
+`VerificationStore` 和 Sender 均可通过自定义 Bean 覆盖。`CodeGenerator` 不会自动注册到 Spring 容器，
+由应用在组装渠道服务时直接创建或传入自定义实现。渠道服务的默认 `VerificationPolicy` 由
+`VerificationProperties.toPolicy()` 根据 `ringo.boot.verification.*` 配置创建，不注册为 Spring Bean；
 业务特定策略可通过 `VerificationService.issue(key, policy)` 在调用时传入。
 
 sample 不注册 `IssueRateLimitRule`，因此自动配置使用 `IssueRateLimiter.permitAll()`，不会创建签发限流 Store。Redis 仍用于
@@ -26,13 +27,21 @@ sample 不注册 `IssueRateLimitRule`，因此自动配置使用 `IssueRateLimit
 
 `VerificationService` 只定义签发和校验的业务契约。`AbstractVerificationService` 是该契约的抽象骨架实现，统一编排生成、
 存储、限流、派发、派发失败补偿和校验消费。core 已提供 `EmailVerificationService`
-和 `SmsVerificationService`。应用只需提供对应的 Sender Bean，自动配置会创建渠道服务：
+和 `SmsVerificationService`。应用需要显式将所需的渠道服务注册为 Bean：
 
 ```java
 @Bean
-EmailCodeSender emailCodeSender(EmailClient emailClient) {
-    return message -> emailClient.send(
-            message.email(), message.code(), message.expiresAt());
+EmailVerificationService emailVerificationService(
+        VerificationStore store,
+        IssueRateLimiter issueRateLimiter,
+        VerificationProperties properties,
+        EmailCodeSender sender) {
+    return new EmailVerificationService(
+            new NumericCodeGenerator(),
+            store,
+            issueRateLimiter,
+            properties.toPolicy(),
+            sender);
 }
 ```
 
