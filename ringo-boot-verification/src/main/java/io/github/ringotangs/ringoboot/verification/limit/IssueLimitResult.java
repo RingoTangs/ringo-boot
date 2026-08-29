@@ -1,6 +1,8 @@
 package io.github.ringotangs.ringoboot.verification.limit;
 
 import java.time.Duration;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -23,21 +25,40 @@ public sealed interface IssueLimitResult permits IssueLimitResult.Allowed, Issue
      *
      * <p>该结果不表示永久拒绝。调用方可以将 {@code retryAfter} 转换为 HTTP {@code Retry-After} 或其他客户端可理解的等待提示。
      *
-     * @param retryAfter 距离全部受限规则再次允许签发的剩余时间
+     * @param violations 实际阻止本次签发的非空规则明细
      */
-    record Throttled(Duration retryAfter) implements IssueLimitResult {
+    record Throttled(List<IssueLimitViolation> violations) implements IssueLimitResult {
 
         /**
          * 创建并校验限流结果。
          *
-         * @throws NullPointerException 当剩余时间为 {@code null} 时
-         * @throws IllegalArgumentException 当剩余时间为负数时
+         * @throws NullPointerException     当规则明细集合或任一元素为 {@code null} 时
+         * @throws IllegalArgumentException 当规则明细为空或包含重复规则 ID 时
          */
         public Throttled {
-            Objects.requireNonNull(retryAfter, "retryAfter must not be null");
-            if (retryAfter.isNegative()) {
-                throw new IllegalArgumentException("retryAfter must not be negative: " + retryAfter);
+            Objects.requireNonNull(violations, "violations must not be null");
+            violations = List.copyOf(violations);
+            if (violations.isEmpty()) {
+                throw new IllegalArgumentException("violations must not be empty");
             }
+            var ruleIds = new HashSet<String>();
+            for (IssueLimitViolation violation : violations) {
+                if (!ruleIds.add(violation.ruleId())) {
+                    throw new IllegalArgumentException("duplicate issue rate limit rule id: " + violation.ruleId());
+                }
+            }
+        }
+
+        /**
+         * 返回距离全部受限规则再次允许签发的最长剩余时间。
+         *
+         * @return 最大剩余等待时间
+         */
+        public Duration retryAfter() {
+            return violations.stream()
+                    .map(IssueLimitViolation::retryAfter)
+                    .max(Duration::compareTo)
+                    .orElseThrow();
         }
     }
 }

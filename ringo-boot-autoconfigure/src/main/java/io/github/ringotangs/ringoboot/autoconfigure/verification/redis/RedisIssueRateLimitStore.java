@@ -3,6 +3,7 @@ package io.github.ringotangs.ringoboot.autoconfigure.verification.redis;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitQuota;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitViolation;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitException;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitStore;
 import java.nio.ByteBuffer;
@@ -84,15 +85,14 @@ public final class RedisIssueRateLimitStore implements IssueRateLimitStore {
      * 是本次请求的随机标识，后续参数按“窗口毫秒数、最大签发次数”成对排列。
      *
      * <p>脚本首先从每个 ZSET 中删除 score 小于等于“当前时间减去窗口”的记录，然后检查集合大小。存在受限规则时返回
-     * {@code {1, maxRetryAfterMillis}}，且不会向任何 ZSET 写入数据；全部规则允许时，脚本向每个 ZSET 写入当前请求并把 TTL
-     * 设置为对应窗口，最后返回 {@code {0, 0}}。
+     * {@code {1, quotaIndex, retryAfterMillis, ...}}，且不会向任何 ZSET 写入数据；全部规则允许时，脚本向每个 ZSET
+     * 写入当前请求并把 TTL 设置为对应窗口，最后返回 {@code {0}}。
      */
     @SuppressWarnings("rawtypes")
     private static final RedisScript<List> ACQUIRE_SCRIPT = RedisScript.of("""
             local now = tonumber(ARGV[1])
             local token = ARGV[2]
-            local throttled = false
-            local maxRetryAfter = 0
+            local violations = {}
 
             for i, key in ipairs(KEYS) do
                 local offset = 2 + (i - 1) * 2
@@ -102,15 +102,17 @@ public final class RedisIssueRateLimitStore implements IssueRateLimitStore {
                 if redis.call('ZCARD', key) >= maxIssues then
                     local oldest = redis.call('ZRANGE', key, 0, 0, 'WITHSCORES')
                     local retryAfter = tonumber(oldest[2]) + window - now
-                    if retryAfter > maxRetryAfter then
-                        maxRetryAfter = retryAfter
-                    end
-                    throttled = true
+                    table.insert(violations, i)
+                    table.insert(violations, retryAfter)
                 end
             end
 
-            if throttled then
-                return {1, maxRetryAfter}
+            if #violations > 0 then
+                local result = {1}
+                for _, value in ipairs(violations) do
+                    table.insert(result, value)
+                end
+                return result
             end
 
             for i, key in ipairs(KEYS) do
@@ -119,7 +121,7 @@ public final class RedisIssueRateLimitStore implements IssueRateLimitStore {
                 redis.call('ZADD', key, now, token .. ':' .. i)
                 redis.call('PEXPIRE', key, window)
             end
-            return {0, 0}
+            return {0}
             """, List.class);
 
     /**
@@ -165,14 +167,15 @@ public final class RedisIssueRateLimitStore implements IssueRateLimitStore {
      * 原子检查并消费本次签发涉及的全部额度。
      *
      * <p>方法先为每条配额生成 Redis key，并把窗口和最大次数转换为 Lua 参数。窗口必须能够表示为至少一毫秒。Lua
-     * 脚本返回状态 {@code 0} 时表示所有额度已经成功消费；返回状态 {@code 1} 时表示本次没有消费任何额度，并返回所有受限规则中最长的等待时间。
+     * 脚本返回状态 {@code 0} 时表示所有额度已经成功消费；返回状态 {@code 1} 时表示本次没有消费任何额度，并返回每条受限规则的
+     * quota 索引及剩余等待时间。
      *
      * <p>传入时间直接作为所有 ZSET 的 score 和窗口计算基准。该值不会被 Redis 服务器时间替换。
      *
      * @param quotas      本次请求需要同时满足的非空签发配额集合
      * @param requestedAt 请求签发的时间
-     * @return 全部配额允许时返回 {@link IssueLimitResult.Allowed}，否则返回包含最长等待时间的
-     * {@link IssueLimitResult.Throttled}
+     * @return 全部配额允许时返回 {@link IssueLimitResult.Allowed}，否则返回包含全部受限规则明细的
+     *     {@link IssueLimitResult.Throttled}
      * @throws NullPointerException     当配额集合、任一配额或请求时间为 {@code null} 时
      * @throws IllegalArgumentException 当配额集合为空，或者任一窗口不足一毫秒时
      * @throws IssueRateLimitException  当 Redis 操作失败，或者脚本返回未知或非法结果时
@@ -208,12 +211,38 @@ public final class RedisIssueRateLimitStore implements IssueRateLimitStore {
             throw new IssueRateLimitException("Redis issue rate limit operation failed", exception);
         }
         long status = number(result, 0);
-        long retryAfterMillis = number(result, 1);
-        return switch ((int) status) {
-            case 0 -> ALLOWED;
-            case 1 -> new IssueLimitResult.Throttled(Duration.ofMillis(retryAfterMillis));
-            default -> throw new IssueRateLimitException("Redis issue rate limit script returned an unknown status");
-        };
+        if (status == 0) {
+            if (result.size() != 1) {
+                throw new IssueRateLimitException("Redis issue rate limit script returned an invalid result");
+            }
+            return ALLOWED;
+        }
+        if (status == 1) {
+            return throttled(result, quotas);
+        }
+        throw new IssueRateLimitException("Redis issue rate limit script returned an unknown status");
+    }
+
+    private IssueLimitResult.Throttled throttled(List<?> result, List<IssueLimitQuota> quotas) {
+        if (result.size() < 3 || result.size() % 2 == 0) {
+            throw new IssueRateLimitException("Redis issue rate limit script returned an invalid result");
+        }
+        List<IssueLimitViolation> violations = new ArrayList<>((result.size() - 1) / 2);
+        boolean[] seen = new boolean[quotas.size()];
+        for (int position = 1; position < result.size(); position += 2) {
+            long quotaIndex = number(result, position);
+            long retryAfterMillis = number(result, position + 1);
+            if (quotaIndex < 1 || quotaIndex > quotas.size() || retryAfterMillis < 0) {
+                throw new IssueRateLimitException("Redis issue rate limit script returned an invalid result");
+            }
+            int index = Math.toIntExact(quotaIndex - 1);
+            if (seen[index]) {
+                throw new IssueRateLimitException("Redis issue rate limit script returned an invalid result");
+            }
+            seen[index] = true;
+            violations.add(new IssueLimitViolation(quotas.get(index).ruleId(), Duration.ofMillis(retryAfterMillis)));
+        }
+        return new IssueLimitResult.Throttled(violations);
     }
 
     /**

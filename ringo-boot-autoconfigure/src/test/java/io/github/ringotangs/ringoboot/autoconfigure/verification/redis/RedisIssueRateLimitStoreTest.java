@@ -31,7 +31,7 @@ class RedisIssueRateLimitStoreTest {
     void mapsAllowedAndThrottledMultiRuleResults() {
         StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
         when(redisTemplate.execute(any(RedisScript.class), anyList(), any(Object[].class)))
-                .thenReturn(List.of(0L, 0L), List.of(1L, 42_000L));
+                .thenReturn(List.of(0L), List.of(1L, 1L, 12_000L, 2L, 42_000L));
         RedisIssueRateLimitStore store = store(redisTemplate);
         List<IssueLimitQuota> quotas = List.of(
                 quota("subject-minute", "user@example.com", 1, Duration.ofMinutes(1)),
@@ -41,6 +41,11 @@ class RedisIssueRateLimitStoreTest {
         IssueLimitResult.Throttled throttled = (IssueLimitResult.Throttled) store.acquire(quotas, NOW.plusSeconds(18));
 
         assertThat(throttled.retryAfter()).isEqualTo(Duration.ofSeconds(42));
+        assertThat(throttled.violations())
+                .extracting(violation -> violation.ruleId(), violation -> violation.retryAfter())
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("subject-minute", Duration.ofSeconds(12)),
+                        org.assertj.core.groups.Tuple.tuple("ip-hour", Duration.ofSeconds(42)));
     }
 
     @Test
@@ -48,7 +53,7 @@ class RedisIssueRateLimitStoreTest {
     void hashesBucketsAndUsesOneRedisClusterHashTag() {
         StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
         when(redisTemplate.execute(any(RedisScript.class), anyList(), any(Object[].class)))
-                .thenReturn(List.of(0L, 0L));
+                .thenReturn(List.of(0L));
         RedisIssueRateLimitStore store = store(redisTemplate);
 
         store.acquire(
@@ -87,6 +92,32 @@ class RedisIssueRateLimitStoreTest {
                         .acquire(List.of(quota("subject-minute", "user", 1, Duration.ofMinutes(1))), NOW))
                 .isInstanceOf(IssueRateLimitException.class)
                 .hasMessage("Redis issue rate limit operation failed");
+    }
+
+    @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    void rejectsInvalidThrottledScriptResults() {
+        List<List<Long>> invalidResults = List.of(
+                List.of(0L, 0L),
+                List.of(1L),
+                List.of(1L, 1L),
+                List.of(1L, 0L, 1_000L),
+                List.of(1L, 3L, 1_000L),
+                List.of(1L, 1L, -1L),
+                List.of(1L, 1L, 1_000L, 1L, 2_000L));
+        List<IssueLimitQuota> quotas = List.of(
+                quota("subject-minute", "user", 1, Duration.ofMinutes(1)),
+                quota("ip-hour", "ip", 1, Duration.ofHours(1)));
+
+        for (List<Long> result : invalidResults) {
+            StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
+            when(redisTemplate.execute(any(RedisScript.class), anyList(), any(Object[].class)))
+                    .thenReturn(result);
+
+            assertThatThrownBy(() -> store(redisTemplate).acquire(quotas, NOW))
+                    .isInstanceOf(IssueRateLimitException.class)
+                    .hasMessage("Redis issue rate limit script returned an invalid result");
+        }
     }
 
     @Test

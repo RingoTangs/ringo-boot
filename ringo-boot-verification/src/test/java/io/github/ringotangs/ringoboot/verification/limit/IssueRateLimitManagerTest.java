@@ -94,7 +94,8 @@ class IssueRateLimitManagerTest {
         IssueRateLimitManager manager = new IssueRateLimitManager(
                 List.of(rule("registration-minute", context -> false, "registration")), (rules, time) -> {
                     calls.incrementAndGet();
-                    return new IssueLimitResult.Throttled(Duration.ofSeconds(1));
+                    return new IssueLimitResult.Throttled(
+                            List.of(new IssueLimitViolation("test-rule", Duration.ofSeconds(1))));
                 });
 
         MissingIssueRateLimitRuleException exception =

@@ -3,6 +3,8 @@ package io.github.ringotangs.ringoboot.autoconfigure.verification;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
 import io.github.ringotangs.ringoboot.autoconfigure.problem.ProblemMessageResolver;
 import io.github.ringotangs.ringoboot.verification.CodeDeliveryRejectedException;
 import io.github.ringotangs.ringoboot.verification.CodeSenderException;
@@ -12,15 +14,18 @@ import io.github.ringotangs.ringoboot.verification.VerificationException;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationThrottledException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitViolation;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitException;
 import io.github.ringotangs.ringoboot.verification.limit.MissingIssueRateLimitRuleException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
 import java.net.URI;
 import java.time.Duration;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.http.HttpHeaders;
@@ -81,8 +86,7 @@ class VerificationExceptionHandlerTest {
                 new ExceptionHandlerMethodResolver(VerificationExceptionHandler.class);
 
         assertHandler(resolver, new InvalidVerificationCodeException(), "handleInvalidVerificationCode");
-        assertHandler(
-                resolver, new VerificationThrottledException(Duration.ofSeconds(1)), "handleVerificationThrottled");
+        assertHandler(resolver, throttled(Duration.ofSeconds(1)), "handleVerificationThrottled");
         assertHandler(resolver, new CodeGenerationException("internal"), "handleVerificationException");
         assertHandler(
                 resolver,
@@ -130,7 +134,7 @@ class VerificationExceptionHandlerTest {
         VerificationExceptionHandler handler = createDefaultHandler();
 
         ResponseEntity<ProblemDetail> throttledResponse =
-                handler.handleVerificationThrottled(new VerificationThrottledException(Duration.ofMillis(1201)));
+                handler.handleVerificationThrottled(throttled(Duration.ofMillis(1201)));
         ProblemDetail throttled = throttledResponse.getBody();
         ProblemDetail invalid = handler.handleInvalidVerificationCode(new InvalidVerificationCodeException());
 
@@ -153,6 +157,30 @@ class VerificationExceptionHandlerTest {
         assertThat(output).doesNotContain("Verification operation failed");
     }
 
+    @Test
+    void logsThrottleViolationsAtDebugWithoutExposingThemInResponse(CapturedOutput output) {
+        Logger logger = (Logger) LoggerFactory.getLogger(VerificationExceptionHandler.class);
+        Level previousLevel = logger.getLevel();
+        VerificationThrottledException exception = new VerificationThrottledException(List.of(
+                new IssueLimitViolation("subject-minute", Duration.ofSeconds(30)),
+                new IssueLimitViolation("ip-hour", Duration.ofMinutes(10))));
+
+        ResponseEntity<ProblemDetail> response;
+        try {
+            logger.setLevel(Level.DEBUG);
+            response = createDefaultHandler().handleVerificationThrottled(exception);
+        } finally {
+            logger.setLevel(previousLevel);
+        }
+
+        assertThat(output)
+                .contains("DEBUG", "Verification code issuance throttled", "subject-minute", "ip-hour")
+                .doesNotContain("user@example.com", "203.0.113.10");
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().toString()).doesNotContain("subject-minute", "ip-hour");
+        assertThat(response.getHeaders().getFirst(HttpHeaders.RETRY_AFTER)).isEqualTo("600");
+    }
+
     @ParameterizedTest
     @CsvSource({
         "0, 'Please retry shortly'",
@@ -165,8 +193,8 @@ class VerificationExceptionHandlerTest {
         "129600, 'Please retry after approximately 2 days'"
     })
     void formatsRetryAfterUsingAReadableUnit(long seconds, String expectedDetail) {
-        ResponseEntity<ProblemDetail> response = createDefaultHandler()
-                .handleVerificationThrottled(new VerificationThrottledException(Duration.ofSeconds(seconds)));
+        ResponseEntity<ProblemDetail> response =
+                createDefaultHandler().handleVerificationThrottled(throttled(Duration.ofSeconds(seconds)));
 
         assertThat(response.getBody())
                 .isNotNull()
@@ -178,11 +206,10 @@ class VerificationExceptionHandlerTest {
 
     @Test
     void roundsRetryAfterUpWithoutOverflowing() {
-        ResponseEntity<ProblemDetail> fractional = createDefaultHandler()
-                .handleVerificationThrottled(new VerificationThrottledException(Duration.ofNanos(1L)));
+        ResponseEntity<ProblemDetail> fractional =
+                createDefaultHandler().handleVerificationThrottled(throttled(Duration.ofNanos(1L)));
         ResponseEntity<ProblemDetail> maximum = createDefaultHandler()
-                .handleVerificationThrottled(
-                        new VerificationThrottledException(Duration.ofSeconds(Long.MAX_VALUE, 999_999_999L)));
+                .handleVerificationThrottled(throttled(Duration.ofSeconds(Long.MAX_VALUE, 999_999_999L)));
 
         assertThat(fractional.getHeaders().getFirst(HttpHeaders.RETRY_AFTER)).isEqualTo("1");
         assertThat(maximum.getHeaders().getFirst(HttpHeaders.RETRY_AFTER)).isEqualTo(Long.toString(Long.MAX_VALUE));
@@ -194,6 +221,10 @@ class VerificationExceptionHandlerTest {
             return new ProblemMessageResolver.ProblemMessages(definition.title(), exception.getMessage());
         };
         return new VerificationExceptionHandler(resolver);
+    }
+
+    private VerificationThrottledException throttled(Duration retryAfter) {
+        return new VerificationThrottledException(List.of(new IssueLimitViolation("subject-minute", retryAfter)));
     }
 
     private void assertServiceUnavailable(ProblemDetail problem) {

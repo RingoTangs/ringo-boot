@@ -319,7 +319,7 @@ sequenceDiagram
     Rule-->>Manager: IssueLimitBucket
     Manager->>LimitStore: acquire(all quotas, requestedAt)
     alt 任一规则受限
-        LimitStore-->>Manager: Throttled(retryAfter)
+        LimitStore-->>Manager: Throttled(violations)
         Manager-->>Service: Throttled
         Service-->>App: IssueResult.Throttled
     else 所有规则允许
@@ -340,7 +340,7 @@ sequenceDiagram
 6. 管理器先解析所有匹配规则的 bucket，任何规则解析失败时都不会访问限流状态存储。
 7. 管理器将规则快照转换成 `IssueLimitQuota` 列表。
 8. `IssueRateLimitStore` 在一个原子操作中检查所有签发配额。
-9. 任一规则超限时返回最大的 `retryAfter`，并且不能消费其他规则的额度。
+9. 任一规则超限时返回全部受限规则的 `ruleId` 和各自 `retryAfter`，总体等待时间取最大值，并且不能消费其他规则的额度。
 10. 所有规则允许时同时消费全部额度，然后验证码服务使用同一个上下文继续生成、存储和发送验证码。
 
 限流额度一旦成功获取就视为已经消费。后续验证码生成、存储或发送失败，不会自动退还额度。这可以防止攻击者利用第三方发送失败

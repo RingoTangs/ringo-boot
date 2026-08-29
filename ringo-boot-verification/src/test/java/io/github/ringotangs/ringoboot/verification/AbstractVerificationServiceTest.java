@@ -11,6 +11,7 @@ import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimitStore;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitViolation;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitManager;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
@@ -57,6 +58,8 @@ class AbstractVerificationServiceTest {
 
         assertEquals(1, template.dispatches());
         assertEquals(Duration.ofSeconds(60), throttled.retryAfter());
+        assertEquals(
+                List.of(new IssueLimitViolation("test-key-cooldown", Duration.ofSeconds(60))), throttled.violations());
     }
 
     @Test

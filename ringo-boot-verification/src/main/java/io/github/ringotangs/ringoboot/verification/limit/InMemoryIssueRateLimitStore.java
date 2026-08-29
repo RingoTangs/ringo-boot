@@ -3,6 +3,7 @@ package io.github.ringotangs.ringoboot.verification.limit;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,10 +20,14 @@ import java.util.Objects;
  */
 public final class InMemoryIssueRateLimitStore implements IssueRateLimitStore {
 
-    /** 每处理指定次数的额度获取后扫描并移除全部过期空桶。 */
+    /**
+     * 每处理指定次数的额度获取后扫描并移除全部过期空桶。
+     */
     private static final long CLEANUP_INTERVAL = 256;
 
-    /** 无状态的允许结果，可在成功获取额度时安全复用。 */
+    /**
+     * 无状态的允许结果，可在成功获取额度时安全复用。
+     */
     private static final IssueLimitResult.Allowed ALLOWED = new IssueLimitResult.Allowed();
 
     /**
@@ -33,7 +38,9 @@ public final class InMemoryIssueRateLimitStore implements IssueRateLimitStore {
      */
     private final Map<HistoryKey, History> histories = new HashMap<>();
 
-    /** 自实例创建以来处理的额度获取次数，用于触发周期性全局清理。 */
+    /**
+     * 自实例创建以来处理的额度获取次数，用于触发周期性全局清理。
+     */
     private long acquisitions;
 
     /**
@@ -49,11 +56,11 @@ public final class InMemoryIssueRateLimitStore implements IssueRateLimitStore {
      * <p>实现会先清理每条配额窗口外的时间戳，再计算全部受限配额中的最大等待时间。任一配额受限时不会向任何历史队列写入当前时间；
      * 全部允许时才同时写入，从而保证单 JVM 内的全有或全无语义。
      *
-     * @param quotas 本次请求需要同时满足的非空配额集合
+     * @param quotas      本次请求需要同时满足的非空配额集合
      * @param requestedAt 请求签发的时间
      * @return 全部配额允许时返回 {@link IssueLimitResult.Allowed}，否则返回等待时间最大的
-     *     {@link IssueLimitResult.Throttled}
-     * @throws NullPointerException 当配额集合、任一配额或请求时间为 {@code null} 时
+     * {@link IssueLimitResult.Throttled}
+     * @throws NullPointerException     当配额集合、任一配额或请求时间为 {@code null} 时
      * @throws IllegalArgumentException 当配额集合为空，或者同一规则 ID 在运行期间改变窗口时
      */
     @Override
@@ -65,7 +72,7 @@ public final class InMemoryIssueRateLimitStore implements IssueRateLimitStore {
         }
 
         Map<HistoryKey, ArrayDeque<Instant>> evaluated = new HashMap<>();
-        Duration retryAfter = Duration.ZERO;
+        List<IssueLimitViolation> violations = new ArrayList<>();
         for (IssueLimitQuota quota : quotas) {
             Objects.requireNonNull(quota, "quota must not be null");
             HistoryKey key = new HistoryKey(quota.ruleId(), quota.bucket());
@@ -79,15 +86,13 @@ public final class InMemoryIssueRateLimitStore implements IssueRateLimitStore {
             if (history.size() >= quota.maxIssues()) {
                 Duration current =
                         Duration.between(requestedAt, history.getFirst().plus(quota.window()));
-                if (current.compareTo(retryAfter) > 0) {
-                    retryAfter = current;
-                }
+                violations.add(new IssueLimitViolation(quota.ruleId(), current));
             }
         }
 
-        if (!retryAfter.isZero()) {
+        if (!violations.isEmpty()) {
             cleanup(requestedAt);
-            return new IssueLimitResult.Throttled(retryAfter);
+            return new IssueLimitResult.Throttled(violations);
         }
         evaluated.values().forEach(history -> history.addLast(requestedAt));
         cleanup(requestedAt);
@@ -116,7 +121,7 @@ public final class InMemoryIssueRateLimitStore implements IssueRateLimitStore {
      * 移除位于滚动窗口左边界及其之前的签发记录。
      *
      * @param history 按时间升序排列的签发历史队列
-     * @param cutoff 当前滚动窗口左边界；等于该时刻的记录也视为过期
+     * @param cutoff  当前滚动窗口左边界；等于该时刻的记录也视为过期
      */
     private static void removeExpired(ArrayDeque<Instant> history, Instant cutoff) {
         while (!history.isEmpty() && !history.getFirst().isAfter(cutoff)) {
@@ -137,7 +142,7 @@ public final class InMemoryIssueRateLimitStore implements IssueRateLimitStore {
     /**
      * 保存一条额度桶的固定窗口和仍位于窗口内的签发时间队列。
      *
-     * @param window 创建历史时使用的滚动窗口，用于检测规则运行期间发生变化
+     * @param window     创建历史时使用的滚动窗口，用于检测规则运行期间发生变化
      * @param timestamps 按签发时间升序排列的有效额度消费记录
      */
     private record History(Duration window, ArrayDeque<Instant> timestamps) {

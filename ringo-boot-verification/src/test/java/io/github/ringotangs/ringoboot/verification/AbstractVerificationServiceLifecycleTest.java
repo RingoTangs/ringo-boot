@@ -9,6 +9,7 @@ import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationExcep
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimitStore;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitViolation;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitManager;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
@@ -58,6 +59,8 @@ class AbstractVerificationServiceLifecycleTest {
         String firstCode = service.lastCode();
         IssueResult.Throttled throttled = assertInstanceOf(IssueResult.Throttled.class, service.issue(LOGIN));
         assertEquals(Duration.ofSeconds(60), throttled.retryAfter());
+        assertEquals(
+                List.of(new IssueLimitViolation("test-key-cooldown", Duration.ofSeconds(60))), throttled.violations());
 
         clock.advance(Duration.ofSeconds(60));
         assertInstanceOf(IssueResult.Accepted.class, service.issue(LOGIN));

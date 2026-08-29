@@ -25,6 +25,8 @@ class InMemoryIssueRateLimitStoreTest {
         IssueLimitResult.Throttled throttled =
                 assertInstanceOf(IssueLimitResult.Throttled.class, store.acquire(List.of(first), NOW.plusSeconds(20)));
         assertEquals(Duration.ofSeconds(40), throttled.retryAfter());
+        assertEquals(
+                List.of(new IssueLimitViolation("subject-minute", Duration.ofSeconds(40))), throttled.violations());
         assertInstanceOf(IssueLimitResult.Allowed.class, store.acquire(List.of(second), NOW.plusSeconds(20)));
         assertInstanceOf(IssueLimitResult.Allowed.class, store.acquire(List.of(first), NOW.plusSeconds(60)));
     }
@@ -53,6 +55,12 @@ class InMemoryIssueRateLimitStoreTest {
                 IssueLimitResult.Throttled.class, store.acquire(List.of(minute, hour), NOW.plusSeconds(20)));
 
         assertEquals(Duration.ofMinutes(59).plusSeconds(50), throttled.retryAfter());
+        assertEquals(
+                List.of(
+                        new IssueLimitViolation("ip-minute", Duration.ofSeconds(40)),
+                        new IssueLimitViolation(
+                                "subject-hour", Duration.ofMinutes(59).plusSeconds(50))),
+                throttled.violations());
     }
 
     @Test

@@ -3,8 +3,10 @@ package io.github.ringotangs.ringoboot.verification;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitViolation;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class IssueResultTest {
@@ -15,11 +17,16 @@ class IssueResultTest {
 
         IssueResult.Accepted accepted = new IssueResult.Accepted(expiresAt);
         IssueResult.Uncertain uncertain = new IssueResult.Uncertain(expiresAt);
-        IssueResult.Throttled throttled = new IssueResult.Throttled(Duration.ofSeconds(30));
+        IssueResult.Throttled throttled = new IssueResult.Throttled(List.of(
+                new IssueLimitViolation("subject-minute", Duration.ofSeconds(10)),
+                new IssueLimitViolation("ip-hour", Duration.ofSeconds(30))));
 
         assertEquals(expiresAt, accepted.expiresAt());
         assertEquals(expiresAt, uncertain.expiresAt());
         assertEquals(Duration.ofSeconds(30), throttled.retryAfter());
+        assertEquals(
+                List.of("subject-minute", "ip-hour"),
+                throttled.violations().stream().map(IssueLimitViolation::ruleId).toList());
     }
 
     @Test
@@ -27,6 +34,8 @@ class IssueResultTest {
         assertThrows(NullPointerException.class, () -> new IssueResult.Accepted(null));
         assertThrows(NullPointerException.class, () -> new IssueResult.Uncertain(null));
         assertThrows(NullPointerException.class, () -> new IssueResult.Throttled(null));
-        assertThrows(IllegalArgumentException.class, () -> new IssueResult.Throttled(Duration.ofSeconds(-1)));
+        assertThrows(IllegalArgumentException.class, () -> new IssueResult.Throttled(List.of()));
+        IssueLimitViolation duplicate = new IssueLimitViolation("subject-minute", Duration.ZERO);
+        assertThrows(IllegalArgumentException.class, () -> new IssueResult.Throttled(List.of(duplicate, duplicate)));
     }
 }

@@ -7,9 +7,11 @@ import io.github.ringotangs.ringoboot.autoconfigure.problem.ProblemMessageResolv
 import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
 import io.github.ringotangs.ringoboot.verification.VerificationThrottledException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitViolation;
 import io.github.ringotangs.ringoboot.verification.limit.MissingIssueRateLimitRuleException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
 import java.time.Duration;
+import java.util.List;
 import java.util.Locale;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -121,8 +123,9 @@ class VerificationProblemAutoConfigurationTest {
                     assertThat(problem.getTitle()).isEqualTo("验证码服务不可用");
                     assertThat(problem.getDetail()).isEqualTo("验证码服务暂时不可用");
 
-                    ResponseEntity<ProblemDetail> throttled = handler.handleVerificationThrottled(
-                            new VerificationThrottledException(Duration.ofSeconds(3_478L)));
+                    ResponseEntity<ProblemDetail> throttled =
+                            handler.handleVerificationThrottled(new VerificationThrottledException(
+                                    List.of(new IssueLimitViolation("subject-minute", Duration.ofSeconds(3_478L)))));
                     assertThat(throttled.getBody())
                             .isNotNull()
                             .extracting(ProblemDetail::getDetail)
@@ -143,8 +146,8 @@ class VerificationProblemAutoConfigurationTest {
                 .run(context -> {
                     VerificationExceptionHandler handler = context.getBean(VerificationExceptionHandler.class);
 
-                    assertThat(handler.handleVerificationThrottled(
-                                            new VerificationThrottledException(Duration.ofSeconds(2)))
+                    assertThat(handler.handleVerificationThrottled(new VerificationThrottledException(
+                                            List.of(new IssueLimitViolation("subject-minute", Duration.ofSeconds(2)))))
                                     .getBody())
                             .extracting(ProblemDetail::getTitle, ProblemDetail::getDetail)
                             .containsExactly(

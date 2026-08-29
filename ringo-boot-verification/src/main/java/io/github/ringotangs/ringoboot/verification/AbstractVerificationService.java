@@ -79,8 +79,8 @@ public abstract class AbstractVerificationService implements VerificationService
         Instant issuedAt = clock.instant();
         IssueLimitResult limitResult = Objects.requireNonNull(
                 issueRateLimiter.acquire(context, issuedAt), "issue rate limiter result must not be null");
-        if (limitResult instanceof IssueLimitResult.Throttled(java.time.Duration retryAfter)) {
-            return new IssueResult.Throttled(retryAfter);
+        if (limitResult instanceof IssueLimitResult.Throttled throttled) {
+            return new IssueResult.Throttled(throttled.violations());
         }
         int codeLength = verificationPolicy.length();
         String code = codeGenerator.generate(codeLength);
@@ -105,8 +105,8 @@ public abstract class AbstractVerificationService implements VerificationService
     /**
      * 将已生成并存储的验证码派发到具体渠道。
      *
-     * @param context 当前签发流程的上下文
-     * @param code 仅供发送期间使用的明文验证码
+     * @param context   当前签发流程的上下文
+     * @param code      仅供发送期间使用的明文验证码
      * @param expiresAt 验证码过期时间
      * @return 渠道对发送请求的受理结果
      * @throws CodeSenderException 当渠道派发操作失败时

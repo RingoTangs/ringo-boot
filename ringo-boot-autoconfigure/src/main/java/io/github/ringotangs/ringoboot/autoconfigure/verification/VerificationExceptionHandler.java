@@ -71,6 +71,9 @@ public class VerificationExceptionHandler {
      */
     @ExceptionHandler(VerificationThrottledException.class)
     public ResponseEntity<ProblemDetail> handleVerificationThrottled(VerificationThrottledException exception) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("Verification code issuance throttled: violations=" + exception.violations());
+        }
         long seconds = retryAfterSeconds(exception.retryAfter());
         ProblemDetail problem = problemDetailFactory.create(ProblemException.withArguments(
                 VerificationProblemType.THROTTLED,
