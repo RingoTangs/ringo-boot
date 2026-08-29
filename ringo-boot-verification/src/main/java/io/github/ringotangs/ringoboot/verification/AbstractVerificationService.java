@@ -3,11 +3,13 @@ package io.github.ringotangs.ringoboot.verification;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitViolation;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -79,8 +81,8 @@ public abstract class AbstractVerificationService implements VerificationService
         Instant issuedAt = clock.instant();
         IssueLimitResult limitResult = Objects.requireNonNull(
                 issueRateLimiter.acquire(context, issuedAt), "issue rate limiter result must not be null");
-        if (limitResult instanceof IssueLimitResult.Throttled throttled) {
-            return new IssueResult.Throttled(throttled.violations());
+        if (limitResult instanceof IssueLimitResult.Throttled(List<IssueLimitViolation> violations)) {
+            return new IssueResult.Throttled(violations);
         }
         int codeLength = verificationPolicy.length();
         String code = codeGenerator.generate(codeLength);
