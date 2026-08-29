@@ -8,6 +8,7 @@ import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisIssu
 import io.github.ringotangs.ringoboot.verification.IssueContext;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
+import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimitStore;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
@@ -49,7 +50,9 @@ class IssueRateLimitAutoConfigurationTest {
             assertThat(context).hasSingleBean(IssueRateLimiter.class);
             IssueRateLimiter limiter = context.getBean(IssueRateLimiter.class);
             IssueContext issueContext = IssueContext.of(
-                    new VerificationKey("account", "login", "user@example.com"), VerificationChannel.EMAIL);
+                    new VerificationKey("account", "login", "user@example.com"),
+                    VerificationChannel.EMAIL,
+                    VerificationPolicy.defaults());
             assertThat(limiter.acquire(issueContext, Instant.EPOCH)).isInstanceOf(IssueLimitResult.Allowed.class);
             assertThat(limiter.acquire(issueContext, Instant.EPOCH)).isInstanceOf(IssueLimitResult.Allowed.class);
         });
@@ -93,7 +96,10 @@ class IssueRateLimitAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThatThrownBy(() -> context.getBean(IssueRateLimiter.class)
-                                    .acquire(IssueContext.of(uncovered, VerificationChannel.SMS), Instant.EPOCH))
+                                    .acquire(
+                                            IssueContext.of(
+                                                    uncovered, VerificationChannel.SMS, VerificationPolicy.defaults()),
+                                            Instant.EPOCH))
                             .isInstanceOf(MissingIssueRateLimitRuleException.class)
                             .hasMessage("no issue rate limit rule matches namespace=payment, purpose=confirm")
                             .hasMessageNotContaining(uncovered.subject());
@@ -132,10 +138,13 @@ class IssueRateLimitAutoConfigurationTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context).getBeans(IssueRateLimitRule.class).hasSize(2);
                     IssueRateLimiter limiter = context.getBean(IssueRateLimiter.class);
-                    assertThat(limiter.acquire(IssueContext.of(first, VerificationChannel.EMAIL), Instant.EPOCH))
+                    assertThat(limiter.acquire(
+                                    IssueContext.of(first, VerificationChannel.EMAIL, VerificationPolicy.defaults()),
+                                    Instant.EPOCH))
                             .isInstanceOf(IssueLimitResult.Allowed.class);
                     assertThat(limiter.acquire(
-                                    IssueContext.of(second, VerificationChannel.SMS), Instant.EPOCH.plusSeconds(1)))
+                                    IssueContext.of(second, VerificationChannel.SMS, VerificationPolicy.defaults()),
+                                    Instant.EPOCH.plusSeconds(1)))
                             .isInstanceOf(IssueLimitResult.Throttled.class);
                 });
     }

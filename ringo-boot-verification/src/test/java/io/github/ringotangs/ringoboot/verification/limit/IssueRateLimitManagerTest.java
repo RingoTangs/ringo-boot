@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import io.github.ringotangs.ringoboot.verification.IssueContext;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
+import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
@@ -19,7 +20,8 @@ class IssueRateLimitManagerTest {
 
     private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
     private static final VerificationKey KEY = new VerificationKey("account", "login", "user@example.com");
-    private static final IssueContext CONTEXT = IssueContext.of(KEY, VerificationChannel.EMAIL);
+    private static final IssueContext CONTEXT =
+            IssueContext.of(KEY, VerificationChannel.EMAIL, VerificationPolicy.defaults());
 
     @Test
     void selectsRulesAndSubmitsResolvedQuotas() {
@@ -77,8 +79,10 @@ class IssueRateLimitManagerTest {
         IssueRateLimitRule rule = new TestIssueRateLimitRule(
                 "application-minute", context -> IssueLimitBucket.of("application"), 1, Duration.ofMinutes(1));
         IssueRateLimitManager manager = new IssueRateLimitManager(List.of(rule), new InMemoryIssueRateLimitStore());
-        IssueContext otherContext =
-                IssueContext.of(new VerificationKey("payment", "confirm", "+8613800000000"), VerificationChannel.SMS);
+        IssueContext otherContext = IssueContext.of(
+                new VerificationKey("payment", "confirm", "+8613800000000"),
+                VerificationChannel.SMS,
+                VerificationPolicy.defaults());
 
         assertInstanceOf(IssueLimitResult.Allowed.class, manager.acquire(CONTEXT, NOW));
         assertInstanceOf(IssueLimitResult.Throttled.class, manager.acquire(otherContext, NOW.plusSeconds(1)));

@@ -48,7 +48,7 @@ public class SmsVerificationService extends AbstractVerificationService {
      */
     @Override
     protected CodeSendResult dispatch(IssueContext context, String code, Instant expiresAt) throws CodeSenderException {
-        return sender.send(SmsCodeMessage.from(context, code, expiresAt));
+        return sender.send(context, code, expiresAt);
     }
 
     @Override

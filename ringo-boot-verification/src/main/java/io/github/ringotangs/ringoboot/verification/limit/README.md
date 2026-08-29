@@ -310,7 +310,7 @@ sequenceDiagram
     participant Sender as 渠道 Sender
 
     App->>Service: issue(VerificationKey)
-    Service->>Service: IssueContext.of(key, channel)
+    Service->>Service: IssueContext.of(key, channel, policy)
     Service->>Service: customizeIssueContext(baseContext)
     Service->>Manager: acquire(context, requestedAt)
     Manager->>Rule: matches(context)

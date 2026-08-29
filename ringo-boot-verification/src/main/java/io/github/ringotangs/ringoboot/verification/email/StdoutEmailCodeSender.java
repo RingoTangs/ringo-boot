@@ -1,6 +1,9 @@
 package io.github.ringotangs.ringoboot.verification.email;
 
+import io.github.ringotangs.ringoboot.verification.IssueContext;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
+import java.time.Instant;
+import java.util.Objects;
 
 /**
  * 将邮件验证码输出到标准输出，适用于开发和演示环境。
@@ -17,21 +20,26 @@ public final class StdoutEmailCodeSender implements EmailCodeSender {
      * 将验证码及脱敏后的邮箱地址输出到标准输出。
      *
      *
-     * @param message 验证码消息
+     * @param context 邮件签发上下文
+     * @param code 仅供发送期间使用的明文验证码
+     * @param expiresAt 验证码过期时间
      * @return 始终返回供应商已接受
      */
     @Override
-    public CodeSendResult send(EmailCodeMessage message) {
+    public CodeSendResult send(IssueContext context, String code, Instant expiresAt) {
+        Objects.requireNonNull(context, "context must not be null");
+        Objects.requireNonNull(code, "code must not be null");
+        Objects.requireNonNull(expiresAt, "expiresAt must not be null");
         System.out.println("DEVELOPMENT ONLY - Email verification code: namespace="
-                + message.namespace()
+                + context.key().namespace()
                 + ", purpose="
-                + message.purpose()
+                + context.key().purpose()
                 + ", email="
-                + mask(message.email())
+                + mask(context.key().subject())
                 + ", code="
-                + message.code()
+                + code
                 + ", expiresAt="
-                + message.expiresAt());
+                + expiresAt);
         return CodeSendResult.ACCEPTED;
     }
 

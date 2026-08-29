@@ -6,8 +6,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import io.github.ringotangs.ringoboot.verification.IssueContext;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
-import io.github.ringotangs.ringoboot.verification.email.EmailCodeMessage;
 import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
 import io.github.ringotangs.ringoboot.verification.limit.NamespaceIssueQuotaRule;
@@ -15,6 +15,7 @@ import io.github.ringotangs.ringoboot.verification.limit.PurposeIssueQuotaRule;
 import io.github.ringotangs.ringoboot.verification.limit.SubjectIssueQuotaRule;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -62,7 +63,7 @@ class EmailVerificationControllerTest {
                 .andExpect(jsonPath("$.expiresAt").isString())
                 .andExpect(jsonPath("$.code").doesNotExist());
 
-        EmailCodeMessage message = sender.latest(email);
+        CapturedDelivery message = sender.latest(email);
         org.assertj.core.api.Assertions.assertThat(message.code()).matches("\\d{6}");
 
         mockMvc.perform(post("/verification/email/verify")
@@ -81,7 +82,7 @@ class EmailVerificationControllerTest {
         for (int issued = 1; issued < 5; issued++) {
             issue(email);
         }
-        EmailCodeMessage latestMessage = sender.latest(email);
+        CapturedDelivery latestMessage = sender.latest(email);
 
         mockMvc.perform(post("/verification/email/code")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -211,17 +212,19 @@ class EmailVerificationControllerTest {
 
     static final class CapturingEmailCodeSender implements EmailCodeSender {
 
-        private final Map<String, EmailCodeMessage> messages = new ConcurrentHashMap<>();
+        private final Map<String, CapturedDelivery> messages = new ConcurrentHashMap<>();
 
         @Override
-        public CodeSendResult send(EmailCodeMessage message) {
-            messages.put(message.email(), message);
+        public CodeSendResult send(IssueContext context, String code, Instant expiresAt) {
+            messages.put(context.key().subject(), new CapturedDelivery(context, code, expiresAt));
             return CodeSendResult.ACCEPTED;
         }
 
-        EmailCodeMessage latest(String email) {
+        CapturedDelivery latest(String email) {
             return Objects.requireNonNull(
                     messages.get(email.strip().toLowerCase(Locale.ROOT)), "No message found for " + email);
         }
     }
+
+    private record CapturedDelivery(IssueContext context, String code, Instant expiresAt) {}
 }

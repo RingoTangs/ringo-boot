@@ -2,7 +2,6 @@ package io.github.ringotangs.ringoboot.verification.email;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -18,15 +17,19 @@ import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.lang.reflect.Modifier;
+import java.time.Instant;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
 class EmailVerificationServiceTest {
 
     @Test
-    void dispatchesCompleteMessageToEmailSender() {
+    void dispatchesCompleteContextToEmailSender() {
         VerificationKey key = new VerificationKey("account", "login", "user@example.com");
-        AtomicReference<EmailCodeMessage> captured = new AtomicReference<>();
+        VerificationPolicy policy = VerificationPolicy.defaults();
+        AtomicReference<IssueContext> captured = new AtomicReference<>();
+        AtomicReference<String> capturedCode = new AtomicReference<>();
+        AtomicReference<Instant> capturedExpiresAt = new AtomicReference<>();
         AtomicReference<VerificationChannel> capturedChannel = new AtomicReference<>();
         EmailVerificationService service = new EmailVerificationService(
                 length -> "123456",
@@ -35,20 +38,23 @@ class EmailVerificationServiceTest {
                     capturedChannel.set(context.channel());
                     return new io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult.Allowed();
                 },
-                VerificationPolicy.defaults(),
-                message -> {
-                    captured.set(message);
+                policy,
+                (context, code, expiresAt) -> {
+                    captured.set(context);
+                    capturedCode.set(code);
+                    capturedExpiresAt.set(expiresAt);
                     return CodeSendResult.ACCEPTED;
                 });
 
         IssueResult.Accepted result = assertInstanceOf(IssueResult.Accepted.class, service.issue(key));
 
-        assertEquals("account", captured.get().namespace());
+        assertEquals("account", captured.get().key().namespace());
         assertEquals(VerificationChannel.EMAIL, capturedChannel.get());
-        assertEquals("login", captured.get().purpose());
-        assertEquals("user@example.com", captured.get().email());
-        assertEquals("123456", captured.get().code());
-        assertEquals(result.expiresAt(), captured.get().expiresAt());
+        assertEquals("login", captured.get().key().purpose());
+        assertEquals("user@example.com", captured.get().key().subject());
+        assertEquals(policy, captured.get().policy());
+        assertEquals("123456", capturedCode.get());
+        assertEquals(result.expiresAt(), capturedExpiresAt.get());
     }
 
     @Test
@@ -82,14 +88,14 @@ class EmailVerificationServiceTest {
     @Test
     void allowsContextCustomizationWithoutChangingEmailChannel() throws Exception {
         AtomicReference<IssueContext> captured = new AtomicReference<>();
-        AtomicReference<EmailCodeMessage> dispatched = new AtomicReference<>();
+        AtomicReference<IssueContext> dispatched = new AtomicReference<>();
         CustomEmailVerificationService service = new CustomEmailVerificationService(
                 (context, requestedAt) -> {
                     captured.set(context);
                     return new io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult.Allowed();
                 },
-                message -> {
-                    dispatched.set(message);
+                (context, code, expiresAt) -> {
+                    dispatched.set(context);
                     return CodeSendResult.ACCEPTED;
                 });
 
@@ -97,7 +103,8 @@ class EmailVerificationServiceTest {
 
         assertEquals("tenant-1", captured.get().attribute("tenant-id").orElseThrow());
         assertEquals(VerificationChannel.EMAIL, captured.get().channel());
-        assertFalse(dispatched.get().toString().contains("tenant-1"));
+        assertEquals("tenant-1", dispatched.get().attribute("tenant-id").orElseThrow());
+        assertEquals(VerificationPolicy.defaults(), dispatched.get().policy());
         assertTrue(Modifier.isFinal(
                 EmailVerificationService.class.getDeclaredMethod("channel").getModifiers()));
     }

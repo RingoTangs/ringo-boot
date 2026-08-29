@@ -6,13 +6,15 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import io.github.ringotangs.ringoboot.verification.IssueContext;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
+import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 
 class IssueRateLimiterTest {
 
     private static final VerificationKey KEY = new VerificationKey("account", "login", "user@example.com");
-    private static final IssueContext CONTEXT = IssueContext.of(KEY, VerificationChannel.EMAIL);
+    private static final IssueContext CONTEXT =
+            IssueContext.of(KEY, VerificationChannel.EMAIL, VerificationPolicy.defaults());
     private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
 
     @Test

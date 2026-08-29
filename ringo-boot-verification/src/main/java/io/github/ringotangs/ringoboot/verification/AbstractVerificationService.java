@@ -74,7 +74,7 @@ public abstract class AbstractVerificationService implements VerificationService
     public final IssueResult issue(VerificationKey key) throws VerificationException {
         Objects.requireNonNull(key, "key must not be null");
         VerificationChannel channel = Objects.requireNonNull(channel(), "verification channel must not be null");
-        IssueContext baseContext = IssueContext.of(key, channel);
+        IssueContext baseContext = IssueContext.of(key, channel, verificationPolicy);
         IssueContext context = requirePreservedContext(
                 baseContext,
                 Objects.requireNonNull(customizeIssueContext(baseContext), "customized issue context must not be null"),
@@ -127,7 +127,7 @@ public abstract class AbstractVerificationService implements VerificationService
     /**
      * 为当前服务补充签发流程属性。
      *
-     * <p>子类可以返回增加属性后的新上下文，但不能替换验证码键或渠道。
+     * <p>子类可以返回增加属性后的新上下文，但不能替换验证码键、渠道或策略。
      *
      * @param context 包含验证码键和渠道的基础签发上下文
      * @return 当前服务补充后的签发上下文
@@ -161,6 +161,9 @@ public abstract class AbstractVerificationService implements VerificationService
         }
         if (!actual.channel().equals(expected.channel())) {
             throw new IllegalArgumentException(source + " must preserve the verification channel");
+        }
+        if (!actual.policy().equals(expected.policy())) {
+            throw new IllegalArgumentException(source + " must preserve the verification policy");
         }
         return actual;
     }

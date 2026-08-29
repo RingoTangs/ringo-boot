@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.github.ringotangs.ringoboot.verification.IssueContext;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
+import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -61,7 +62,8 @@ class BuiltInIssueQuotaRuleTest {
         SubjectIssueQuotaRule smsRule =
                 subjectRule("login-sms-subject-hour", VerificationChannel.SMS, 5, Duration.ofHours(1));
         VerificationChannel voice = VerificationChannel.of("voice");
-        IssueContext voiceContext = IssueContext.of(new VerificationKey("account", "login", "user@example.com"), voice);
+        IssueContext voiceContext = IssueContext.of(
+                new VerificationKey("account", "login", "user@example.com"), voice, VerificationPolicy.defaults());
         SubjectIssueQuotaRule voiceRule = subjectRule("login-voice-subject-hour", voice, 5, Duration.ofHours(1));
 
         assertTrue(rule.matches(LOGIN_EMAIL));
@@ -257,6 +259,9 @@ class BuiltInIssueQuotaRuleTest {
     }
 
     private static IssueContext context(String namespace, String purpose, String subject, String channel) {
-        return IssueContext.of(new VerificationKey(namespace, purpose, subject), VerificationChannel.of(channel));
+        return IssueContext.of(
+                new VerificationKey(namespace, purpose, subject),
+                VerificationChannel.of(channel),
+                VerificationPolicy.defaults());
     }
 }

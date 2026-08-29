@@ -208,9 +208,13 @@ class AbstractVerificationServiceTest {
     void rejectsInvalidCustomizerResults() {
         VerificationKey otherKey = new VerificationKey("account", "login", "other@example.com");
         CapturingVerificationService changedKey = template(length -> "123456", new InMemoryVerificationStore());
-        changedKey.customizeWith(context -> IssueContext.of(otherKey, context.channel()));
+        changedKey.customizeWith(context -> IssueContext.of(otherKey, context.channel(), context.policy()));
         CapturingVerificationService changedChannel = template(length -> "123456", new InMemoryVerificationStore());
-        changedChannel.customizeWith(context -> IssueContext.of(context.key(), VerificationChannel.SMS));
+        changedChannel.customizeWith(
+                context -> IssueContext.of(context.key(), VerificationChannel.SMS, context.policy()));
+        CapturingVerificationService changedPolicy = template(length -> "123456", new InMemoryVerificationStore());
+        changedPolicy.customizeWith(context ->
+                IssueContext.of(context.key(), context.channel(), new VerificationPolicy(4, Duration.ofMinutes(1), 2)));
         CapturingVerificationService nullCustomizedContext =
                 template(length -> "123456", new InMemoryVerificationStore());
         nullCustomizedContext.customizeWith(context -> null);
@@ -222,6 +226,10 @@ class AbstractVerificationServiceTest {
         assertEquals(
                 "issue context customizer must preserve the verification channel",
                 assertThrows(IllegalArgumentException.class, () -> changedChannel.issue(LOGIN))
+                        .getMessage());
+        assertEquals(
+                "issue context customizer must preserve the verification policy",
+                assertThrows(IllegalArgumentException.class, () -> changedPolicy.issue(LOGIN))
                         .getMessage());
         assertEquals(
                 "customized issue context must not be null",

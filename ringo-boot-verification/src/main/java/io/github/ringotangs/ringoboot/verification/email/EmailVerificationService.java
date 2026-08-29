@@ -48,7 +48,7 @@ public class EmailVerificationService extends AbstractVerificationService {
      */
     @Override
     protected CodeSendResult dispatch(IssueContext context, String code, Instant expiresAt) throws CodeSenderException {
-        return sender.send(EmailCodeMessage.from(context, code, expiresAt));
+        return sender.send(context, code, expiresAt);
     }
 
     @Override

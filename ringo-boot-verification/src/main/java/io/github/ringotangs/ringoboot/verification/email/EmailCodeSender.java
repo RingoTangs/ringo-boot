@@ -1,7 +1,9 @@
 package io.github.ringotangs.ringoboot.verification.email;
 
+import io.github.ringotangs.ringoboot.verification.IssueContext;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.sender.CodeSenderException;
+import java.time.Instant;
 
 /**
  * 通过邮件渠道派发验证码。
@@ -15,9 +17,11 @@ public interface EmailCodeSender {
     /**
      * 将验证码派发到指定邮箱。
      *
-     * @param message 邮件验证码消息
+     * @param context 邮件签发上下文
+     * @param code 仅供发送期间使用的明文验证码
+     * @param expiresAt 验证码过期时间
      * @return 供应商接受状态
      * @throws CodeSenderException 当邮件派发操作失败时
      */
-    CodeSendResult send(EmailCodeMessage message) throws CodeSenderException;
+    CodeSendResult send(IssueContext context, String code, Instant expiresAt) throws CodeSenderException;
 }

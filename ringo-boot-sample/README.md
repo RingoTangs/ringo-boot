@@ -45,6 +45,17 @@ EmailVerificationService emailVerificationService(
 }
 ```
 
+Sender 直接接收本次签发的 `IssueContext`、明文验证码和准确过期时间。例如邮件模板可以从
+`context.policy().ttl()` 读取有效时长，从 `context.key().subject()` 读取收件地址：
+
+```java
+@Bean
+EmailCodeSender emailCodeSender(EmailClient emailClient) {
+    return (context, code, expiresAt) -> emailClient.send(
+            context.key().subject(), code, context.policy().ttl(), expiresAt);
+}
+```
+
 ## Redis 验证码存储 / Redis verification storage
 
 sample 默认连接本机 Redis。可以通过 `REDIS_URL` 指定远程地址、认证信息和数据库编号：
