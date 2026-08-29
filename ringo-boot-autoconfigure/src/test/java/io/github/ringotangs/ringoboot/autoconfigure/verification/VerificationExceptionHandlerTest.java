@@ -147,7 +147,7 @@ class VerificationExceptionHandlerTest {
                 "Please retry after approximately 2 seconds");
         assertThat(throttledResponse.getHeaders().getFirst(HttpHeaders.RETRY_AFTER))
                 .isEqualTo("2");
-        assertThat(throttled.getProperties()).containsEntry("retryAfterSeconds", 2L);
+        assertThat(throttled.getProperties()).isNullOrEmpty();
         assertProblem(
                 invalid,
                 400,
@@ -201,7 +201,7 @@ class VerificationExceptionHandlerTest {
                 .extracting(ProblemDetail::getDetail)
                 .isEqualTo(expectedDetail);
         assertThat(response.getHeaders().getFirst(HttpHeaders.RETRY_AFTER)).isEqualTo(Long.toString(seconds));
-        assertThat(response.getBody().getProperties()).containsEntry("retryAfterSeconds", seconds);
+        assertThat(response.getBody().getProperties()).isNullOrEmpty();
     }
 
     @Test

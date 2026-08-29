@@ -1,7 +1,6 @@
 package io.github.ringotangs.ringoboot.verification.limit;
 
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
-
 import java.util.Objects;
 
 /**

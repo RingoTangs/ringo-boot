@@ -91,7 +91,7 @@ class EmailVerificationControllerTest {
                 .andExpect(header().string(HttpHeaders.RETRY_AFTER, org.hamcrest.Matchers.matchesPattern("\\d+")))
                 .andExpect(jsonPath("$.type").value(THROTTLED_TYPE))
                 .andExpect(jsonPath("$.status").value(429))
-                .andExpect(jsonPath("$.retryAfterSeconds").isNumber());
+                .andExpect(jsonPath("$.retryAfterSeconds").doesNotExist());
 
         org.assertj.core.api.Assertions.assertThat(sender.latest(email)).isSameAs(latestMessage);
 

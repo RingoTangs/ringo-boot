@@ -67,7 +67,7 @@ public class VerificationExceptionHandler {
      * 将签发限流转换为包含等待秒数的 429 Problem Details。
      *
      * @param exception 签发额度超限异常
-     * @return 包含精确等待时间和友好 Problem Details 的限流响应
+     * @return 通过响应头提供精确等待时间并包含友好 Problem Details 的限流响应
      */
     @ExceptionHandler(IssueRateLimitExceededException.class)
     public ResponseEntity<ProblemDetail> handleIssueRateLimitExceeded(IssueRateLimitExceededException exception) {
@@ -82,7 +82,6 @@ public class VerificationExceptionHandler {
                 Long.toString(ceilDiv(seconds, 60L)),
                 Long.toString(ceilDiv(seconds, 3_600L)),
                 Long.toString(ceilDiv(seconds, 86_400L))));
-        problem.setProperty("retryAfterSeconds", seconds);
         return ResponseEntity.status(problem.getStatus())
                 .header(HttpHeaders.RETRY_AFTER, Long.toString(seconds))
                 .body(problem);
