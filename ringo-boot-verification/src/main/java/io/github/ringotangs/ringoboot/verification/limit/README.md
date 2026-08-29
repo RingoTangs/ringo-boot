@@ -467,7 +467,7 @@ IssueRateLimitRule loginIpHourlyRule() {
 | 规则、上下文或配额非法 | `IllegalArgumentException` | 配置或调用错误 |
 | 没有规则或当前业务未被规则覆盖 | `MissingIssueRateLimitRuleException` | 严格拒绝签发的限流配置错误 |
 | 正常达到签发上限 | `IssueLimitResult.Throttled` | 可预期的限流结果，不是异常 |
-| Redis、网络或原子操作失败 | `IssueRateLimitException` | 限流基础设施技术故障 |
+| Redis、网络或原子操作失败 | `IssueRateLimitStoreException` | 限流基础设施技术故障 |
 
-不要捕获并统一包装所有 `RuntimeException`。自定义 Store 应只把底层基础设施故障包装成 `IssueRateLimitException`；规则实现
+不要捕获并统一包装所有 `RuntimeException`。自定义 Store 应只把底层基础设施故障包装成 `IssueRateLimitStoreException`；规则实现
 缺少属性、返回空值或声明非法时应保留编程错误语义，便于开发阶段尽早发现问题。

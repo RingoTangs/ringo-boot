@@ -76,7 +76,7 @@ IssueLimitResult acquire(List<IssueLimitQuota> quotas, Instant requestedAt);
 6. Store 返回 `Allowed` 后，即使后续生成、存储或发送验证码失败，也不退还限流额度。
 
 正常额度耗尽返回 `IssueLimitResult.Throttled`，不抛异常。Redis、网络或原子操作失败使用
-`IssueRateLimitException`；参数或实现违反契约时使用 Java 标准运行时异常。
+`IssueRateLimitStoreException`；参数或实现违反契约时使用 Java 标准运行时异常。
 
 ## 四、InMemoryIssueRateLimitStore 保存什么
 
@@ -235,4 +235,4 @@ application-hour：整个应用 1 小时最多 1000 次
 - `ruleId + bucket` 能稳定区分历史记录。
 - 不在日志或外部存储 key 中暴露邮箱、手机号、IP 等 Bucket 原始分段。
 - 分布式部署时能够跨进程保持原子性。
-- 只用 `IssueRateLimitException` 包装基础设施故障，不掩盖配置或编程错误。
+- 只用 `IssueRateLimitStoreException` 包装基础设施故障，不掩盖配置或编程错误。

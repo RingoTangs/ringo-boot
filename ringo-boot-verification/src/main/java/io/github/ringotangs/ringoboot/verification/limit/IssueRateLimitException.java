@@ -3,12 +3,11 @@ package io.github.ringotangs.ringoboot.verification.limit;
 import io.github.ringotangs.ringoboot.verification.VerificationException;
 
 /**
- * 表示验证码签发限流基础设施操作失败。
+ * 验证码签发限流异常的统一抽象父类。
  *
- * <p>该异常用于包装 Redis、网络或其他限流状态存储故障，不表示正常的配额超限。正常超限应返回
- * {@link IssueLimitResult.Throttled}。诊断消息可能包含内部基础设施信息，不应直接作为客户端错误详情返回。
+ * <p>调用方可以捕获该类型统一处理正常超限、规则配置缺失和限流存储故障，并通过具体子类区分不同语义。
  */
-public class IssueRateLimitException extends VerificationException {
+public abstract class IssueRateLimitException extends VerificationException {
 
     /**
      * 使用诊断消息创建异常。
@@ -16,7 +15,7 @@ public class IssueRateLimitException extends VerificationException {
      * @param message 诊断消息
      * @throws NullPointerException 当诊断消息为 {@code null} 时
      */
-    public IssueRateLimitException(String message) {
+    protected IssueRateLimitException(String message) {
         super(message);
     }
 
@@ -27,7 +26,7 @@ public class IssueRateLimitException extends VerificationException {
      * @param cause 原始异常
      * @throws NullPointerException 当诊断消息或原始异常为 {@code null} 时
      */
-    public IssueRateLimitException(String message, Throwable cause) {
+    protected IssueRateLimitException(String message, Throwable cause) {
         super(message, cause);
     }
 }

@@ -12,7 +12,7 @@ import static org.mockito.Mockito.when;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitQuota;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitException;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitStoreException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -90,7 +90,7 @@ class RedisIssueRateLimitStoreTest {
 
         assertThatThrownBy(() -> store(redisTemplate)
                         .acquire(List.of(quota("subject-minute", "user", 1, Duration.ofMinutes(1))), NOW))
-                .isInstanceOf(IssueRateLimitException.class)
+                .isInstanceOf(IssueRateLimitStoreException.class)
                 .hasMessage("Redis issue rate limit operation failed");
     }
 
@@ -115,7 +115,7 @@ class RedisIssueRateLimitStoreTest {
                     .thenReturn(result);
 
             assertThatThrownBy(() -> store(redisTemplate).acquire(quotas, NOW))
-                    .isInstanceOf(IssueRateLimitException.class)
+                    .isInstanceOf(IssueRateLimitStoreException.class)
                     .hasMessage("Redis issue rate limit script returned an invalid result");
         }
     }

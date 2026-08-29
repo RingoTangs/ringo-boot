@@ -1,7 +1,7 @@
 package io.github.ringotangs.ringoboot.verification.limit;
 
-import io.github.ringotangs.ringoboot.verification.VerificationException;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
+
 import java.util.Objects;
 
 /**
@@ -10,7 +10,7 @@ import java.util.Objects;
  * <p>该异常表示服务端限流配置缺失，不是正常达到额度上限。正常超限使用 {@link IssueLimitResult.Throttled} 表达。基于验证码键创建
  * 异常时，诊断消息不会包含可能为邮箱或手机号的 subject。
  */
-public final class MissingIssueRateLimitRuleException extends VerificationException {
+public final class MissingIssueRateLimitRuleException extends IssueRateLimitException {
 
     /**
      * 创建一个表示限流管理器没有配置任何规则的异常。

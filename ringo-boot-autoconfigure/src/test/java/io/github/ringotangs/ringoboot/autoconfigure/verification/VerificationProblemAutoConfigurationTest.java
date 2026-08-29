@@ -5,9 +5,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.github.ringotangs.ringoboot.autoconfigure.problem.ProblemAutoConfiguration;
 import io.github.ringotangs.ringoboot.autoconfigure.problem.ProblemMessageResolver;
 import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
-import io.github.ringotangs.ringoboot.verification.VerificationThrottledException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitViolation;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitExceededException;
 import io.github.ringotangs.ringoboot.verification.limit.MissingIssueRateLimitRuleException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
 import java.time.Duration;
@@ -124,7 +124,7 @@ class VerificationProblemAutoConfigurationTest {
                     assertThat(problem.getDetail()).isEqualTo("验证码服务暂时不可用");
 
                     ResponseEntity<ProblemDetail> throttled =
-                            handler.handleVerificationThrottled(new VerificationThrottledException(
+                            handler.handleIssueRateLimitExceeded(new IssueRateLimitExceededException(
                                     List.of(new IssueLimitViolation("subject-minute", Duration.ofSeconds(3_478L)))));
                     assertThat(throttled.getBody())
                             .isNotNull()
@@ -146,7 +146,7 @@ class VerificationProblemAutoConfigurationTest {
                 .run(context -> {
                     VerificationExceptionHandler handler = context.getBean(VerificationExceptionHandler.class);
 
-                    assertThat(handler.handleVerificationThrottled(new VerificationThrottledException(
+                    assertThat(handler.handleIssueRateLimitExceeded(new IssueRateLimitExceededException(
                                             List.of(new IssueLimitViolation("subject-minute", Duration.ofSeconds(2)))))
                                     .getBody())
                             .extracting(ProblemDetail::getTitle, ProblemDetail::getDetail)

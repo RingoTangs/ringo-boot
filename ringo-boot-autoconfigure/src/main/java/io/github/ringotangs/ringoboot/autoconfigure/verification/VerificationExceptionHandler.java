@@ -7,8 +7,8 @@ import io.github.ringotangs.ringoboot.problem.ProblemType;
 import io.github.ringotangs.ringoboot.verification.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
 import io.github.ringotangs.ringoboot.verification.VerificationException;
-import io.github.ringotangs.ringoboot.verification.VerificationThrottledException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitExceededException;
 import io.github.ringotangs.ringoboot.verification.limit.MissingIssueRateLimitRuleException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -66,11 +66,11 @@ public class VerificationExceptionHandler {
     /**
      * 将签发限流转换为包含等待秒数的 429 Problem Details。
      *
-     * @param exception 签发限流异常
+     * @param exception 签发额度超限异常
      * @return 包含精确等待时间和友好 Problem Details 的限流响应
      */
-    @ExceptionHandler(VerificationThrottledException.class)
-    public ResponseEntity<ProblemDetail> handleVerificationThrottled(VerificationThrottledException exception) {
+    @ExceptionHandler(IssueRateLimitExceededException.class)
+    public ResponseEntity<ProblemDetail> handleIssueRateLimitExceeded(IssueRateLimitExceededException exception) {
         if (logger.isDebugEnabled()) {
             logger.debug("Verification code issuance throttled: violations=" + exception.violations());
         }

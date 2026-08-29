@@ -4,8 +4,8 @@ import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitQuota;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitViolation;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitException;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitStore;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitStoreException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -178,10 +178,11 @@ public final class RedisIssueRateLimitStore implements IssueRateLimitStore {
      *     {@link IssueLimitResult.Throttled}
      * @throws NullPointerException     当配额集合、任一配额或请求时间为 {@code null} 时
      * @throws IllegalArgumentException 当配额集合为空，或者任一窗口不足一毫秒时
-     * @throws IssueRateLimitException  当 Redis 操作失败，或者脚本返回未知或非法结果时
+     * @throws IssueRateLimitStoreException 当 Redis 操作失败，或者脚本返回未知或非法结果时
      */
     @Override
-    public IssueLimitResult acquire(List<IssueLimitQuota> quotas, Instant requestedAt) throws IssueRateLimitException {
+    public IssueLimitResult acquire(List<IssueLimitQuota> quotas, Instant requestedAt)
+            throws IssueRateLimitStoreException {
         Objects.requireNonNull(quotas, "quotas must not be null");
         Objects.requireNonNull(requestedAt, "requestedAt must not be null");
         if (quotas.isEmpty()) {
@@ -208,24 +209,24 @@ public final class RedisIssueRateLimitStore implements IssueRateLimitStore {
         try {
             result = redisTemplate.execute(ACQUIRE_SCRIPT, keys, arguments.toArray());
         } catch (DataAccessException exception) {
-            throw new IssueRateLimitException("Redis issue rate limit operation failed", exception);
+            throw new IssueRateLimitStoreException("Redis issue rate limit operation failed", exception);
         }
         long status = number(result, 0);
         if (status == 0) {
             if (result.size() != 1) {
-                throw new IssueRateLimitException("Redis issue rate limit script returned an invalid result");
+                throw new IssueRateLimitStoreException("Redis issue rate limit script returned an invalid result");
             }
             return ALLOWED;
         }
         if (status == 1) {
             return throttled(result, quotas);
         }
-        throw new IssueRateLimitException("Redis issue rate limit script returned an unknown status");
+        throw new IssueRateLimitStoreException("Redis issue rate limit script returned an unknown status");
     }
 
     private IssueLimitResult.Throttled throttled(List<?> result, List<IssueLimitQuota> quotas) {
         if (result.size() < 3 || result.size() % 2 == 0) {
-            throw new IssueRateLimitException("Redis issue rate limit script returned an invalid result");
+            throw new IssueRateLimitStoreException("Redis issue rate limit script returned an invalid result");
         }
         List<IssueLimitViolation> violations = new ArrayList<>((result.size() - 1) / 2);
         boolean[] seen = new boolean[quotas.size()];
@@ -233,11 +234,11 @@ public final class RedisIssueRateLimitStore implements IssueRateLimitStore {
             long quotaIndex = number(result, position);
             long retryAfterMillis = number(result, position + 1);
             if (quotaIndex < 1 || quotaIndex > quotas.size() || retryAfterMillis < 0) {
-                throw new IssueRateLimitException("Redis issue rate limit script returned an invalid result");
+                throw new IssueRateLimitStoreException("Redis issue rate limit script returned an invalid result");
             }
             int index = Math.toIntExact(quotaIndex - 1);
             if (seen[index]) {
-                throw new IssueRateLimitException("Redis issue rate limit script returned an invalid result");
+                throw new IssueRateLimitStoreException("Redis issue rate limit script returned an invalid result");
             }
             seen[index] = true;
             violations.add(new IssueLimitViolation(quotas.get(index).ruleId(), Duration.ofMillis(retryAfterMillis)));
@@ -267,7 +268,7 @@ public final class RedisIssueRateLimitStore implements IssueRateLimitStore {
      * @param ruleId 产生额度的稳定规则标识
      * @param bucket 包含手机号、邮箱或 IP 等潜在敏感分段的额度桶
      * @return 无填充 Base64URL 编码的 HMAC-SHA256 摘要
-     * @throws IssueRateLimitException 当运行环境不支持 HmacSHA256 时
+     * @throws IssueRateLimitStoreException 当运行环境不支持 HmacSHA256 时
      */
     private String bucketDigest(String ruleId, IssueLimitBucket bucket) {
         try {
@@ -281,7 +282,7 @@ public final class RedisIssueRateLimitStore implements IssueRateLimitStore {
             }
             return Base64.getUrlEncoder().withoutPadding().encodeToString(mac.doFinal());
         } catch (GeneralSecurityException exception) {
-            throw new IssueRateLimitException("HmacSHA256 is not available", exception);
+            throw new IssueRateLimitStoreException("HmacSHA256 is not available", exception);
         }
     }
 
@@ -305,11 +306,11 @@ public final class RedisIssueRateLimitStore implements IssueRateLimitStore {
      * @param result Redis 脚本返回的列表
      * @param index  待读取的元素位置
      * @return 指定位置的整数值
-     * @throws IssueRateLimitException 当返回值为空、长度不足或指定元素不是数字时
+     * @throws IssueRateLimitStoreException 当返回值为空、长度不足或指定元素不是数字时
      */
     private long number(List<?> result, int index) {
         if (result == null || result.size() <= index || !(result.get(index) instanceof Number value)) {
-            throw new IssueRateLimitException("Redis issue rate limit script returned an invalid result");
+            throw new IssueRateLimitStoreException("Redis issue rate limit script returned an invalid result");
         }
         return value.longValue();
     }

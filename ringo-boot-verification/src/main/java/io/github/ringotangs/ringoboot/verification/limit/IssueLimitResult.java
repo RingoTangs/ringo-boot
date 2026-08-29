@@ -9,7 +9,7 @@ import java.util.Objects;
  * 表示 {@link IssueRateLimiter} 尝试获取验证码签发名额的结果。
  *
  * <p>获得名额使用 {@link Allowed} 表达，正常达到额度上限使用 {@link Throttled} 表达。规则配置缺失和基础设施故障不属于正常结果，
- * 分别通过 {@link MissingIssueRateLimitRuleException} 和 {@link IssueRateLimitException} 表达。
+ * 分别通过 {@link MissingIssueRateLimitRuleException} 和 {@link IssueRateLimitStoreException} 表达。
  */
 public sealed interface IssueLimitResult permits IssueLimitResult.Allowed, IssueLimitResult.Throttled {
 

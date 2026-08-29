@@ -67,10 +67,10 @@ public final class IssueRateLimitManager implements IssueRateLimiter {
      * @throws IllegalArgumentException 当规则生成的配额非法时
      * @throws MissingIssueRateLimitRuleException 当没有规则覆盖当前验证码键时
      * @throws RuntimeException 当规则匹配或额度桶解析失败时
-     * @throws IssueRateLimitException 当底层限流状态操作失败时
+     * @throws IssueRateLimitStoreException 当底层限流状态操作失败时
      */
     @Override
-    public IssueLimitResult acquire(IssueContext context, Instant requestedAt) throws IssueRateLimitException {
+    public IssueLimitResult acquire(IssueContext context, Instant requestedAt) throws IssueRateLimitStoreException {
         Objects.requireNonNull(context, "context must not be null");
         Objects.requireNonNull(requestedAt, "requestedAt must not be null");
         List<IssueLimitQuota> quotas = new ArrayList<>();

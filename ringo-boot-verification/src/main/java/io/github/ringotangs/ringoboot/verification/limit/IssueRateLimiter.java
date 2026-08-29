@@ -17,7 +17,7 @@ import java.util.Objects;
  * <p>当多条规则同时受限时，返回的剩余等待时间应为所有受限规则中的最大值，表示全部规则再次允许签发所需的时间。
  *
  * <p>参数、规则声明和上下文数据违反契约时使用 Java 标准运行时异常；只有底层存储或原子操作等技术故障才使用
- * {@link IssueRateLimitException}。正常限流始终通过 {@link IssueLimitResult.Throttled} 返回。
+ * {@link IssueRateLimitStoreException}。正常限流始终通过 {@link IssueLimitResult.Throttled} 返回。
  *
  * <p>默认管理器采用严格拒绝策略，没有规则覆盖当前验证码键时抛出 {@link MissingIssueRateLimitRuleException}。不需要限制签发频率时
  * 可以使用 {@link #permitAll()}；Spring Boot 自动配置在应用没有提供规则或限流器时使用该实现。
@@ -51,7 +51,7 @@ public interface IssueRateLimiter {
      * @throws IllegalArgumentException           当规则声明或解析出的上下文数据非法时
      * @throws RuntimeException                   当上下文解析失败或匹配规则无法解析额度桶时
      * @throws MissingIssueRateLimitRuleException 当没有规则覆盖当前验证码键时
-     * @throws IssueRateLimitException            当底层限流操作失败时
+     * @throws IssueRateLimitStoreException       当底层限流操作失败时
      */
     IssueLimitResult acquire(IssueContext context, Instant requestedAt) throws IssueRateLimitException;
 }

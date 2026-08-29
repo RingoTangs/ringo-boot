@@ -16,6 +16,7 @@
  *
  * <p>参数和规则定义错误使用 Java 标准运行时异常；正常受限通过
  * {@link io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult.Throttled} 表达；只有限流基础设施技术故障使用
+ * {@link io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitStoreException}。所有限流业务、配置和基础设施异常统一继承
  * {@link io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitException}。
  */
 @org.jspecify.annotations.NullMarked
