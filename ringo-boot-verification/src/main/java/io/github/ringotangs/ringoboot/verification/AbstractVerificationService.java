@@ -4,9 +4,6 @@ import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationExcep
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
-import io.github.ringotangs.ringoboot.verification.sender.CodeDeliveryRejectedException;
-import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
-import io.github.ringotangs.ringoboot.verification.sender.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.time.Clock;
@@ -143,7 +140,7 @@ public abstract class AbstractVerificationService implements VerificationService
             return switch (result) {
                 case ACCEPTED -> new IssueResult.Accepted(expiresAt);
                 case UNKNOWN -> new IssueResult.Uncertain(expiresAt);
-                case REJECTED -> throw new CodeDeliveryRejectedException();
+                case REJECTED -> throw new CodeDeliveryRejectedException(context.channel());
             };
         } catch (RuntimeException dispatchFailure) {
             try {

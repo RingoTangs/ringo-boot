@@ -16,9 +16,6 @@ import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.limit.MissingIssueRateLimitRuleException;
 import io.github.ringotangs.ringoboot.verification.limit.TestIssueRateLimitRule;
-import io.github.ringotangs.ringoboot.verification.sender.CodeDeliveryRejectedException;
-import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
-import io.github.ringotangs.ringoboot.verification.sender.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
@@ -93,7 +90,7 @@ class AbstractVerificationServiceTest {
     @Test
     void invalidatesCodeWhenDispatchFailsButKeepsIssueLimit() {
         CapturingVerificationService template = template(length -> "123456", new InMemoryVerificationStore());
-        CodeSenderException failure = new CodeSenderException("provider unavailable");
+        CodeSenderException failure = new CodeSenderException(VerificationChannel.EMAIL, "provider unavailable");
         template.failWith(failure);
 
         CodeSenderException thrown = assertThrows(CodeSenderException.class, () -> template.issue(LOGIN));
@@ -109,7 +106,9 @@ class AbstractVerificationServiceTest {
         CapturingVerificationService template = template(length -> "123456", new InMemoryVerificationStore());
         template.respondWith(CodeSendResult.REJECTED);
 
-        assertThrows(CodeDeliveryRejectedException.class, () -> template.issue(LOGIN));
+        CodeDeliveryRejectedException rejected =
+                assertThrows(CodeDeliveryRejectedException.class, () -> template.issue(LOGIN));
+        assertEquals(VerificationChannel.EMAIL, rejected.channel());
         template.respondWith(CodeSendResult.ACCEPTED);
 
         assertInstanceOf(IssueResult.Throttled.class, template.issue(LOGIN));
@@ -135,7 +134,8 @@ class AbstractVerificationServiceTest {
             }
         };
         CapturingVerificationService template = template(length -> "123456", store);
-        CodeSenderException dispatchFailure = new CodeSenderException("delivery unavailable");
+        CodeSenderException dispatchFailure =
+                new CodeSenderException(VerificationChannel.EMAIL, "delivery unavailable");
         template.failWith(dispatchFailure);
 
         CodeSenderException thrown = assertThrows(CodeSenderException.class, () -> template.issue(LOGIN));

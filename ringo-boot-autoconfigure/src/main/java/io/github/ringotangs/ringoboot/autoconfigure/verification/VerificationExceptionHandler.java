@@ -4,6 +4,7 @@ import io.github.ringotangs.ringoboot.autoconfigure.problem.ProblemDetailFactory
 import io.github.ringotangs.ringoboot.autoconfigure.problem.ProblemMessageResolver;
 import io.github.ringotangs.ringoboot.problem.ProblemException;
 import io.github.ringotangs.ringoboot.problem.ProblemType;
+import io.github.ringotangs.ringoboot.verification.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
 import io.github.ringotangs.ringoboot.verification.VerificationException;
 import io.github.ringotangs.ringoboot.verification.VerificationThrottledException;
@@ -48,7 +49,11 @@ public class VerificationExceptionHandler {
      */
     @ExceptionHandler(VerificationException.class)
     public ProblemDetail handleVerificationException(VerificationException exception) {
-        logger.error("Verification operation failed", exception);
+        if (exception instanceof CodeSenderException senderException) {
+            logger.error("Verification code delivery failed: channel=" + senderException.channel(), exception);
+        } else {
+            logger.error("Verification operation failed", exception);
+        }
         ProblemType problemType =
                 switch (exception) {
                     case CodeGenerationException ignored -> VerificationProblemType.GENERATION_FAILED;

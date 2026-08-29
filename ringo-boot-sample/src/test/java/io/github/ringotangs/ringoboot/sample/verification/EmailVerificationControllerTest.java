@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import io.github.ringotangs.ringoboot.verification.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.IssueContext;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
@@ -13,7 +14,6 @@ import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
 import io.github.ringotangs.ringoboot.verification.limit.NamespaceIssueQuotaRule;
 import io.github.ringotangs.ringoboot.verification.limit.PurposeIssueQuotaRule;
 import io.github.ringotangs.ringoboot.verification.limit.SubjectIssueQuotaRule;
-import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;

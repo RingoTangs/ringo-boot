@@ -1,13 +1,13 @@
 package io.github.ringotangs.ringoboot.verification.email;
 
 import io.github.ringotangs.ringoboot.verification.AbstractVerificationService;
+import io.github.ringotangs.ringoboot.verification.CodeSendResult;
+import io.github.ringotangs.ringoboot.verification.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.IssueContext;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
-import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
-import io.github.ringotangs.ringoboot.verification.sender.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.time.Instant;
 import java.util.Objects;

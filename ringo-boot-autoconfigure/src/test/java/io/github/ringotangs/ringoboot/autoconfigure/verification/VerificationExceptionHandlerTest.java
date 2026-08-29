@@ -4,15 +4,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.github.ringotangs.ringoboot.autoconfigure.problem.ProblemMessageResolver;
+import io.github.ringotangs.ringoboot.verification.CodeDeliveryRejectedException;
+import io.github.ringotangs.ringoboot.verification.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
+import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.VerificationException;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationThrottledException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitException;
 import io.github.ringotangs.ringoboot.verification.limit.MissingIssueRateLimitRuleException;
-import io.github.ringotangs.ringoboot.verification.sender.CodeDeliveryRejectedException;
-import io.github.ringotangs.ringoboot.verification.sender.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
 import java.net.URI;
 import java.time.Duration;
@@ -51,13 +52,14 @@ class VerificationExceptionHandlerTest {
     void returnsSameSafeUnavailableProblemForSenderStoreAndRateLimitFailures(CapturedOutput output) {
         VerificationExceptionHandler handler = createDefaultHandler();
 
-        ProblemDetail senderProblem = handler.handleVerificationException(
-                new CodeSenderException("provider token=secret", new IllegalStateException("provider details")));
+        ProblemDetail senderProblem = handler.handleVerificationException(new CodeSenderException(
+                VerificationChannel.EMAIL, "provider token=secret", new IllegalStateException("provider details")));
         ProblemDetail storeProblem = handler.handleVerificationException(
                 new VerificationStoreException("redis password=secret", new IllegalStateException("redis details")));
         ProblemDetail rateLimitProblem = handler.handleVerificationException(new IssueRateLimitException(
                 "lua script secret diagnostics", new IllegalStateException("redis details")));
-        ProblemDetail rejectedProblem = handler.handleVerificationException(new CodeDeliveryRejectedException());
+        ProblemDetail rejectedProblem =
+                handler.handleVerificationException(new CodeDeliveryRejectedException(VerificationChannel.SMS));
 
         assertServiceUnavailable(senderProblem);
         assertServiceUnavailable(storeProblem);
@@ -70,6 +72,7 @@ class VerificationExceptionHandlerTest {
         assertLogged(output, VerificationStoreException.class);
         assertLogged(output, IssueRateLimitException.class);
         assertLogged(output, CodeDeliveryRejectedException.class);
+        assertThat(output).contains("channel=email", "channel=sms");
     }
 
     @Test
@@ -81,8 +84,12 @@ class VerificationExceptionHandlerTest {
         assertHandler(
                 resolver, new VerificationThrottledException(Duration.ofSeconds(1)), "handleVerificationThrottled");
         assertHandler(resolver, new CodeGenerationException("internal"), "handleVerificationException");
-        assertHandler(resolver, new CodeSenderException("internal"), "handleVerificationException");
-        assertHandler(resolver, new CodeDeliveryRejectedException(), "handleVerificationException");
+        assertHandler(
+                resolver,
+                new CodeSenderException(VerificationChannel.EMAIL, "internal"),
+                "handleVerificationException");
+        assertHandler(
+                resolver, new CodeDeliveryRejectedException(VerificationChannel.SMS), "handleVerificationException");
         assertHandler(resolver, new VerificationStoreException("internal"), "handleVerificationException");
         assertHandler(resolver, new IssueRateLimitException("internal"), "handleVerificationException");
         assertHandler(resolver, new MissingIssueRateLimitRuleException(), "handleVerificationException");
@@ -206,10 +213,10 @@ class VerificationExceptionHandlerTest {
     }
 
     private void assertLogged(CapturedOutput output, Class<?> exceptionType) {
-        assertThat(output)
-                .contains("ERROR")
-                .contains("Verification operation failed")
-                .contains(exceptionType.getName());
+        String message = CodeSenderException.class.isAssignableFrom(exceptionType)
+                ? "Verification code delivery failed"
+                : "Verification operation failed";
+        assertThat(output).contains("ERROR").contains(message).contains(exceptionType.getName());
     }
 
     private void assertHandler(

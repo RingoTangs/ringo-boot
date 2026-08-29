@@ -1,7 +1,7 @@
 package io.github.ringotangs.ringoboot.verification.sms;
 
+import io.github.ringotangs.ringoboot.verification.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.IssueContext;
-import io.github.ringotangs.ringoboot.verification.sender.CodeSendResult;
 import java.time.Instant;
 import java.util.Objects;
 
