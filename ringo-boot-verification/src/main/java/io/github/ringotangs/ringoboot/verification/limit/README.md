@@ -416,6 +416,10 @@ IssueRateLimitRule loginIpHourlyRule() {
 业务级或接收方级配额可以直接注册 `NamespaceIssueQuotaRule`、`PurposeIssueQuotaRule` 或 `SubjectIssueQuotaRule`。
 接收方地址来自运行时 `VerificationKey.subject`，不应硬编码邮箱或手机号。所有 Rule Bean 的 ID 必须全局唯一，重复时应用启动失败。
 
+各渠道服务可以共享同一个 `IssueRateLimiter`。`IssueRateLimitManager` 会将完整 `IssueContext` 传给
+`IssueRateLimitRule.matches` 并仅执行匹配的规则，无需在创建 Manager 前按 channel 预先过滤。单渠道规则应在
+`matches` 中比较 `IssueContext.channel`；有意忽略 channel 则表示该规则共享多个渠道的配额。
+
 扩展和回退规则：
 
 | 应用提供的 Bean | 自动配置行为 |

@@ -42,7 +42,38 @@ class IssueRateLimitManagerTest {
     }
 
     @Test
-    void fixedBucketSharesQuotaAcrossDifferentVerificationKeys() {
+    void selectsBuiltInRulesByContextChannel() {
+        IssueRateLimitRule emailRule = PurposeIssueQuotaRule.builder()
+                .id("login-email-minute")
+                .namespace("account")
+                .purpose("login")
+                .channel(VerificationChannel.EMAIL)
+                .maxIssues(10)
+                .window(Duration.ofMinutes(1))
+                .build();
+        IssueRateLimitRule smsRule = PurposeIssueQuotaRule.builder()
+                .id("login-sms-minute")
+                .namespace("account")
+                .purpose("login")
+                .channel(VerificationChannel.SMS)
+                .maxIssues(10)
+                .window(Duration.ofMinutes(1))
+                .build();
+        AtomicReference<List<IssueLimitQuota>> captured = new AtomicReference<>();
+        IssueRateLimitManager manager =
+                new IssueRateLimitManager(List.of(emailRule, smsRule), (quotas, requestedAt) -> {
+                    captured.set(quotas);
+                    return new IssueLimitResult.Allowed();
+                });
+
+        assertInstanceOf(IssueLimitResult.Allowed.class, manager.acquire(CONTEXT, NOW));
+        assertEquals(
+                List.of("login-email-minute"),
+                captured.get().stream().map(IssueLimitQuota::ruleId).toList());
+    }
+
+    @Test
+    void ruleThatIgnoresChannelSharesQuotaAcrossChannels() {
         IssueRateLimitRule rule = new TestIssueRateLimitRule(
                 "application-minute", context -> IssueLimitBucket.of("application"), 1, Duration.ofMinutes(1));
         IssueRateLimitManager manager = new IssueRateLimitManager(List.of(rule), new InMemoryIssueRateLimitStore());
