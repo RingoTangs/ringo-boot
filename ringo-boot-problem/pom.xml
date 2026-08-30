@@ -12,11 +12,21 @@
         <version>1.0.0</version>
     </parent>
 
-    <artifactId>ringo-boot-core</artifactId>
-    <name>Ringo Boot Core</name>
-    <description>Framework-neutral shared foundations for Ringo Boot.</description>
+    <artifactId>ringo-boot-problem</artifactId>
+    <name>Ringo Boot Problem</name>
+    <description>Framework-neutral RFC 9457 Problem Details foundations for Ringo Boot.</description>
 
     <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>ringo-boot-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jspecify</groupId>
+            <artifactId>jspecify</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

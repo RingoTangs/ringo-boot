@@ -2,9 +2,10 @@
 
 ## Project Structure & Module Organization
 
-This is a Java 21 multi-module Maven project. The root `pom.xml` manages shared versions and builds four modules:
+This is a Java 21 multi-module Maven project. The root `pom.xml` manages shared versions and builds five modules:
 
-- `ringo-boot-core/`: framework-neutral Problem Details foundations under `io.github.ringotangs.ringoboot.problem`.
+- `ringo-boot-core/`: framework-neutral shared foundations under `io.github.ringotangs.ringoboot.core`.
+- `ringo-boot-problem/`: framework-neutral Problem Details foundations under `io.github.ringotangs.ringoboot.problem`.
 - `ringo-boot-verification/`: framework-neutral verification code services and extension points under `io.github.ringotangs.ringoboot.verification`.
 - `ringo-boot-autoconfigure/`: Spring Boot configuration, Web exception handling, and optional localization live under `io.github.ringotangs.ringoboot.autoconfigure.problem`.
 - `ringo-boot-sample/`: a Spring Boot example under `src/main/java/io/github/ringotangs/ringoboot/sample`; runtime settings live in `src/main/resources/application.yaml`.
@@ -20,6 +21,7 @@ Run commands from the repository root with Maven 3.9.x:
 - `mvn spotless:check`: verify Java formatting without modifying source files.
 - `mvn test`: run the full reactor test suite without packaging.
 - `mvn -pl ringo-boot-core -am test`: test the core module and required reactor dependencies.
+- `mvn -pl ringo-boot-problem -am test`: test Problem Details foundations and required reactor dependencies.
 - `mvn -pl ringo-boot-verification -am test`: test verification code services and extension points.
 - `mvn -pl ringo-boot-autoconfigure -am test`: test the reusable Spring Boot auto-configuration.
 - `mvn -pl ringo-boot-sample -am spring-boot:run`: build dependencies and start the sample application locally.
