@@ -42,6 +42,7 @@ class SmsVerificationServiceTest {
                     return new io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult.Allowed();
                 },
                 policy,
+                IssueContextManager.passthrough(),
                 (context, code, expiresAt) -> {
                     captured.set(context);
                     capturedCode.set(code);
@@ -69,6 +70,7 @@ class SmsVerificationServiceTest {
                         new InMemoryVerificationStore(),
                         IssueRateLimiter.permitAll(),
                         VerificationPolicy.defaults(),
+                        IssueContextManager.passthrough(),
                         null));
     }
 
@@ -76,13 +78,7 @@ class SmsVerificationServiceTest {
     void exposesOnlyStandardConstructor() {
         var constructors = SmsVerificationService.class.getConstructors();
 
-        assertEquals(2, constructors.length);
-        assertDoesNotThrow(() -> SmsVerificationService.class.getConstructor(
-                CodeGenerator.class,
-                VerificationStore.class,
-                IssueRateLimiter.class,
-                VerificationPolicy.class,
-                SmsCodeSender.class));
+        assertEquals(1, constructors.length);
         assertDoesNotThrow(() -> SmsVerificationService.class.getConstructor(
                 CodeGenerator.class,
                 VerificationStore.class,

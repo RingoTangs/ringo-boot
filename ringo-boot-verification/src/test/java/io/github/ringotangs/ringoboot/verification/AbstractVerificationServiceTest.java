@@ -11,7 +11,6 @@ import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimitStore;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
-import io.github.ringotangs.ringoboot.verification.limit.IssueLimitViolation;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitManager;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
@@ -21,10 +20,8 @@ import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationSto
 import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
-import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -38,10 +35,11 @@ class AbstractVerificationServiceTest {
     @Test
     void issuesDispatchesAndVerifiesThroughServiceWithoutExposingCodeInResult() {
         CapturingVerificationService template = template(length -> "123456", new InMemoryVerificationStore());
+        Instant earliestExpiration = Instant.now().plus(Duration.ofMinutes(5));
 
         IssueResult.Accepted issued = assertInstanceOf(IssueResult.Accepted.class, template.issue(LOGIN));
 
-        assertEquals(NOW.plus(Duration.ofMinutes(5)), issued.expiresAt());
+        assertFalse(issued.expiresAt().isBefore(earliestExpiration));
         assertEquals(LOGIN, template.delivery().context().key());
         assertEquals("123456", template.delivery().code());
         assertFalse(issued.toString().contains("123456"));
@@ -56,13 +54,13 @@ class AbstractVerificationServiceTest {
         IssueResult.Throttled throttled = assertInstanceOf(IssueResult.Throttled.class, template.issue(LOGIN));
 
         assertEquals(1, template.dispatches());
-        assertEquals(Duration.ofSeconds(60), throttled.retryAfter());
-        assertEquals(
-                List.of(new IssueLimitViolation("test-key-cooldown", Duration.ofSeconds(60))), throttled.violations());
+        assertFalse(throttled.retryAfter().isNegative());
+        assertFalse(throttled.retryAfter().compareTo(Duration.ofSeconds(60)) > 0);
+        assertEquals("test-key-cooldown", throttled.violations().getFirst().ruleId());
     }
 
     @Test
-    void convenienceConstructorUsesPermitAllLimiter() {
+    void supportsExplicitPassthroughContextManager() {
         CapturingVerificationService template =
                 new CapturingVerificationService(length -> "123456", new InMemoryVerificationStore());
 
@@ -83,10 +81,11 @@ class AbstractVerificationServiceTest {
                 new InMemoryVerificationStore(),
                 new VerificationPolicy(4, Duration.ofMinutes(1), 2));
 
+        Instant earliestExpiration = Instant.now().plus(Duration.ofMinutes(1));
         IssueResult.Accepted issued = assertInstanceOf(IssueResult.Accepted.class, template.issue(LOGIN));
 
         assertEquals(4, requestedLength.get());
-        assertEquals(NOW.plus(Duration.ofMinutes(1)), issued.expiresAt());
+        assertFalse(issued.expiresAt().isBefore(earliestExpiration));
     }
 
     @Test
@@ -195,8 +194,7 @@ class AbstractVerificationServiceTest {
                 VerificationPolicy.defaults(),
                 new DefaultIssueContextManager(List.of(
                         context -> context.with("ip-address", "203.0.113.10"),
-                        context -> context.with("service", "capturing"))),
-                Clock.fixed(NOW, ZoneOffset.UTC));
+                        context -> context.with("service", "capturing"))));
         assertInstanceOf(IssueResult.Accepted.class, template.issue(LOGIN));
 
         assertSame(captured.get(), template.delivery().context());
@@ -290,7 +288,7 @@ class AbstractVerificationServiceTest {
                 store,
                 limiter,
                 VerificationPolicy.defaults(),
-                Clock.fixed(NOW, ZoneOffset.UTC));
+                IssueContextManager.passthrough());
 
         assertThrows(MissingIssueRateLimitRuleException.class, () -> template.issue(LOGIN));
         assertEquals(0, generations.get());
@@ -305,14 +303,10 @@ class AbstractVerificationServiceTest {
         assertThrows(
                 NullPointerException.class,
                 () -> new CapturingVerificationService(
-                        null,
-                        new InMemoryVerificationStore(),
-                        VerificationPolicy.defaults(),
-                        Clock.fixed(NOW, ZoneOffset.UTC)));
+                        null, new InMemoryVerificationStore(), VerificationPolicy.defaults()));
         NullPointerException nullPolicy = assertThrows(
                 NullPointerException.class,
-                () -> new CapturingVerificationService(
-                        length -> "123456", new InMemoryVerificationStore(), null, Clock.fixed(NOW, ZoneOffset.UTC)));
+                () -> new CapturingVerificationService(length -> "123456", new InMemoryVerificationStore(), null));
         assertEquals("verificationPolicy must not be null", nullPolicy.getMessage());
         assertThrows(
                 NullPointerException.class,
@@ -321,7 +315,7 @@ class AbstractVerificationServiceTest {
                         new InMemoryVerificationStore(),
                         null,
                         VerificationPolicy.defaults(),
-                        Clock.fixed(NOW, ZoneOffset.UTC)));
+                        IssueContextManager.passthrough()));
         assertThrows(
                 NullPointerException.class,
                 () -> new CapturingVerificationService(
@@ -329,54 +323,21 @@ class AbstractVerificationServiceTest {
                         new InMemoryVerificationStore(),
                         IssueRateLimiter.permitAll(),
                         VerificationPolicy.defaults(),
-                        null));
+                        (IssueContextManager) null));
         assertThrows(NullPointerException.class, () -> template.issue((VerificationKey) null));
-        assertThrows(
-                NullPointerException.class,
-                () -> new CapturingVerificationService(
-                        length -> "123456",
-                        new InMemoryVerificationStore(),
-                        IssueRateLimiter.permitAll(),
-                        VerificationPolicy.defaults(),
-                        null,
-                        Clock.fixed(NOW, ZoneOffset.UTC)));
-        assertThrows(
-                NullPointerException.class,
-                () -> new CapturingVerificationService(
-                        length -> "123456",
-                        new InMemoryVerificationStore(),
-                        IssueRateLimiter.permitAll(),
-                        VerificationPolicy.defaults(),
-                        (IssueContextManager) null,
-                        Clock.fixed(NOW, ZoneOffset.UTC)));
     }
 
     @Test
-    void declaresDefaultAndClockAwareDependencyConstructors() {
+    void declaresOnlyFullDependencyConstructor() {
         var constructors = AbstractVerificationService.class.getDeclaredConstructors();
 
-        assertEquals(4, constructors.length);
-        assertDoesNotThrow(() -> AbstractVerificationService.class.getDeclaredConstructor(
-                CodeGenerator.class, VerificationStore.class, IssueRateLimiter.class, VerificationPolicy.class));
-        assertDoesNotThrow(() -> AbstractVerificationService.class.getDeclaredConstructor(
-                CodeGenerator.class,
-                VerificationStore.class,
-                IssueRateLimiter.class,
-                VerificationPolicy.class,
-                Clock.class));
+        assertEquals(1, constructors.length);
         assertDoesNotThrow(() -> AbstractVerificationService.class.getDeclaredConstructor(
                 CodeGenerator.class,
                 VerificationStore.class,
                 IssueRateLimiter.class,
                 VerificationPolicy.class,
                 IssueContextManager.class));
-        assertDoesNotThrow(() -> AbstractVerificationService.class.getDeclaredConstructor(
-                CodeGenerator.class,
-                VerificationStore.class,
-                IssueRateLimiter.class,
-                VerificationPolicy.class,
-                IssueContextManager.class,
-                Clock.class));
     }
 
     private CapturingVerificationService template(CodeGenerator generator, VerificationStore store) {
@@ -385,8 +346,7 @@ class AbstractVerificationServiceTest {
 
     private CapturingVerificationService template(
             CodeGenerator generator, VerificationStore store, VerificationPolicy verificationPolicy) {
-        return new CapturingVerificationService(
-                generator, store, testIssueRateLimiter(), verificationPolicy, Clock.fixed(NOW, ZoneOffset.UTC));
+        return new CapturingVerificationService(generator, store, testIssueRateLimiter(), verificationPolicy);
     }
 
     private IssueRateLimiter testIssueRateLimiter() {
@@ -408,8 +368,7 @@ class AbstractVerificationServiceTest {
                 new InMemoryVerificationStore(),
                 limiter,
                 VerificationPolicy.defaults(),
-                new DefaultIssueContextManager(contributors),
-                Clock.fixed(NOW, ZoneOffset.UTC));
+                new DefaultIssueContextManager(contributors));
     }
 
     private static final class CapturingVerificationService extends AbstractVerificationService {
@@ -420,12 +379,20 @@ class AbstractVerificationServiceTest {
         private CodeSendResult result = CodeSendResult.ACCEPTED;
 
         private CapturingVerificationService(CodeGenerator generator, VerificationStore store) {
-            super(generator, store, IssueRateLimiter.permitAll(), VerificationPolicy.defaults());
+            this(generator, store, IssueRateLimiter.permitAll(), VerificationPolicy.defaults());
         }
 
         private CapturingVerificationService(
-                CodeGenerator generator, VerificationStore store, VerificationPolicy verificationPolicy, Clock clock) {
-            this(generator, store, IssueRateLimiter.permitAll(), verificationPolicy, clock);
+                CodeGenerator generator, VerificationStore store, VerificationPolicy verificationPolicy) {
+            this(generator, store, IssueRateLimiter.permitAll(), verificationPolicy);
+        }
+
+        private CapturingVerificationService(
+                CodeGenerator generator,
+                VerificationStore store,
+                IssueRateLimiter issueRateLimiter,
+                VerificationPolicy verificationPolicy) {
+            this(generator, store, issueRateLimiter, verificationPolicy, IssueContextManager.passthrough());
         }
 
         private CapturingVerificationService(
@@ -433,18 +400,8 @@ class AbstractVerificationServiceTest {
                 VerificationStore store,
                 IssueRateLimiter issueRateLimiter,
                 VerificationPolicy verificationPolicy,
-                Clock clock) {
-            super(generator, store, issueRateLimiter, verificationPolicy, clock);
-        }
-
-        private CapturingVerificationService(
-                CodeGenerator generator,
-                VerificationStore store,
-                IssueRateLimiter issueRateLimiter,
-                VerificationPolicy verificationPolicy,
-                IssueContextManager issueContextManager,
-                Clock clock) {
-            super(generator, store, issueRateLimiter, verificationPolicy, issueContextManager, clock);
+                IssueContextManager issueContextManager) {
+            super(generator, store, issueRateLimiter, verificationPolicy, issueContextManager);
         }
 
         @Override

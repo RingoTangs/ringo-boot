@@ -42,6 +42,7 @@ class EmailVerificationServiceTest {
                     return new io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult.Allowed();
                 },
                 policy,
+                IssueContextManager.passthrough(),
                 (context, code, expiresAt) -> {
                     captured.set(context);
                     capturedCode.set(code);
@@ -69,6 +70,7 @@ class EmailVerificationServiceTest {
                         new InMemoryVerificationStore(),
                         IssueRateLimiter.permitAll(),
                         VerificationPolicy.defaults(),
+                        IssueContextManager.passthrough(),
                         null));
     }
 
@@ -76,13 +78,7 @@ class EmailVerificationServiceTest {
     void exposesOnlyStandardConstructor() {
         var constructors = EmailVerificationService.class.getConstructors();
 
-        assertEquals(2, constructors.length);
-        assertDoesNotThrow(() -> EmailVerificationService.class.getConstructor(
-                CodeGenerator.class,
-                VerificationStore.class,
-                IssueRateLimiter.class,
-                VerificationPolicy.class,
-                EmailCodeSender.class));
+        assertEquals(1, constructors.length);
         assertDoesNotThrow(() -> EmailVerificationService.class.getConstructor(
                 CodeGenerator.class,
                 VerificationStore.class,

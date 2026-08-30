@@ -25,33 +25,10 @@ public abstract class AbstractVerificationService implements VerificationService
     private final IssueRateLimiter issueRateLimiter;
     private final VerificationPolicy verificationPolicy;
     private final IssueContextManager issueContextManager;
-    private final Clock clock;
+    private final Clock clock = Clock.systemUTC();
 
     /**
-     * 使用指定生成器、存储、签发限流器、服务级验证码策略和 UTC 系统时钟创建渠道服务。
-     *
-     * @param codeGenerator      验证码生成器
-     * @param store              验证码状态存储
-     * @param issueRateLimiter   验证码签发限流器
-     * @param verificationPolicy 服务级验证码策略
-     * @throws NullPointerException 当任一参数为 {@code null} 时
-     */
-    protected AbstractVerificationService(
-            CodeGenerator codeGenerator,
-            VerificationStore store,
-            IssueRateLimiter issueRateLimiter,
-            VerificationPolicy verificationPolicy) {
-        this(
-                codeGenerator,
-                store,
-                issueRateLimiter,
-                verificationPolicy,
-                IssueContextManager.passthrough(),
-                Clock.systemUTC());
-    }
-
-    /**
-     * 使用指定生成器、存储、签发限流器、服务级策略、上下文 Manager 和 UTC 系统时钟创建渠道服务。
+     * 使用完整依赖和 UTC 系统时钟创建渠道服务。
      *
      * @param codeGenerator       验证码生成器
      * @param store               验证码状态存储
@@ -65,51 +42,11 @@ public abstract class AbstractVerificationService implements VerificationService
             IssueRateLimiter issueRateLimiter,
             VerificationPolicy verificationPolicy,
             IssueContextManager issueContextManager) {
-        this(codeGenerator, store, issueRateLimiter, verificationPolicy, issueContextManager, Clock.systemUTC());
-    }
-
-    /**
-     * 使用指定生成器、存储、签发限流器、服务级验证码策略和时钟创建渠道服务，供需要控制时间的子类使用。
-     *
-     * @param codeGenerator      验证码生成器
-     * @param store              验证码状态存储
-     * @param issueRateLimiter   验证码签发限流器
-     * @param verificationPolicy 服务级验证码策略
-     * @param clock              提供签发和校验时间的时钟
-     * @throws NullPointerException 当任一参数为 {@code null} 时
-     */
-    protected AbstractVerificationService(
-            CodeGenerator codeGenerator,
-            VerificationStore store,
-            IssueRateLimiter issueRateLimiter,
-            VerificationPolicy verificationPolicy,
-            Clock clock) {
-        this(codeGenerator, store, issueRateLimiter, verificationPolicy, IssueContextManager.passthrough(), clock);
-    }
-
-    /**
-     * 使用完整依赖和指定时钟创建渠道服务。
-     *
-     * @param codeGenerator       验证码生成器
-     * @param store               验证码状态存储
-     * @param issueRateLimiter    验证码签发限流器
-     * @param verificationPolicy  服务级验证码策略
-     * @param issueContextManager 统一准备最终签发上下文的 Manager
-     * @param clock               提供签发和校验时间的时钟
-     */
-    protected AbstractVerificationService(
-            CodeGenerator codeGenerator,
-            VerificationStore store,
-            IssueRateLimiter issueRateLimiter,
-            VerificationPolicy verificationPolicy,
-            IssueContextManager issueContextManager,
-            Clock clock) {
         this.codeGenerator = Objects.requireNonNull(codeGenerator, "codeGenerator must not be null");
         this.store = Objects.requireNonNull(store, "store must not be null");
         this.issueRateLimiter = Objects.requireNonNull(issueRateLimiter, "issueRateLimiter must not be null");
         this.verificationPolicy = Objects.requireNonNull(verificationPolicy, "verificationPolicy must not be null");
         this.issueContextManager = Objects.requireNonNull(issueContextManager, "issueContextManager must not be null");
-        this.clock = Objects.requireNonNull(clock, "clock must not be null");
     }
 
     /**

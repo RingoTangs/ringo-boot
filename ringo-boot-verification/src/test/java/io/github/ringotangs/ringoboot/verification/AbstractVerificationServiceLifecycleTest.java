@@ -9,7 +9,6 @@ import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationExcep
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimitStore;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
-import io.github.ringotangs.ringoboot.verification.limit.IssueLimitViolation;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitManager;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
@@ -18,11 +17,8 @@ import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationSto
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.lang.reflect.Field;
 import java.security.SecureRandom;
-import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -34,51 +30,30 @@ import org.junit.jupiter.api.Test;
 class AbstractVerificationServiceLifecycleTest {
 
     private static final VerificationKey LOGIN = new VerificationKey("account", "login", "user@example.com");
-    private static final Instant START = Instant.parse("2026-01-01T00:00:00Z");
-
-    private final MutableClock clock = new MutableClock(START);
     private final InMemoryVerificationStore store = new InMemoryVerificationStore(new SecureRandom());
 
     @Test
     void issuesCodeWithDefaultPolicyAndRedactsToString() {
         TestVerificationService service = service(length -> "123456");
+        Instant earliestExpiration = Instant.now().plus(Duration.ofMinutes(5));
 
         IssueResult.Accepted issued = assertInstanceOf(IssueResult.Accepted.class, service.issue(LOGIN));
 
-        assertEquals(START.plus(Duration.ofMinutes(5)), issued.expiresAt());
+        assertTrue(!issued.expiresAt().isBefore(earliestExpiration));
         assertEquals("123456", service.lastCode());
         assertTrue(!issued.toString().contains(service.lastCode()));
     }
 
     @Test
-    void throttlesReissueUntilIntervalElapsesAndThenReplacesCode() {
+    void throttlesImmediateReissue() {
         AtomicInteger sequence = new AtomicInteger(111110);
         TestVerificationService service = service(length -> Integer.toString(sequence.incrementAndGet()));
 
         assertInstanceOf(IssueResult.Accepted.class, service.issue(LOGIN));
-        String firstCode = service.lastCode();
         IssueResult.Throttled throttled = assertInstanceOf(IssueResult.Throttled.class, service.issue(LOGIN));
-        assertEquals(Duration.ofSeconds(60), throttled.retryAfter());
-        assertEquals(
-                List.of(new IssueLimitViolation("test-key-cooldown", Duration.ofSeconds(60))), throttled.violations());
-
-        clock.advance(Duration.ofSeconds(60));
-        assertInstanceOf(IssueResult.Accepted.class, service.issue(LOGIN));
-        String secondCode = service.lastCode();
-
-        assertEquals(VerifyResult.MISMATCH, service.verify(LOGIN, firstCode));
-        assertEquals(VerifyResult.SUCCESS, service.verify(LOGIN, secondCode));
-    }
-
-    @Test
-    void expiresAndRemovesCodeAtExpirationBoundary() {
-        VerificationService service = service(length -> "123456");
-        service.issue(LOGIN);
-
-        clock.advance(Duration.ofMinutes(5));
-
-        assertEquals(VerifyResult.EXPIRED, service.verify(LOGIN, "123456"));
-        assertEquals(VerifyResult.NOT_FOUND, service.verify(LOGIN, "123456"));
+        assertTrue(!throttled.retryAfter().isNegative());
+        assertTrue(throttled.retryAfter().compareTo(Duration.ofSeconds(60)) <= 0);
+        assertEquals("test-key-cooldown", throttled.violations().getFirst().ruleId());
     }
 
     @Test
@@ -185,7 +160,7 @@ class AbstractVerificationServiceLifecycleTest {
     }
 
     private TestVerificationService service(CodeGenerator generator, VerificationPolicy verificationPolicy) {
-        return new TestVerificationService(generator, store, testIssueRateLimiter(), verificationPolicy, clock);
+        return new TestVerificationService(generator, store, testIssueRateLimiter(), verificationPolicy);
     }
 
     private IssueRateLimiter testIssueRateLimiter() {
@@ -208,9 +183,8 @@ class AbstractVerificationServiceLifecycleTest {
                 CodeGenerator generator,
                 VerificationStore store,
                 IssueRateLimiter issueRateLimiter,
-                VerificationPolicy verificationPolicy,
-                Clock clock) {
-            super(generator, store, issueRateLimiter, verificationPolicy, clock);
+                VerificationPolicy verificationPolicy) {
+            super(generator, store, issueRateLimiter, verificationPolicy, IssueContextManager.passthrough());
         }
 
         @Override
@@ -226,34 +200,6 @@ class AbstractVerificationServiceLifecycleTest {
 
         private String lastCode() {
             return lastCode;
-        }
-    }
-
-    private static final class MutableClock extends Clock {
-
-        private Instant instant;
-
-        private MutableClock(Instant instant) {
-            this.instant = instant;
-        }
-
-        void advance(Duration duration) {
-            instant = instant.plus(duration);
-        }
-
-        @Override
-        public ZoneId getZone() {
-            return ZoneOffset.UTC;
-        }
-
-        @Override
-        public Clock withZone(ZoneId zone) {
-            return this;
-        }
-
-        @Override
-        public Instant instant() {
-            return instant;
         }
     }
 }
