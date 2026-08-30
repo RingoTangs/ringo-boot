@@ -5,12 +5,14 @@ import io.github.ringotangs.ringoboot.verification.IssueContextContributor;
 import io.github.ringotangs.ringoboot.verification.limit.ClientIpQuotaRule;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Objects;
+import org.springframework.beans.factory.ObjectProvider;
 
 /**
  * 将当前 Servlet 请求的客户端 IP 地址添加到验证码签发上下文。
  *
- * <p>该 Contributor 只使用 {@link HttpServletRequest#getRemoteAddr()}，不会自行解析或信任 {@code Forwarded}、
- * {@code X-Forwarded-For} 等代理请求头。使用反向代理时，应用必须通过可信的 Servlet 基础设施配置远端地址解析。
+ * <p>该 Contributor 在每次贡献上下文时获取当前请求，因此可以作为单例使用。它只使用
+ * {@link HttpServletRequest#getRemoteAddr()}，不会自行解析或信任 {@code Forwarded}、{@code X-Forwarded-For}
+ * 等代理请求头。使用反向代理时，应用必须通过可信的 Servlet 基础设施配置远端地址解析。
  */
 public final class ClientIpContributor implements IssueContextContributor {
 
@@ -19,16 +21,16 @@ public final class ClientIpContributor implements IssueContextContributor {
      */
     public static final String ATTRIBUTE_NAME = ClientIpQuotaRule.ATTRIBUTE_NAME;
 
-    private final HttpServletRequest request;
+    private final ObjectProvider<HttpServletRequest> requestProvider;
 
     /**
-     * 使用当前 Servlet 请求创建 Contributor。
+     * 使用 Servlet 请求 Provider 创建 Contributor。
      *
-     * @param request 当前请求；在单例 Bean 中通常由 Spring 注入请求代理
-     * @throws NullPointerException 当请求为 {@code null} 时
+     * @param requestProvider 按调用解析当前 Servlet 请求的 Provider
+     * @throws NullPointerException 当 Provider 为 {@code null} 时
      */
-    public ClientIpContributor(HttpServletRequest request) {
-        this.request = Objects.requireNonNull(request, "request must not be null");
+    public ClientIpContributor(ObjectProvider<HttpServletRequest> requestProvider) {
+        this.requestProvider = Objects.requireNonNull(requestProvider, "requestProvider must not be null");
     }
 
     /**
@@ -41,6 +43,7 @@ public final class ClientIpContributor implements IssueContextContributor {
      */
     @Override
     public IssueContext contribute(IssueContext context) {
+        HttpServletRequest request = requestProvider.getObject();
         return context.with(ATTRIBUTE_NAME, request.getRemoteAddr());
     }
 }
