@@ -21,16 +21,16 @@ class DefaultIssueContextManagerTest {
         IssueContextManager manager = new DefaultIssueContextManager(List.of(
                 context -> {
                     calls.add("first");
-                    return context.with("client-address", "203.0.113.10");
+                    return context.with("tenant-id", "tenant-1");
                 },
                 context -> {
-                    calls.add(context.attribute("client-address").orElseThrow());
+                    calls.add(context.attribute("tenant-id").orElseThrow());
                     return context.with("tenant", "tenant-1");
                 }));
 
         IssueContext enriched = manager.enrich(CONTEXT);
 
-        assertEquals(List.of("first", "203.0.113.10"), calls);
+        assertEquals(List.of("first", "tenant-1"), calls);
         assertEquals("tenant-1", enriched.attribute("tenant").orElseThrow());
     }
 

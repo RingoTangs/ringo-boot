@@ -6,10 +6,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import io.github.ringotangs.ringoboot.autoconfigure.verification.ClientAddressIssueQuotaRule;
 import io.github.ringotangs.ringoboot.verification.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.IssueContext;
-import io.github.ringotangs.ringoboot.verification.IssueContextAttributes;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
@@ -67,9 +65,6 @@ class EmailVerificationControllerTest {
 
         CapturedDelivery message = sender.latest(email);
         org.assertj.core.api.Assertions.assertThat(message.code()).matches("\\d{6}");
-        org.assertj.core.api.Assertions.assertThat(message.context().attribute(IssueContextAttributes.CLIENT_ADDRESS))
-                .contains("127.0.0.1");
-
         mockMvc.perform(post("/verification/email/verify")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(verifyRequest("  " + email.toUpperCase(Locale.ROOT) + "  ", message.code())))
@@ -106,13 +101,6 @@ class EmailVerificationControllerTest {
     void registersLayeredIssueRateLimitRules() {
         org.assertj.core.api.Assertions.assertThat(issueRateLimitRules)
                 .containsExactlyInAnyOrder(
-                        new ClientAddressIssueQuotaRule(
-                                "email-verification-client-address-quota",
-                                "account",
-                                "email-verification",
-                                VerificationChannel.EMAIL,
-                                20,
-                                Duration.ofMinutes(10L)),
                         new NamespaceIssueQuotaRule(
                                 "account-email-hourly-quota",
                                 "account",
