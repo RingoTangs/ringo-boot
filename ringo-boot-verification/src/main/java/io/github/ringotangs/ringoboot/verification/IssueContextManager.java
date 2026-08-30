@@ -1,6 +1,8 @@
 package io.github.ringotangs.ringoboot.verification;
 
-/** 统一准备验证码签发流程使用的最终上下文。 */
+/**
+ * 统一准备验证码签发流程使用的最终上下文。
+ */
 @FunctionalInterface
 public interface IssueContextManager {
 
