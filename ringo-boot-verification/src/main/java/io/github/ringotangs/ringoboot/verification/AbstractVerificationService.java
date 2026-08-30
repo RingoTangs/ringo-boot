@@ -59,7 +59,7 @@ public abstract class AbstractVerificationService implements VerificationService
         IssueContext baseContext = IssueContext.of(key, channel, verificationPolicy);
         IssueContext context = Objects.requireNonNull(
                 issueContextManager.enrich(baseContext), "issue context manager result must not be null");
-        requirePreservedContext(baseContext, context, "issue context manager");
+        IssueContextValidator.requirePreservedContext(baseContext, context, "issue context manager");
         Instant issuedAt = clock.instant();
         IssueLimitResult limitResult = Objects.requireNonNull(
                 issueRateLimiter.acquire(context, issuedAt), "issue rate limiter result must not be null");
@@ -121,18 +121,6 @@ public abstract class AbstractVerificationService implements VerificationService
                 dispatchFailure.addSuppressed(invalidationFailure);
             }
             throw dispatchFailure;
-        }
-    }
-
-    private static void requirePreservedContext(IssueContext expected, IssueContext actual, String source) {
-        if (!actual.key().equals(expected.key())) {
-            throw new IllegalArgumentException(source + " must preserve the verification key");
-        }
-        if (!actual.channel().equals(expected.channel())) {
-            throw new IllegalArgumentException(source + " must preserve the verification channel");
-        }
-        if (!actual.policy().equals(expected.policy())) {
-            throw new IllegalArgumentException(source + " must preserve the verification policy");
         }
     }
 }

@@ -32,24 +32,12 @@ public final class DefaultIssueContextManager implements IssueContextManager {
     }
 
     private static IssueContext requireEnrichedContext(IssueContext expected, IssueContext actual, String source) {
-        requirePreservedContext(expected, actual, source);
+        IssueContextValidator.requirePreservedContext(expected, actual, source);
         expected.attributes().forEach((name, value) -> {
             if (!value.equals(actual.attributes().get(name))) {
                 throw new IllegalArgumentException(source + " must preserve existing issue context attribute: " + name);
             }
         });
         return actual;
-    }
-
-    private static void requirePreservedContext(IssueContext expected, IssueContext actual, String source) {
-        if (!actual.key().equals(expected.key())) {
-            throw new IllegalArgumentException(source + " must preserve the verification key");
-        }
-        if (!actual.channel().equals(expected.channel())) {
-            throw new IllegalArgumentException(source + " must preserve the verification channel");
-        }
-        if (!actual.policy().equals(expected.policy())) {
-            throw new IllegalArgumentException(source + " must preserve the verification policy");
-        }
     }
 }

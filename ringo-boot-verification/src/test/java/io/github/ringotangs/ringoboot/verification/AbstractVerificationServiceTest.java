@@ -243,6 +243,40 @@ class AbstractVerificationServiceTest {
     }
 
     @Test
+    void rejectsInvalidCustomManagerResultsBeforeAcquiringQuota() {
+        VerificationKey otherKey = new VerificationKey("account", "login", "other@example.com");
+        AtomicInteger acquisitions = new AtomicInteger();
+        IssueRateLimiter limiter = (context, requestedAt) -> {
+            acquisitions.incrementAndGet();
+            return new IssueLimitResult.Allowed();
+        };
+        List<IssueContextManager> managers = List.of(
+                context -> IssueContext.of(otherKey, context.channel(), context.policy()),
+                context -> IssueContext.of(context.key(), VerificationChannel.SMS, context.policy()),
+                context -> IssueContext.of(
+                        context.key(), context.channel(), new VerificationPolicy(4, Duration.ofMinutes(1), 2)));
+        List<String> messages = List.of(
+                "issue context manager must preserve the verification key",
+                "issue context manager must preserve the verification channel",
+                "issue context manager must preserve the verification policy");
+
+        for (int index = 0; index < managers.size(); index++) {
+            CapturingVerificationService service = new CapturingVerificationService(
+                    length -> "123456",
+                    new InMemoryVerificationStore(),
+                    limiter,
+                    VerificationPolicy.defaults(),
+                    managers.get(index));
+
+            assertEquals(
+                    messages.get(index),
+                    assertThrows(IllegalArgumentException.class, () -> service.issue(LOGIN))
+                            .getMessage());
+        }
+        assertEquals(0, acquisitions.get());
+    }
+
+    @Test
     void contributorsCannotRemoveOrReplaceExistingAttributes() {
         IssueRateLimiter limiter = (context, requestedAt) -> new IssueLimitResult.Allowed();
         CapturingVerificationService replaced = serviceWithContributors(
