@@ -3,7 +3,6 @@ package io.github.ringotangs.ringoboot.autoconfigure.verification;
 import io.github.ringotangs.ringoboot.verification.IssueContext;
 import io.github.ringotangs.ringoboot.verification.IssueContextContributor;
 import jakarta.servlet.http.HttpServletRequest;
-
 import java.util.Objects;
 
 /**
