@@ -31,7 +31,8 @@ class IssueRateLimitAutoConfigurationTest {
     private static final String SECRET = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withConfiguration(AutoConfigurations.of(IssueRateLimitAutoConfiguration.class));
+            .withConfiguration(AutoConfigurations.of(
+                    IssueRateLimitStoreAutoConfiguration.class, IssueRateLimitAutoConfiguration.class));
 
     @Test
     void doesNotConfigureRateLimitingByDefault() {
@@ -218,7 +219,8 @@ class IssueRateLimitAutoConfigurationTest {
 
     private static ApplicationContextRunner redisContextRunner() {
         return new ApplicationContextRunner()
-                .withConfiguration(AutoConfigurations.of(IssueRateLimitAutoConfiguration.class))
+                .withConfiguration(AutoConfigurations.of(
+                        IssueRateLimitStoreAutoConfiguration.class, IssueRateLimitAutoConfiguration.class))
                 .withPropertyValues(
                         "spring.application.name=test-application",
                         "ringo.boot.verification.enabled=true",

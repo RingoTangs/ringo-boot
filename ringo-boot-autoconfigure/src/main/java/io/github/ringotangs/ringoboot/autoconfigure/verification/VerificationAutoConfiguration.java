@@ -26,7 +26,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
  *
  * <p>仅在显式启用验证码功能时生效。验证服务和验证码生成器由应用显式组装；每个默认基础设施组件都会在应用提供同类型 Bean 时回退。</p>
  */
-@AutoConfiguration(after = {RedisAutoConfiguration.class, IssueRateLimitAutoConfiguration.class})
+@AutoConfiguration(after = RedisAutoConfiguration.class)
 @ConditionalOnClass(VerificationStore.class)
 @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "enabled", havingValue = "true")
 @EnableConfigurationProperties(VerificationProperties.class)
