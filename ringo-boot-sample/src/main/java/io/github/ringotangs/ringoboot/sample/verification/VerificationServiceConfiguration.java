@@ -1,13 +1,12 @@
 package io.github.ringotangs.ringoboot.sample.verification;
 
 import io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationProperties;
-import io.github.ringotangs.ringoboot.verification.IssueContextContributor;
+import io.github.ringotangs.ringoboot.verification.IssueContextManager;
 import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.email.EmailVerificationService;
 import io.github.ringotangs.ringoboot.verification.generator.NumericCodeGenerator;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
-import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,14 +23,14 @@ class VerificationServiceConfiguration {
             VerificationStore store,
             IssueRateLimiter issueRateLimiter,
             VerificationProperties properties,
-            List<IssueContextContributor> contextContributors,
+            IssueContextManager issueContextManager,
             EmailCodeSender sender) {
         return new EmailVerificationService(
                 new NumericCodeGenerator(),
                 store,
                 issueRateLimiter,
                 properties.toPolicy(),
-                contextContributors,
+                issueContextManager,
                 sender);
     }
 }

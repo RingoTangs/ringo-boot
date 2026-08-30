@@ -3,8 +3,8 @@ package io.github.ringotangs.ringoboot.verification;
 /**
  * 为验证码签发流程补充请求级上下文属性。
  *
- * <p>Contributor 应当无状态、线程安全，只能向上下文增加属性，不能修改验证码键、渠道、策略或删除、覆盖已有属性。具体约束由
- * {@link AbstractVerificationService} 在每次调用后校验。
+ * <p>Contributor 应当无状态、线程安全，只能向上下文增加属性，不能修改验证码键、渠道、策略或删除、覆盖已有属性。默认组合实现
+ * {@link DefaultIssueContextManager} 会在每次调用后校验这些约束。
  */
 @FunctionalInterface
 public interface IssueContextContributor {

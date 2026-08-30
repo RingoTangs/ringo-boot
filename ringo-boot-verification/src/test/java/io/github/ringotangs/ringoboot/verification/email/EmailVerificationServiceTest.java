@@ -7,7 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.ringotangs.ringoboot.verification.CodeSendResult;
+import io.github.ringotangs.ringoboot.verification.DefaultIssueContextManager;
 import io.github.ringotangs.ringoboot.verification.IssueContext;
+import io.github.ringotangs.ringoboot.verification.IssueContextManager;
 import io.github.ringotangs.ringoboot.verification.IssueResult;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
@@ -86,7 +88,7 @@ class EmailVerificationServiceTest {
                 VerificationStore.class,
                 IssueRateLimiter.class,
                 VerificationPolicy.class,
-                List.class,
+                IssueContextManager.class,
                 EmailCodeSender.class));
     }
 
@@ -102,7 +104,7 @@ class EmailVerificationServiceTest {
                     return new io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult.Allowed();
                 },
                 VerificationPolicy.defaults(),
-                List.of(context -> context.with("tenant-id", "tenant-1")),
+                new DefaultIssueContextManager(List.of(context -> context.with("tenant-id", "tenant-1"))),
                 (context, code, expiresAt) -> {
                     dispatched.set(context);
                     return CodeSendResult.ACCEPTED;

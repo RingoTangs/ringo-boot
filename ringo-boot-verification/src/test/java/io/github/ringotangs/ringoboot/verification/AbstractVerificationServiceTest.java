@@ -193,9 +193,9 @@ class AbstractVerificationServiceTest {
                 new InMemoryVerificationStore(),
                 limiter,
                 VerificationPolicy.defaults(),
-                List.of(
+                new DefaultIssueContextManager(List.of(
                         context -> context.with("ip-address", "203.0.113.10"),
-                        context -> context.with("service", "capturing")),
+                        context -> context.with("service", "capturing"))),
                 Clock.fixed(NOW, ZoneOffset.UTC));
         assertInstanceOf(IssueResult.Accepted.class, template.issue(LOGIN));
 
@@ -347,7 +347,7 @@ class AbstractVerificationServiceTest {
                         new InMemoryVerificationStore(),
                         IssueRateLimiter.permitAll(),
                         VerificationPolicy.defaults(),
-                        java.util.Arrays.asList((IssueContextContributor) null),
+                        (IssueContextManager) null,
                         Clock.fixed(NOW, ZoneOffset.UTC)));
     }
 
@@ -369,13 +369,13 @@ class AbstractVerificationServiceTest {
                 VerificationStore.class,
                 IssueRateLimiter.class,
                 VerificationPolicy.class,
-                List.class));
+                IssueContextManager.class));
         assertDoesNotThrow(() -> AbstractVerificationService.class.getDeclaredConstructor(
                 CodeGenerator.class,
                 VerificationStore.class,
                 IssueRateLimiter.class,
                 VerificationPolicy.class,
-                List.class,
+                IssueContextManager.class,
                 Clock.class));
     }
 
@@ -408,7 +408,7 @@ class AbstractVerificationServiceTest {
                 new InMemoryVerificationStore(),
                 limiter,
                 VerificationPolicy.defaults(),
-                contributors,
+                new DefaultIssueContextManager(contributors),
                 Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
@@ -442,9 +442,9 @@ class AbstractVerificationServiceTest {
                 VerificationStore store,
                 IssueRateLimiter issueRateLimiter,
                 VerificationPolicy verificationPolicy,
-                List<IssueContextContributor> contributors,
+                IssueContextManager issueContextManager,
                 Clock clock) {
-            super(generator, store, issueRateLimiter, verificationPolicy, contributors, clock);
+            super(generator, store, issueRateLimiter, verificationPolicy, issueContextManager, clock);
         }
 
         @Override

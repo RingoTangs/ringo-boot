@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationStore;
+import io.github.ringotangs.ringoboot.verification.DefaultIssueContextManager;
+import io.github.ringotangs.ringoboot.verification.IssueContextManager;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.VerifyResult;
@@ -117,9 +119,25 @@ class VerificationAutoConfigurationTest {
             assertThat(context.getBean(VerificationStore.class)).isInstanceOf(InMemoryVerificationStore.class);
             assertThat(context.getBean(EmailCodeSender.class)).isInstanceOf(StdoutEmailCodeSender.class);
             assertThat(context.getBean(SmsCodeSender.class)).isInstanceOf(StdoutSmsCodeSender.class);
+            assertThat(context).hasSingleBean(IssueContextManager.class);
+            assertThat(context.getBean(IssueContextManager.class)).isInstanceOf(DefaultIssueContextManager.class);
             assertThat(context).doesNotHaveBean(EmailVerificationService.class);
             assertThat(context).doesNotHaveBean(SmsVerificationService.class);
         });
+    }
+
+    @Test
+    void customIssueContextManagerOverridesDefault() {
+        IssueContextManager manager = context -> context.with("tenant", "tenant-1");
+
+        contextRunner
+                .withPropertyValues("ringo.boot.verification.enabled=true")
+                .withBean(IssueContextManager.class, () -> manager)
+                .run(context -> {
+                    assertThat(context).hasSingleBean(IssueContextManager.class);
+                    assertThat(context.getBean(IssueContextManager.class)).isSameAs(manager);
+                    assertThat(context).doesNotHaveBean(DefaultIssueContextManager.class);
+                });
     }
 
     @Test

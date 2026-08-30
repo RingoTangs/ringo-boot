@@ -16,7 +16,7 @@ import java.util.Objects;
  * 统一编排验证码生成、存储、渠道派发、失败补偿和校验消费流程。
  *
  * <p><strong>API 注意事项：</strong> 子类通过 {@link #channel()} 声明渠道，实现 {@link #dispatch(IssueContext, String, Instant)} 完成派发；
- * 请求级属性通过 {@link IssueContextContributor} 组合提供。
+ * 请求级属性通过 {@link IssueContextManager} 统一提供。
  */
 public abstract class AbstractVerificationService implements VerificationService {
 
@@ -24,7 +24,7 @@ public abstract class AbstractVerificationService implements VerificationService
     private final VerificationStore store;
     private final IssueRateLimiter issueRateLimiter;
     private final VerificationPolicy verificationPolicy;
-    private final List<IssueContextContributor> contextContributors;
+    private final IssueContextManager issueContextManager;
     private final Clock clock;
 
     /**
@@ -41,25 +41,31 @@ public abstract class AbstractVerificationService implements VerificationService
             VerificationStore store,
             IssueRateLimiter issueRateLimiter,
             VerificationPolicy verificationPolicy) {
-        this(codeGenerator, store, issueRateLimiter, verificationPolicy, List.of(), Clock.systemUTC());
+        this(
+                codeGenerator,
+                store,
+                issueRateLimiter,
+                verificationPolicy,
+                IssueContextManager.passthrough(),
+                Clock.systemUTC());
     }
 
     /**
-     * 使用指定生成器、存储、签发限流器、服务级策略、上下文贡献器和 UTC 系统时钟创建渠道服务。
+     * 使用指定生成器、存储、签发限流器、服务级策略、上下文 Manager 和 UTC 系统时钟创建渠道服务。
      *
      * @param codeGenerator       验证码生成器
      * @param store               验证码状态存储
      * @param issueRateLimiter    验证码签发限流器
      * @param verificationPolicy  服务级验证码策略
-     * @param contextContributors 按顺序补充签发上下文的贡献器
+     * @param issueContextManager 统一准备最终签发上下文的 Manager
      */
     protected AbstractVerificationService(
             CodeGenerator codeGenerator,
             VerificationStore store,
             IssueRateLimiter issueRateLimiter,
             VerificationPolicy verificationPolicy,
-            List<IssueContextContributor> contextContributors) {
-        this(codeGenerator, store, issueRateLimiter, verificationPolicy, contextContributors, Clock.systemUTC());
+            IssueContextManager issueContextManager) {
+        this(codeGenerator, store, issueRateLimiter, verificationPolicy, issueContextManager, Clock.systemUTC());
     }
 
     /**
@@ -78,7 +84,7 @@ public abstract class AbstractVerificationService implements VerificationService
             IssueRateLimiter issueRateLimiter,
             VerificationPolicy verificationPolicy,
             Clock clock) {
-        this(codeGenerator, store, issueRateLimiter, verificationPolicy, List.of(), clock);
+        this(codeGenerator, store, issueRateLimiter, verificationPolicy, IssueContextManager.passthrough(), clock);
     }
 
     /**
@@ -88,7 +94,7 @@ public abstract class AbstractVerificationService implements VerificationService
      * @param store               验证码状态存储
      * @param issueRateLimiter    验证码签发限流器
      * @param verificationPolicy  服务级验证码策略
-     * @param contextContributors 按顺序补充签发上下文的贡献器
+     * @param issueContextManager 统一准备最终签发上下文的 Manager
      * @param clock               提供签发和校验时间的时钟
      */
     protected AbstractVerificationService(
@@ -96,16 +102,13 @@ public abstract class AbstractVerificationService implements VerificationService
             VerificationStore store,
             IssueRateLimiter issueRateLimiter,
             VerificationPolicy verificationPolicy,
-            List<IssueContextContributor> contextContributors,
+            IssueContextManager issueContextManager,
             Clock clock) {
         this.codeGenerator = Objects.requireNonNull(codeGenerator, "codeGenerator must not be null");
         this.store = Objects.requireNonNull(store, "store must not be null");
         this.issueRateLimiter = Objects.requireNonNull(issueRateLimiter, "issueRateLimiter must not be null");
         this.verificationPolicy = Objects.requireNonNull(verificationPolicy, "verificationPolicy must not be null");
-        Objects.requireNonNull(contextContributors, "contextContributors must not be null");
-        this.contextContributors = List.copyOf(contextContributors);
-        this.contextContributors.forEach(
-                contributor -> Objects.requireNonNull(contributor, "context contributor must not be null"));
+        this.issueContextManager = Objects.requireNonNull(issueContextManager, "issueContextManager must not be null");
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
     }
 
@@ -116,13 +119,10 @@ public abstract class AbstractVerificationService implements VerificationService
     public final IssueResult issue(VerificationKey key) throws VerificationException {
         Objects.requireNonNull(key, "key must not be null");
         VerificationChannel channel = Objects.requireNonNull(channel(), "verification channel must not be null");
-        IssueContext context = IssueContext.of(key, channel, verificationPolicy);
-        for (int index = 0; index < contextContributors.size(); index++) {
-            IssueContextContributor contributor = contextContributors.get(index);
-            IssueContext contributed = Objects.requireNonNull(
-                    contributor.contribute(context), "issue context contributor result must not be null: " + index);
-            context = requireEnrichedContext(context, contributed, "issue context contributor at index " + index);
-        }
+        IssueContext baseContext = IssueContext.of(key, channel, verificationPolicy);
+        IssueContext context = Objects.requireNonNull(
+                issueContextManager.enrich(baseContext), "issue context manager result must not be null");
+        requirePreservedContext(baseContext, context, "issue context manager");
         Instant issuedAt = clock.instant();
         IssueLimitResult limitResult = Objects.requireNonNull(
                 issueRateLimiter.acquire(context, issuedAt), "issue rate limiter result must not be null");
@@ -197,15 +197,5 @@ public abstract class AbstractVerificationService implements VerificationService
         if (!actual.policy().equals(expected.policy())) {
             throw new IllegalArgumentException(source + " must preserve the verification policy");
         }
-    }
-
-    private static IssueContext requireEnrichedContext(IssueContext expected, IssueContext actual, String source) {
-        requirePreservedContext(expected, actual, source);
-        expected.attributes().forEach((name, value) -> {
-            if (!value.equals(actual.attributes().get(name))) {
-                throw new IllegalArgumentException(source + " must preserve existing issue context attribute: " + name);
-            }
-        });
-        return actual;
     }
 }

@@ -1,6 +1,9 @@
 package io.github.ringotangs.ringoboot.autoconfigure.verification;
 
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationStore;
+import io.github.ringotangs.ringoboot.verification.DefaultIssueContextManager;
+import io.github.ringotangs.ringoboot.verification.IssueContextContributor;
+import io.github.ringotangs.ringoboot.verification.IssueContextManager;
 import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.email.StdoutEmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.sms.SmsCodeSender;
@@ -8,6 +11,7 @@ import io.github.ringotangs.ringoboot.verification.sms.StdoutSmsCodeSender;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.time.Duration;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.*;
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
@@ -27,6 +31,18 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "enabled", havingValue = "true")
 @EnableConfigurationProperties(VerificationProperties.class)
 public class VerificationAutoConfiguration {
+
+    /**
+     * 在用户未提供 Manager 时，按 Spring 顺序收集所有上下文 Contributor。
+     *
+     * @param contributors 应用上下文中的上下文贡献器
+     * @return 默认上下文 Manager
+     */
+    @Bean
+    @ConditionalOnMissingBean(IssueContextManager.class)
+    IssueContextManager issueContextManager(ObjectProvider<IssueContextContributor> contributors) {
+        return new DefaultIssueContextManager(contributors.orderedStream().toList());
+    }
 
     /**
      * 在用户未提供存储时创建内存实现。
