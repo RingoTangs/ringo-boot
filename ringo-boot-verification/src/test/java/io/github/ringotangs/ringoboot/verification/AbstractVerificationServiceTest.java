@@ -322,7 +322,7 @@ class AbstractVerificationServiceTest {
                 store,
                 limiter,
                 VerificationPolicy.defaults(),
-                IssueContextManager.passthrough());
+                new DefaultIssueContextManager(List.of()));
 
         assertThrows(MissingIssueRateLimitRuleException.class, () -> template.issue(LOGIN));
         assertEquals(0, generations.get());
@@ -349,7 +349,7 @@ class AbstractVerificationServiceTest {
                         new InMemoryVerificationStore(),
                         null,
                         VerificationPolicy.defaults(),
-                        IssueContextManager.passthrough()));
+                        new DefaultIssueContextManager(List.of())));
         assertThrows(
                 NullPointerException.class,
                 () -> new CapturingVerificationService(
@@ -426,7 +426,7 @@ class AbstractVerificationServiceTest {
                 VerificationStore store,
                 IssueRateLimiter issueRateLimiter,
                 VerificationPolicy verificationPolicy) {
-            this(generator, store, issueRateLimiter, verificationPolicy, IssueContextManager.passthrough());
+            this(generator, store, issueRateLimiter, verificationPolicy, new DefaultIssueContextManager(List.of()));
         }
 
         private CapturingVerificationService(

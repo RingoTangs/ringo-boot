@@ -42,7 +42,7 @@ class SmsVerificationServiceTest {
                     return new io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult.Allowed();
                 },
                 policy,
-                IssueContextManager.passthrough(),
+                new DefaultIssueContextManager(List.of()),
                 (context, code, expiresAt) -> {
                     captured.set(context);
                     capturedCode.set(code);
@@ -70,7 +70,7 @@ class SmsVerificationServiceTest {
                         new InMemoryVerificationStore(),
                         IssueRateLimiter.permitAll(),
                         VerificationPolicy.defaults(),
-                        IssueContextManager.passthrough(),
+                        new DefaultIssueContextManager(List.of()),
                         null));
     }
 

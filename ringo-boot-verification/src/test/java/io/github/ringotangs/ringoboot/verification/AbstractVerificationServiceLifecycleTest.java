@@ -184,7 +184,7 @@ class AbstractVerificationServiceLifecycleTest {
                 VerificationStore store,
                 IssueRateLimiter issueRateLimiter,
                 VerificationPolicy verificationPolicy) {
-            super(generator, store, issueRateLimiter, verificationPolicy, IssueContextManager.passthrough());
+            super(generator, store, issueRateLimiter, verificationPolicy, new DefaultIssueContextManager(List.of()));
         }
 
         @Override
