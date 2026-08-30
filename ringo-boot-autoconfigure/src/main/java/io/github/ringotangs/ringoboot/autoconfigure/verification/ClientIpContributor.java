@@ -34,23 +34,13 @@ public final class ClientIpContributor implements IssueContextContributor {
     /**
      * 将当前请求的客户端 IP 地址添加到签发上下文。
      *
+     * <p>属性值约束由 {@link IssueContext#with(String, String)} 统一校验；已有属性保护由上下文 Manager 统一执行。
+     *
      * @param context 当前签发上下文
      * @return 包含 {@value #ATTRIBUTE_NAME} 属性的新上下文
-     * @throws NullPointerException     当上下文或请求返回的远端地址为 {@code null} 时
-     * @throws IllegalArgumentException 当上下文已经包含客户端 IP 属性时
-     * @throws IllegalStateException    当请求返回的远端地址为空白时
      */
     @Override
     public IssueContext contribute(IssueContext context) {
-        Objects.requireNonNull(context, "context must not be null");
-        if (context.attributes().containsKey(ATTRIBUTE_NAME)) {
-            throw new IllegalArgumentException("issue context attribute already exists: " + ATTRIBUTE_NAME);
-        }
-        String clientIp = Objects.requireNonNull(request.getRemoteAddr(), "request remote address must not be null")
-                .trim();
-        if (clientIp.isEmpty()) {
-            throw new IllegalStateException("request remote address must not be blank");
-        }
-        return context.with(ATTRIBUTE_NAME, clientIp);
+        return context.with(ATTRIBUTE_NAME, request.getRemoteAddr());
     }
 }

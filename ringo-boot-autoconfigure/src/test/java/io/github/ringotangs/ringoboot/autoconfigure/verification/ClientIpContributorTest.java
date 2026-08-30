@@ -1,8 +1,6 @@
 package io.github.ringotangs.ringoboot.autoconfigure.verification;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -27,7 +25,7 @@ class ClientIpContributorTest {
     @ValueSource(strings = {"203.0.113.10", "2001:db8::1"})
     void contributesClientIpAndPreservesContext(String clientIp) {
         HttpServletRequest request = mock(HttpServletRequest.class);
-        when(request.getRemoteAddr()).thenReturn(" " + clientIp + " ");
+        when(request.getRemoteAddr()).thenReturn(clientIp);
         IssueContext context =
                 IssueContext.of(KEY, VerificationChannel.EMAIL, POLICY).with("device-id", "device-123");
 
@@ -59,40 +57,9 @@ class ClientIpContributorTest {
     }
 
     @Test
-    void rejectsNullRequestAndContext() {
+    void rejectsNullRequest() {
         assertThatNullPointerException()
                 .isThrownBy(() -> new ClientIpContributor(null))
                 .withMessage("request must not be null");
-
-        ClientIpContributor contributor = new ClientIpContributor(mock(HttpServletRequest.class));
-        assertThatNullPointerException()
-                .isThrownBy(() -> contributor.contribute(null))
-                .withMessage("context must not be null");
-    }
-
-    @Test
-    void rejectsMissingOrBlankRemoteAddress() {
-        HttpServletRequest missingAddress = mock(HttpServletRequest.class);
-        when(missingAddress.getRemoteAddr()).thenReturn(null);
-        HttpServletRequest blankAddress = mock(HttpServletRequest.class);
-        when(blankAddress.getRemoteAddr()).thenReturn("  ");
-        IssueContext context = IssueContext.of(KEY, VerificationChannel.EMAIL, POLICY);
-
-        assertThatNullPointerException()
-                .isThrownBy(() -> new ClientIpContributor(missingAddress).contribute(context))
-                .withMessage("request remote address must not be null");
-        assertThatIllegalStateException()
-                .isThrownBy(() -> new ClientIpContributor(blankAddress).contribute(context))
-                .withMessage("request remote address must not be blank");
-    }
-
-    @Test
-    void refusesToOverwriteExistingClientIp() {
-        IssueContext context = IssueContext.of(KEY, VerificationChannel.EMAIL, POLICY)
-                .with(ClientIpContributor.ATTRIBUTE_NAME, "203.0.113.10");
-
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> new ClientIpContributor(mock(HttpServletRequest.class)).contribute(context))
-                .withMessage("issue context attribute already exists: client-ip");
     }
 }
