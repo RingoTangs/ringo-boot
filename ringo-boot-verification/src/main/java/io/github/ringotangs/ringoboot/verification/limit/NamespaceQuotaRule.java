@@ -44,7 +44,7 @@ public record NamespaceQuotaRule(
     }
 
     @Override
-    public boolean matches(IssueContext context) {
+    public boolean appliesTo(IssueContext context) {
         Objects.requireNonNull(context, "context must not be null");
         return namespace.equals(context.key().namespace()) && channel.equals(context.channel());
     }

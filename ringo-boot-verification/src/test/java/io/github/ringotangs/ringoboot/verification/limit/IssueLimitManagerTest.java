@@ -26,7 +26,14 @@ class IssueLimitManagerTest {
     @Test
     void selectsRulesAndSubmitsResolvedQuotas() {
         IssueLimitRule subjectRule = rule("subject-minute", context -> true, "user@example.com");
-        IssueLimitRule skipped = rule("registration-minute", context -> false, "registration");
+        IssueLimitRule skipped = new TestIssueLimitRule(
+                "registration-minute",
+                context -> false,
+                context -> {
+                    throw new AssertionError("bucket must not be resolved for an inapplicable rule");
+                },
+                1,
+                Duration.ofMinutes(1));
         AtomicReference<List<IssueLimitQuota>> captured = new AtomicReference<>();
         IssueLimitManager manager = new IssueLimitManager(List.of(subjectRule, skipped), (rules, time) -> {
             captured.set(rules);
@@ -131,7 +138,7 @@ class IssueLimitManagerTest {
             }
 
             @Override
-            public boolean matches(IssueContext context) {
+            public boolean appliesTo(IssueContext context) {
                 return true;
             }
 

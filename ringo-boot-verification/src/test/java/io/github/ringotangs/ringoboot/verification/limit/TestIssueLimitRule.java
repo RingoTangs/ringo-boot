@@ -9,14 +9,14 @@ import java.util.function.Predicate;
 /** 仅供 verification 模块测试复用的签发限流规则。 */
 public record TestIssueLimitRule(
         String id,
-        Predicate<IssueContext> matcher,
+        Predicate<IssueContext> applicability,
         Function<IssueContext, IssueLimitBucket> bucketResolver,
         int maxIssues,
         Duration window)
         implements IssueLimitRule {
 
     public TestIssueLimitRule {
-        Objects.requireNonNull(matcher, "matcher must not be null");
+        Objects.requireNonNull(applicability, "applicability must not be null");
         Objects.requireNonNull(bucketResolver, "bucketResolver must not be null");
     }
 
@@ -26,8 +26,8 @@ public record TestIssueLimitRule(
     }
 
     @Override
-    public boolean matches(IssueContext context) {
-        return matcher.test(Objects.requireNonNull(context, "context must not be null"));
+    public boolean appliesTo(IssueContext context) {
+        return applicability.test(Objects.requireNonNull(context, "context must not be null"));
     }
 
     @Override

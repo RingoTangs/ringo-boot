@@ -18,13 +18,13 @@ class ClientIpQuotaRuleTest {
     private static final VerificationPolicy POLICY = VerificationPolicy.defaults();
 
     @Test
-    void matchesConfiguredBusinessScopeWithoutInspectingClientIp() {
+    void appliesToConfiguredBusinessScopeWithoutInspectingClientIp() {
         ClientIpQuotaRule rule = rule();
 
-        assertTrue(rule.matches(context("account", "login", VerificationChannel.EMAIL, "user-1")));
-        assertFalse(rule.matches(context("account", "register", VerificationChannel.EMAIL, "user-1")));
-        assertFalse(rule.matches(context("profile", "login", VerificationChannel.EMAIL, "user-1")));
-        assertFalse(rule.matches(context("account", "login", VerificationChannel.SMS, "user-1")));
+        assertTrue(rule.appliesTo(context("account", "login", VerificationChannel.EMAIL, "user-1")));
+        assertFalse(rule.appliesTo(context("account", "register", VerificationChannel.EMAIL, "user-1")));
+        assertFalse(rule.appliesTo(context("profile", "login", VerificationChannel.EMAIL, "user-1")));
+        assertFalse(rule.appliesTo(context("account", "login", VerificationChannel.SMS, "user-1")));
     }
 
     @Test
@@ -55,7 +55,7 @@ class ClientIpQuotaRuleTest {
         ClientIpQuotaRule rule = rule();
         IssueContext context = context("account", "login", VerificationChannel.EMAIL, "user-1");
 
-        assertTrue(rule.matches(context));
+        assertTrue(rule.appliesTo(context));
         IllegalStateException exception = assertThrows(IllegalStateException.class, () -> rule.bucket(context));
         assertEquals("required issue context attribute is missing: client-ip", exception.getMessage());
     }

@@ -106,7 +106,7 @@ final class WebEmailVerificationService extends EmailVerificationService {
 | 方法 | 问题 |
 | --- | --- |
 | `id()` | 这条规则的稳定名称是什么？ |
-| `matches(context)` | 本次请求是否应该应用这条规则？ |
+| `appliesTo(context)` | 本次请求是否应该应用这条规则？ |
 | `bucket(context)` | 本次请求的额度应该累计到哪个桶？ |
 | `maxIssues()` | 一个窗口最多允许多少次？ |
 | `window()` | 滚动窗口有多长？ |
@@ -228,7 +228,7 @@ final class ApplicationHourlyRule implements IssueLimitRule {
         return "application-hour";
     }
 
-    public boolean matches(IssueContext context) {
+    public boolean appliesTo(IssueContext context) {
         return true;
     }
 
@@ -256,7 +256,7 @@ final class LoginIpHourlyRule implements IssueLimitRule {
         return "login-ip-hour";
     }
 
-    public boolean matches(IssueContext context) {
+    public boolean appliesTo(IssueContext context) {
         return context.key().purpose().equals("login");
     }
 
@@ -275,7 +275,7 @@ final class LoginIpHourlyRule implements IssueLimitRule {
 }
 ```
 
-`matches` 只判断业务是否适用。规则已经匹配后，如果生成 bucket 所需的属性缺失，应立即抛出异常，不应静默跳过安全规则。
+`appliesTo` 只判断业务是否适用。规则已经匹配后，如果生成 bucket 所需的属性缺失，应立即抛出异常，不应静默跳过安全规则。
 
 ### 组合额度桶
 
@@ -313,7 +313,7 @@ sequenceDiagram
     Service->>Service: IssueContext.of(key, channel, policy)
     Service->>Service: customizeIssueContext(baseContext)
     Service->>Manager: acquire(context, requestedAt)
-    Manager->>Rule: matches(context)
+    Manager->>Rule: appliesTo(context)
     Rule-->>Manager: true / false
     Manager->>Rule: bucket(context)
     Rule-->>Manager: IssueLimitBucket
@@ -336,7 +336,7 @@ sequenceDiagram
 2. 签发服务创建包含验证码键和渠道的基础上下文，并通过模板钩子补充可信环境信号或流程属性。
 3. 模板校验定制结果；子类不能替换验证码键或渠道。
 4. 管理器按照 Spring 的有序 Bean 顺序遍历所有规则。
-5. `matches=false` 的规则不参与本次签发。
+5. `appliesTo=false` 的规则不参与本次签发。
 6. 管理器先解析所有匹配规则的 bucket，任何规则解析失败时都不会访问限流状态存储。
 7. 管理器将规则快照转换成 `IssueLimitQuota` 列表。
 8. `IssueLimitStore` 在一个原子操作中检查所有签发配额。
@@ -417,8 +417,8 @@ IssueLimitRule loginIpHourlyRule() {
 接收方地址来自运行时 `VerificationKey.subject`，不应硬编码邮箱或手机号。所有 Rule Bean 的 ID 必须全局唯一，重复时应用启动失败。
 
 各渠道服务可以共享同一个 `IssueLimiter`。`IssueLimitManager` 会将完整 `IssueContext` 传给
-`IssueLimitRule.matches` 并仅执行匹配的规则，无需在创建 Manager 前按 channel 预先过滤。单渠道规则应在
-`matches` 中比较 `IssueContext.channel`；有意忽略 channel 则表示该规则共享多个渠道的配额。
+`IssueLimitRule.appliesTo` 并仅执行匹配的规则，无需在创建 Manager 前按 channel 预先过滤。单渠道规则应在
+`appliesTo` 中比较 `IssueContext.channel`；有意忽略 channel 则表示该规则共享多个渠道的配额。
 
 扩展和回退规则：
 
@@ -449,7 +449,7 @@ IssueLimitRule loginIpHourlyRule() {
 ## 九、实现自定义规则时的检查清单
 
 - 使用稳定、唯一的 kebab-case `id`。
-- `matches` 只负责业务匹配，不用它掩盖缺失的安全属性。
+- `appliesTo` 只负责业务匹配，不用它掩盖缺失的安全属性。
 - 在验证码服务的 `customizeIssueContext` 中集中读取环境信号，不在 Rule Bean 中访问 HTTP 请求。
 - bucket 中包含真正需要共享额度的字段，不包含无关字段。
 - 不在 Rule Bean 中访问 Redis、数据库或远程服务。

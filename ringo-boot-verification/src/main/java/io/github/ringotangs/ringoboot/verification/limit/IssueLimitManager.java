@@ -12,7 +12,7 @@ import java.util.Set;
  * 收集、匹配和解析签发限流规则，并统一提交给限流状态存储。
  *
  * <p>管理器在构造时复制规则集合，并校验规则定义和 ID 唯一性。每次获取名额时，先执行所有规则的
- * {@link IssueLimitRule#matches(IssueContext)}，再为匹配规则解析 {@link IssueLimitBucket}。只有全部额度桶成功解析后，才会把
+ * {@link IssueLimitRule#appliesTo(IssueContext)}，再为适用规则解析 {@link IssueLimitBucket}。只有全部额度桶成功解析后，才会把
  * 不可变 {@link IssueLimitQuota} 集合一次性提交给 {@link IssueLimitStore}。
  *
  * <p>规则集合为空或没有规则匹配当前验证码键时使用严格拒绝策略，抛出 {@link MissingIssueLimitRuleException}，不会访问状态
@@ -61,7 +61,7 @@ public final class IssueLimitManager implements IssueLimiter {
     /**
      * 使用签发上下文收集全部匹配规则并原子获取一次签发名额。
      *
-     * <p>该方法先解析所有匹配规则的额度桶，只有全部额度桶均成功解析后才调用 Store。没有规则匹配时严格拒绝，Store 返回结果为空
+     * <p>该方法先解析所有适用规则的额度桶，只有全部额度桶均成功解析后才调用 Store。没有规则适用时严格拒绝，Store 返回结果为空
      * 也视为实现违反契约。
      *
      * @param context     当前签发流程的上下文
@@ -79,7 +79,7 @@ public final class IssueLimitManager implements IssueLimiter {
         Objects.requireNonNull(requestedAt, "requestedAt must not be null");
         List<IssueLimitQuota> quotas = new ArrayList<>();
         for (IssueLimitRule rule : rules) {
-            if (rule.matches(context)) {
+            if (rule.appliesTo(context)) {
                 IssueLimitBucket bucket = Objects.requireNonNull(
                         rule.bucket(context), "issue rate limit rule bucket must not be null: " + rule.id());
                 quotas.add(new IssueLimitQuota(rule.id(), bucket, rule.maxIssues(), rule.window()));

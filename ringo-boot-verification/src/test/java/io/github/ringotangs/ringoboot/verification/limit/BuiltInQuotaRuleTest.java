@@ -32,9 +32,9 @@ class BuiltInQuotaRuleTest {
                 .build();
 
         assertEquals(IssueLimitBucket.of("account", "email"), rule.bucket(LOGIN_EMAIL));
-        assertTrue(rule.matches(context("account", "register", "other@example.com", "email")));
-        assertFalse(rule.matches(context("account", "login", "13800138000", "sms")));
-        assertFalse(rule.matches(context("payment", "login", "user@example.com", "email")));
+        assertTrue(rule.appliesTo(context("account", "register", "other@example.com", "email")));
+        assertFalse(rule.appliesTo(context("account", "login", "13800138000", "sms")));
+        assertFalse(rule.appliesTo(context("payment", "login", "user@example.com", "email")));
     }
 
     @Test
@@ -49,9 +49,10 @@ class BuiltInQuotaRuleTest {
                 .build();
 
         assertEquals(IssueLimitBucket.of("account", "login", "email"), rule.bucket(LOGIN_EMAIL));
-        assertFalse(rule.matches(context("account", "login", "13800138000", "sms")));
-        assertFalse(rule.matches(context("account", "register", "user@example.com", "email")));
-        assertFalse(rule.matches(context("payment", "login", "user@example.com", "email")));
+        assertTrue(rule.appliesTo(context("account", "login", "other@example.com", "email")));
+        assertFalse(rule.appliesTo(context("account", "login", "13800138000", "sms")));
+        assertFalse(rule.appliesTo(context("account", "register", "user@example.com", "email")));
+        assertFalse(rule.appliesTo(context("payment", "login", "user@example.com", "email")));
     }
 
     @Test
@@ -66,14 +67,15 @@ class BuiltInQuotaRuleTest {
                 new VerificationKey("account", "login", "user@example.com"), voice, VerificationPolicy.defaults());
         SubjectQuotaRule voiceRule = subjectRule("login-voice-subject-hour", voice, 5, Duration.ofHours(1));
 
-        assertTrue(rule.matches(LOGIN_EMAIL));
-        assertFalse(rule.matches(sms));
-        assertTrue(smsRule.matches(sms));
-        assertTrue(voiceRule.matches(voiceContext));
+        assertTrue(rule.appliesTo(LOGIN_EMAIL));
+        assertTrue(rule.appliesTo(anotherSubject));
+        assertFalse(rule.appliesTo(sms));
+        assertTrue(smsRule.appliesTo(sms));
+        assertTrue(voiceRule.appliesTo(voiceContext));
         assertNotEquals(rule.bucket(LOGIN_EMAIL), smsRule.bucket(sms));
         assertNotEquals(rule.bucket(LOGIN_EMAIL), voiceRule.bucket(voiceContext));
         assertNotEquals(rule.bucket(LOGIN_EMAIL), rule.bucket(anotherSubject));
-        assertFalse(rule.matches(context("account", "register", "user@example.com", "email")));
+        assertFalse(rule.appliesTo(context("account", "register", "user@example.com", "email")));
     }
 
     @Test
@@ -234,11 +236,11 @@ class BuiltInQuotaRuleTest {
                 "login-email-hour", "account", "login", VerificationChannel.EMAIL, 50, Duration.ofHours(1));
         SubjectQuotaRule subject = subjectRule("login-email-subject-hour", 5, Duration.ofHours(1));
 
-        assertThrows(NullPointerException.class, () -> namespace.matches(null));
+        assertThrows(NullPointerException.class, () -> namespace.appliesTo(null));
         assertThrows(NullPointerException.class, () -> namespace.bucket(null));
-        assertThrows(NullPointerException.class, () -> purpose.matches(null));
+        assertThrows(NullPointerException.class, () -> purpose.appliesTo(null));
         assertThrows(NullPointerException.class, () -> purpose.bucket(null));
-        assertThrows(NullPointerException.class, () -> subject.matches(null));
+        assertThrows(NullPointerException.class, () -> subject.appliesTo(null));
         assertThrows(NullPointerException.class, () -> subject.bucket(null));
     }
 
