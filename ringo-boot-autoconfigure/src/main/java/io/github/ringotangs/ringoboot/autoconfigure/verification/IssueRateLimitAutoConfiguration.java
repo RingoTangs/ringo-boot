@@ -42,6 +42,21 @@ public class IssueRateLimitAutoConfiguration {
     }
 
     /**
+     * 收集容器内全部签发规则并创建统一限流管理器。
+     *
+     * @param rules 容器内的签发限流规则
+     * @param store 签发限流状态存储
+     * @return 统一签发限流入口
+     */
+    @Bean
+    @ConditionalOnBean({IssueRateLimitRule.class, IssueRateLimitStore.class})
+    @ConditionalOnMissingBean(IssueRateLimiter.class)
+    IssueRateLimiter issueRateLimiter(ObjectProvider<IssueRateLimitRule> rules, IssueRateLimitStore store) {
+        List<IssueRateLimitRule> ruleBeans = rules.orderedStream().toList();
+        return new IssueRateLimitManager(ruleBeans, store);
+    }
+
+    /**
      * 在应用提供规则、选择内存模式且未提供存储时创建进程内签发限流状态存储。
      *
      * @return 进程内验证码签发限流状态存储
@@ -56,21 +71,6 @@ public class IssueRateLimitAutoConfiguration {
             matchIfMissing = true)
     IssueRateLimitStore inMemoryIssueRateLimitStore() {
         return new InMemoryIssueRateLimitStore();
-    }
-
-    /**
-     * 收集容器内全部签发规则并创建统一限流管理器。
-     *
-     * @param rules 容器内的签发限流规则
-     * @param store 签发限流状态存储
-     * @return 统一签发限流入口
-     */
-    @Bean
-    @ConditionalOnBean({IssueRateLimitRule.class, IssueRateLimitStore.class})
-    @ConditionalOnMissingBean(IssueRateLimiter.class)
-    IssueRateLimiter issueRateLimiter(ObjectProvider<IssueRateLimitRule> rules, IssueRateLimitStore store) {
-        List<IssueRateLimitRule> ruleBeans = rules.orderedStream().toList();
-        return new IssueRateLimitManager(ruleBeans, store);
     }
 
     /**
