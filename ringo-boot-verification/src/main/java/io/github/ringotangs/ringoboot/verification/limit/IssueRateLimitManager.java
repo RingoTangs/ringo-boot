@@ -20,10 +20,14 @@ import java.util.Set;
  */
 public final class IssueRateLimitManager implements IssueRateLimiter {
 
-    /** 启动时复制并校验完成的不可变规则快照。 */
+    /**
+     * 启动时复制并校验完成的不可变规则快照。
+     */
     private final List<IssueRateLimitRule> rules;
 
-    /** 原子检查并消费已解析签发配额的状态存储。 */
+    /**
+     * 原子检查并消费已解析签发配额的状态存储。
+     */
     private final IssueRateLimitStore store;
 
     /**
@@ -33,8 +37,8 @@ public final class IssueRateLimitManager implements IssueRateLimiter {
      *
      * @param rules 需要管理的非空签发限流规则集合
      * @param store 原子保存和消费已解析配额的限流状态存储
-     * @throws NullPointerException 当规则集合、任一规则、规则定义字段或 Store 为 {@code null} 时
-     * @throws IllegalArgumentException 当规则定义非法或存在重复规则 ID 时
+     * @throws NullPointerException               当规则集合、任一规则、规则定义字段或 Store 为 {@code null} 时
+     * @throws IllegalArgumentException           当规则定义非法或存在重复规则 ID 时
      * @throws MissingIssueRateLimitRuleException 当规则集合为空时
      */
     public IssueRateLimitManager(List<IssueRateLimitRule> rules, IssueRateLimitStore store) {
@@ -60,14 +64,14 @@ public final class IssueRateLimitManager implements IssueRateLimiter {
      * <p>该方法先解析所有匹配规则的额度桶，只有全部额度桶均成功解析后才调用 Store。没有规则匹配时严格拒绝，Store 返回结果为空
      * 也视为实现违反契约。
      *
-     * @param context 当前签发流程的上下文
+     * @param context     当前签发流程的上下文
      * @param requestedAt 请求签发的时间
      * @return Store 返回的允许或受限结果
-     * @throws NullPointerException 当任一参数、规则返回的额度桶或 Store 返回结果为 {@code null} 时
-     * @throws IllegalArgumentException 当规则生成的配额非法时
+     * @throws NullPointerException               当任一参数、规则返回的额度桶或 Store 返回结果为 {@code null} 时
+     * @throws IllegalArgumentException           当规则生成的配额非法时
      * @throws MissingIssueRateLimitRuleException 当没有规则覆盖当前验证码键时
-     * @throws RuntimeException 当规则匹配或额度桶解析失败时
-     * @throws IssueRateLimitStoreException 当底层限流状态操作失败时
+     * @throws RuntimeException                   当规则匹配或额度桶解析失败时
+     * @throws IssueRateLimitStoreException       当底层限流状态操作失败时
      */
     @Override
     public IssueLimitResult acquire(IssueContext context, Instant requestedAt) throws IssueRateLimitStoreException {
