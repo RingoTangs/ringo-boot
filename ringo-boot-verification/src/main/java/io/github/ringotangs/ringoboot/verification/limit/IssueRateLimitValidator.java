@@ -7,7 +7,7 @@ import java.util.Objects;
 /**
  * 统一校验签发限流规则定义中的公共字段。
  */
-final class IssueRateLimitValidator {
+public final class IssueRateLimitValidator {
 
     /**
      * 工具类不允许实例化。
@@ -23,7 +23,7 @@ final class IssueRateLimitValidator {
      * @throws NullPointerException     当规则标识或窗口为 {@code null} 时
      * @throws IllegalArgumentException 当规则标识不是 kebab-case、最大次数不为正数或窗口不为正数时
      */
-    static void validateRuleDefinition(String id, int maxIssues, Duration window) {
+    public static void validateRuleDefinition(String id, int maxIssues, Duration window) {
         KebabCase.validate("rule id", id);
         Objects.requireNonNull(window, "window must not be null");
         if (maxIssues <= 0) {

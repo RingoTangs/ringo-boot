@@ -5,6 +5,7 @@ import io.github.ringotangs.ringoboot.verification.IssueContext;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
+import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitValidator;
 import java.time.Duration;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
@@ -37,16 +38,9 @@ public record ClientIpIssueQuotaRule(
      */
     public ClientIpIssueQuotaRule {
         Objects.requireNonNull(channel, "channel must not be null");
-        KebabCase.validate("rule id", id);
         KebabCase.validate("namespace", namespace);
         KebabCase.validate("purpose", purpose);
-        Objects.requireNonNull(window, "window must not be null");
-        if (maxIssues <= 0) {
-            throw new IllegalArgumentException("maxIssues must be greater than 0: " + maxIssues);
-        }
-        if (window.isZero() || window.isNegative()) {
-            throw new IllegalArgumentException("window must be positive: " + window);
-        }
+        IssueRateLimitValidator.validateRuleDefinition(id, maxIssues, window);
     }
 
     /**
