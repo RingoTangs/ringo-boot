@@ -3,7 +3,9 @@ package io.github.ringotangs.ringoboot.verification;
 import java.util.List;
 import java.util.Objects;
 
-/** 按固定顺序执行一组 {@link IssueContextContributor} 的默认上下文 Manager。 */
+/**
+ * 按固定顺序执行一组 {@link IssueContextContributor} 的默认上下文 Manager。
+ */
 public final class DefaultIssueContextManager implements IssueContextManager {
 
     private final List<IssueContextContributor> contributors;
