@@ -3,6 +3,7 @@ package io.github.ringotangs.ringoboot.autoconfigure.verification;
 import io.github.ringotangs.ringoboot.verification.IssueContext;
 import io.github.ringotangs.ringoboot.verification.IssueContextContributor;
 import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.Objects;
 
 /**
@@ -13,7 +14,9 @@ import java.util.Objects;
  */
 public final class ClientIpContributor implements IssueContextContributor {
 
-    /** 客户端 IP 地址在 {@link IssueContext#attributes()} 中使用的属性名。 */
+    /**
+     * 客户端 IP 地址在 {@link IssueContext#attributes()} 中使用的属性名。
+     */
     public static final String ATTRIBUTE_NAME = "client-ip";
 
     private final HttpServletRequest request;
@@ -33,9 +36,9 @@ public final class ClientIpContributor implements IssueContextContributor {
      *
      * @param context 当前签发上下文
      * @return 包含 {@value #ATTRIBUTE_NAME} 属性的新上下文
-     * @throws NullPointerException 当上下文或请求返回的远端地址为 {@code null} 时
+     * @throws NullPointerException     当上下文或请求返回的远端地址为 {@code null} 时
      * @throws IllegalArgumentException 当上下文已经包含客户端 IP 属性时
-     * @throws IllegalStateException 当请求返回的远端地址为空白时
+     * @throws IllegalStateException    当请求返回的远端地址为空白时
      */
     @Override
     public IssueContext contribute(IssueContext context) {
