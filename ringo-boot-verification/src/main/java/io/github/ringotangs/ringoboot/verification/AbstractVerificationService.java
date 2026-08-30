@@ -187,7 +187,7 @@ public abstract class AbstractVerificationService implements VerificationService
         }
     }
 
-    private static IssueContext requirePreservedContext(IssueContext expected, IssueContext actual, String source) {
+    private static void requirePreservedContext(IssueContext expected, IssueContext actual, String source) {
         if (!actual.key().equals(expected.key())) {
             throw new IllegalArgumentException(source + " must preserve the verification key");
         }
@@ -197,7 +197,6 @@ public abstract class AbstractVerificationService implements VerificationService
         if (!actual.policy().equals(expected.policy())) {
             throw new IllegalArgumentException(source + " must preserve the verification policy");
         }
-        return actual;
     }
 
     private static IssueContext requireEnrichedContext(IssueContext expected, IssueContext actual, String source) {
