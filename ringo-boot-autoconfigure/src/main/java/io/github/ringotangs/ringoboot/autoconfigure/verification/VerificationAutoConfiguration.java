@@ -10,6 +10,7 @@ import io.github.ringotangs.ringoboot.verification.sms.SmsCodeSender;
 import io.github.ringotangs.ringoboot.verification.sms.StdoutSmsCodeSender;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
+import jakarta.servlet.http.HttpServletRequest;
 import java.time.Duration;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -22,7 +23,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 /**
- * 自动配置验证码状态存储和默认渠道发送器。
+ * 自动配置验证码状态存储、默认渠道发送器和 Servlet 请求上下文贡献器。
  *
  * <p>仅在显式启用验证码功能时生效。验证服务和验证码生成器由应用显式组装；每个默认基础设施组件都会在应用提供同类型 Bean 时回退。</p>
  */
@@ -96,6 +97,27 @@ public class VerificationAutoConfiguration {
     @ConditionalOnMissingBean(SmsCodeSender.class)
     SmsCodeSender stdoutSmsCodeSender() {
         return new StdoutSmsCodeSender();
+    }
+
+    /**
+     * Servlet 请求上下文贡献器配置。
+     */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+    @ConditionalOnClass(HttpServletRequest.class)
+    static class ServletContextConfiguration {
+
+        /**
+         * 在用户未提供客户端 IP Contributor 时创建默认实现。
+         *
+         * @param requests 按调用解析当前 Servlet 请求的 Provider
+         * @return 客户端 IP 上下文贡献器
+         */
+        @Bean
+        @ConditionalOnMissingBean(ClientIpContributor.class)
+        ClientIpContributor clientIpContributor(ObjectProvider<HttpServletRequest> requests) {
+            return new ClientIpContributor(requests);
+        }
     }
 
     /**

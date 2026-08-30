@@ -6,7 +6,9 @@ import static org.mockito.Mockito.mock;
 
 import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisVerificationStore;
 import io.github.ringotangs.ringoboot.verification.DefaultIssueContextManager;
+import io.github.ringotangs.ringoboot.verification.IssueContext;
 import io.github.ringotangs.ringoboot.verification.IssueContextManager;
+import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.VerifyResult;
@@ -22,18 +24,24 @@ import io.github.ringotangs.ringoboot.verification.sms.StdoutSmsCodeSender;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
+import jakarta.servlet.http.HttpServletRequest;
 import java.time.Duration;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 class VerificationAutoConfigurationTest {
 
@@ -43,6 +51,10 @@ class VerificationAutoConfigurationTest {
             .withConfiguration(
                     AutoConfigurations.of(VerificationAutoConfiguration.class, IssueLimitAutoConfiguration.class))
             .withPropertyValues("spring.application.name=test-application");
+
+    private final WebApplicationContextRunner webContextRunner = new WebApplicationContextRunner()
+            .withConfiguration(AutoConfigurations.of(VerificationAutoConfiguration.class))
+            .withPropertyValues("ringo.boot.verification.enabled=true");
 
     @Test
     void failsWhenRedisApplicationNameIsMissing() {
@@ -91,6 +103,44 @@ class VerificationAutoConfigurationTest {
             assertThat(context).doesNotHaveBean(VerificationStore.class);
             assertThat(context).doesNotHaveBean(EmailCodeSender.class);
             assertThat(context).doesNotHaveBean(SmsCodeSender.class);
+            assertThat(context).doesNotHaveBean(ClientIpContributor.class);
+        });
+    }
+
+    @Test
+    void configuresClientIpContributorInServletApplication() {
+        webContextRunner.run(context -> {
+            assertThat(context).hasNotFailed();
+            assertThat(context).hasSingleBean(ClientIpContributor.class);
+
+            MockHttpServletRequest request = new MockHttpServletRequest(
+                    context.getSourceApplicationContext().getServletContext());
+            request.setRemoteAddr("203.0.113.10");
+            RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+            try {
+                IssueContext issueContext = IssueContext.of(
+                        new VerificationKey("account", "login", "user@example.com"),
+                        VerificationChannel.EMAIL,
+                        VerificationPolicy.defaults());
+
+                IssueContext enriched =
+                        context.getBean(IssueContextManager.class).enrich(issueContext);
+
+                assertThat(enriched.attribute(ClientIpContributor.ATTRIBUTE_NAME))
+                        .contains("203.0.113.10");
+            } finally {
+                RequestContextHolder.resetRequestAttributes();
+            }
+        });
+    }
+
+    @Test
+    void customClientIpContributorOverridesDefault() {
+        ClientIpContributor contributor = new ClientIpContributor(requestProvider());
+
+        webContextRunner.withBean(ClientIpContributor.class, () -> contributor).run(context -> {
+            assertThat(context).hasSingleBean(ClientIpContributor.class);
+            assertThat(context.getBean(ClientIpContributor.class)).isSameAs(contributor);
         });
     }
 
@@ -121,6 +171,7 @@ class VerificationAutoConfigurationTest {
             assertThat(context.getBean(SmsCodeSender.class)).isInstanceOf(StdoutSmsCodeSender.class);
             assertThat(context).hasSingleBean(IssueContextManager.class);
             assertThat(context.getBean(IssueContextManager.class)).isInstanceOf(DefaultIssueContextManager.class);
+            assertThat(context).doesNotHaveBean(ClientIpContributor.class);
             assertThat(context).doesNotHaveBean(EmailVerificationService.class);
             assertThat(context).doesNotHaveBean(SmsVerificationService.class);
         });
@@ -151,6 +202,7 @@ class VerificationAutoConfigurationTest {
                     assertThat(context).doesNotHaveBean(CodeGenerator.class);
                     assertThat(context).doesNotHaveBean(EmailVerificationService.class);
                     assertThat(context).doesNotHaveBean(SmsVerificationService.class);
+                    assertThat(context).doesNotHaveBean(ClientIpContributor.class);
                 });
     }
 
@@ -349,6 +401,11 @@ class VerificationAutoConfigurationTest {
 
     private static VerificationHmacKey hmacKey() {
         return VerificationHmacKey.fromBase64(SECRET);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static ObjectProvider<HttpServletRequest> requestProvider() {
+        return mock(ObjectProvider.class);
     }
 
     private static final class TestVerificationStore implements VerificationStore {
