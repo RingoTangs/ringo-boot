@@ -31,8 +31,7 @@ class IssueRateLimitAutoConfigurationTest {
     private static final String SECRET = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withConfiguration(AutoConfigurations.of(
-                    IssueRateLimitStoreAutoConfiguration.class, IssueRateLimitAutoConfiguration.class));
+            .withConfiguration(AutoConfigurations.of(IssueRateLimitAutoConfiguration.class));
 
     @Test
     void doesNotConfigureRateLimitingByDefault() {
@@ -114,11 +113,12 @@ class IssueRateLimitAutoConfigurationTest {
         contextRunner
                 .withPropertyValues("ringo.boot.verification.enabled=true")
                 .withBean(IssueRateLimiter.class, () -> limiter)
+                .withBean("customRule", IssueRateLimitRule.class, IssueRateLimitAutoConfigurationTest::rule)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context.getBean(IssueRateLimiter.class)).isSameAs(limiter);
                     assertThat(context).doesNotHaveBean(IssueRateLimitStore.class);
-                    assertThat(context).doesNotHaveBean(IssueRateLimitRule.class);
+                    assertThat(context).hasSingleBean(IssueRateLimitRule.class);
                 });
     }
 
@@ -219,8 +219,7 @@ class IssueRateLimitAutoConfigurationTest {
 
     private static ApplicationContextRunner redisContextRunner() {
         return new ApplicationContextRunner()
-                .withConfiguration(AutoConfigurations.of(
-                        IssueRateLimitStoreAutoConfiguration.class, IssueRateLimitAutoConfiguration.class))
+                .withConfiguration(AutoConfigurations.of(IssueRateLimitAutoConfiguration.class))
                 .withPropertyValues(
                         "spring.application.name=test-application",
                         "ringo.boot.verification.enabled=true",

@@ -40,10 +40,8 @@ class VerificationAutoConfigurationTest {
     private static final String SECRET = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withConfiguration(AutoConfigurations.of(
-                    VerificationAutoConfiguration.class,
-                    IssueRateLimitStoreAutoConfiguration.class,
-                    IssueRateLimitAutoConfiguration.class))
+            .withConfiguration(
+                    AutoConfigurations.of(VerificationAutoConfiguration.class, IssueRateLimitAutoConfiguration.class))
             .withPropertyValues("spring.application.name=test-application");
 
     @Test
@@ -180,7 +178,6 @@ class VerificationAutoConfigurationTest {
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
                         VerificationAutoConfiguration.class,
-                        IssueRateLimitStoreAutoConfiguration.class,
                         IssueRateLimitAutoConfiguration.class,
                         RedisAutoConfiguration.class))
                 .withPropertyValues(
