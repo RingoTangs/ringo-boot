@@ -11,9 +11,9 @@ import io.github.ringotangs.ringoboot.verification.IssueContext;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
-import io.github.ringotangs.ringoboot.verification.limit.NamespaceIssueQuotaRule;
-import io.github.ringotangs.ringoboot.verification.limit.PurposeIssueQuotaRule;
-import io.github.ringotangs.ringoboot.verification.limit.SubjectIssueQuotaRule;
+import io.github.ringotangs.ringoboot.verification.limit.NamespaceQuotaRule;
+import io.github.ringotangs.ringoboot.verification.limit.PurposeQuotaRule;
+import io.github.ringotangs.ringoboot.verification.limit.SubjectQuotaRule;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -101,20 +101,20 @@ class EmailVerificationControllerTest {
     void registersLayeredIssueRateLimitRules() {
         org.assertj.core.api.Assertions.assertThat(issueRateLimitRules)
                 .containsExactlyInAnyOrder(
-                        new NamespaceIssueQuotaRule(
+                        new NamespaceQuotaRule(
                                 "account-email-hourly-quota",
                                 "account",
                                 VerificationChannel.EMAIL,
                                 100,
                                 Duration.ofHours(1L)),
-                        new PurposeIssueQuotaRule(
+                        new PurposeQuotaRule(
                                 "email-verification-hourly-quota",
                                 "account",
                                 "email-verification",
                                 VerificationChannel.EMAIL,
                                 10,
                                 Duration.ofHours(1L)),
-                        new SubjectIssueQuotaRule(
+                        new SubjectQuotaRule(
                                 "email-verification-resend-cooldown",
                                 "account",
                                 "email-verification",

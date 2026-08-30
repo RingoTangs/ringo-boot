@@ -11,7 +11,7 @@ import io.github.ringotangs.ringoboot.verification.IssueContext;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
-import io.github.ringotangs.ringoboot.verification.limit.ClientIpIssueQuotaRule;
+import io.github.ringotangs.ringoboot.verification.limit.ClientIpQuotaRule;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -24,7 +24,7 @@ class ClientIpContributorTest {
 
     @Test
     void usesClientIpRuleAttributeName() {
-        assertThat(ClientIpContributor.ATTRIBUTE_NAME).isEqualTo(ClientIpIssueQuotaRule.ATTRIBUTE_NAME);
+        assertThat(ClientIpContributor.ATTRIBUTE_NAME).isEqualTo(ClientIpQuotaRule.ATTRIBUTE_NAME);
     }
 
     @ParameterizedTest

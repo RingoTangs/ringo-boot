@@ -8,28 +8,36 @@ import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 /**
- * 限制同一业务用途内的验证码签发总量。
+ * 按客户端 IP 地址限制指定业务用途的验证码签发次数。
  *
- * <p>该规则匹配指定 namespace、purpose 和 channel 下的全部验证主体，额度桶由 namespace、purpose 和 channel 组成。
+ * <p>该规则匹配指定 namespace、purpose 和 channel，额度桶由 namespace、purpose、channel 和
+ * {@value #ATTRIBUTE_NAME} 属性组成。因此，同一业务用途下不同验证主体从同一客户端 IP 发起的请求会共享额度。
+ *
+ * <p>规则只消费已经写入 {@link IssueContext} 的客户端 IP，不负责解析代理请求头、校验 IP 格式或规范化 IPv6 地址。
  *
  * @param id        全局唯一且稳定的规则标识
  * @param namespace 需要限制的业务命名空间
  * @param purpose   需要限制的验证码用途
  * @param channel   需要限制的验证码渠道
- * @param maxIssues 滚动窗口内允许签发的最大次数
+ * @param maxIssues 每个客户端 IP 在滚动窗口内允许签发的最大次数
  * @param window    滚动窗口长度
  */
-public record PurposeIssueQuotaRule(
+public record ClientIpQuotaRule(
         String id, String namespace, String purpose, VerificationChannel channel, int maxIssues, Duration window)
         implements IssueRateLimitRule {
 
     /**
-     * 创建并校验业务用途配额规则。
+     * 客户端 IP 地址在 {@link IssueContext#attributes()} 中使用的属性名。
+     */
+    public static final String ATTRIBUTE_NAME = "client-ip";
+
+    /**
+     * 创建并校验客户端 IP 配额规则。
      *
      * @throws NullPointerException     当规则标识、业务范围、渠道或窗口为 {@code null} 时
      * @throws IllegalArgumentException 当规则定义非法时
      */
-    public PurposeIssueQuotaRule {
+    public ClientIpQuotaRule {
         Objects.requireNonNull(channel, "channel must not be null");
         KebabCase.validate("namespace", namespace);
         KebabCase.validate("purpose", purpose);
@@ -37,7 +45,7 @@ public record PurposeIssueQuotaRule(
     }
 
     /**
-     * 创建业务用途配额规则 Builder。
+     * 创建客户端 IP 配额规则 Builder。
      *
      * @return 尚未配置任何字段的 Builder
      */
@@ -56,11 +64,14 @@ public record PurposeIssueQuotaRule(
     @Override
     public IssueLimitBucket bucket(IssueContext context) {
         Objects.requireNonNull(context, "context must not be null");
-        return IssueLimitBucket.of(namespace, purpose, channel.value());
+        String clientIp = context.attribute(ATTRIBUTE_NAME)
+                .orElseThrow(() ->
+                        new IllegalStateException("required issue context attribute is missing: " + ATTRIBUTE_NAME));
+        return IssueLimitBucket.of(namespace, purpose, channel.value(), clientIp);
     }
 
     /**
-     * 使用具名配置项构建业务用途配额规则。
+     * 使用具名配置项构建客户端 IP 配额规则。
      */
     public static final class Builder {
 
@@ -73,79 +84,38 @@ public record PurposeIssueQuotaRule(
 
         private Builder() {}
 
-        /**
-         * 设置规则标识。
-         *
-         * @param id 全局唯一且稳定的规则标识
-         * @return 当前 Builder
-         */
         public Builder id(String id) {
             this.id = Objects.requireNonNull(id, "id must not be null");
             return this;
         }
 
-        /**
-         * 设置业务命名空间。
-         *
-         * @param namespace 业务命名空间
-         * @return 当前 Builder
-         */
         public Builder namespace(String namespace) {
             this.namespace = Objects.requireNonNull(namespace, "namespace must not be null");
             return this;
         }
 
-        /**
-         * 设置验证码用途。
-         *
-         * @param purpose 验证码用途
-         * @return 当前 Builder
-         */
         public Builder purpose(String purpose) {
             this.purpose = Objects.requireNonNull(purpose, "purpose must not be null");
             return this;
         }
 
-        /**
-         * 设置验证码渠道。
-         *
-         * @param channel 验证码渠道
-         * @return 当前 Builder
-         */
         public Builder channel(VerificationChannel channel) {
             this.channel = Objects.requireNonNull(channel, "channel must not be null");
             return this;
         }
 
-        /**
-         * 设置窗口内允许签发的最大次数。
-         *
-         * @param maxIssues 最大签发次数
-         * @return 当前 Builder
-         */
         public Builder maxIssues(int maxIssues) {
             this.maxIssues = maxIssues;
             return this;
         }
 
-        /**
-         * 设置滚动窗口长度。
-         *
-         * @param window 滚动窗口长度
-         * @return 当前 Builder
-         */
         public Builder window(Duration window) {
             this.window = Objects.requireNonNull(window, "window must not be null");
             return this;
         }
 
-        /**
-         * 使用当前配置创建规则。
-         *
-         * @return 完整并经过校验的业务用途配额规则
-         */
-        public PurposeIssueQuotaRule build() {
-            return new PurposeIssueQuotaRule(
+        public ClientIpQuotaRule build() {
+            return new ClientIpQuotaRule(
                     Objects.requireNonNull(id, "id must be configured"),
                     Objects.requireNonNull(namespace, "namespace must be configured"),
                     Objects.requireNonNull(purpose, "purpose must be configured"),

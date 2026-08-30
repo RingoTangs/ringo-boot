@@ -45,7 +45,7 @@ class IssueRateLimitManagerTest {
 
     @Test
     void selectsBuiltInRulesByContextChannel() {
-        IssueRateLimitRule emailRule = PurposeIssueQuotaRule.builder()
+        IssueRateLimitRule emailRule = PurposeQuotaRule.builder()
                 .id("login-email-minute")
                 .namespace("account")
                 .purpose("login")
@@ -53,7 +53,7 @@ class IssueRateLimitManagerTest {
                 .maxIssues(10)
                 .window(Duration.ofMinutes(1))
                 .build();
-        IssueRateLimitRule smsRule = PurposeIssueQuotaRule.builder()
+        IssueRateLimitRule smsRule = PurposeQuotaRule.builder()
                 .id("login-sms-minute")
                 .namespace("account")
                 .purpose("login")

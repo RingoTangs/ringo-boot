@@ -13,13 +13,13 @@ import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
 
-class ClientIpIssueQuotaRuleTest {
+class ClientIpQuotaRuleTest {
 
     private static final VerificationPolicy POLICY = VerificationPolicy.defaults();
 
     @Test
     void matchesConfiguredBusinessScopeWithoutInspectingClientIp() {
-        ClientIpIssueQuotaRule rule = rule();
+        ClientIpQuotaRule rule = rule();
 
         assertTrue(rule.matches(context("account", "login", VerificationChannel.EMAIL, "user-1")));
         assertFalse(rule.matches(context("account", "register", VerificationChannel.EMAIL, "user-1")));
@@ -29,7 +29,7 @@ class ClientIpIssueQuotaRuleTest {
 
     @Test
     void sharesBucketAcrossSubjectsFromSameClientIp() {
-        ClientIpIssueQuotaRule rule = rule();
+        ClientIpQuotaRule rule = rule();
         IssueContext first =
                 withClientIp(context("account", "login", VerificationChannel.EMAIL, "user-1"), "203.0.113.10");
         IssueContext second =
@@ -43,7 +43,7 @@ class ClientIpIssueQuotaRuleTest {
 
     @Test
     void separatesBucketsByClientIp() {
-        ClientIpIssueQuotaRule rule = rule();
+        ClientIpQuotaRule rule = rule();
         IssueContext context = context("account", "login", VerificationChannel.EMAIL, "user-1");
 
         assertNotEquals(
@@ -52,7 +52,7 @@ class ClientIpIssueQuotaRuleTest {
 
     @Test
     void rejectsMissingClientIpAfterRuleMatches() {
-        ClientIpIssueQuotaRule rule = rule();
+        ClientIpQuotaRule rule = rule();
         IssueContext context = context("account", "login", VerificationChannel.EMAIL, "user-1");
 
         assertTrue(rule.matches(context));
@@ -64,28 +64,27 @@ class ClientIpIssueQuotaRuleTest {
     void validatesRuleDefinition() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new ClientIpIssueQuotaRule(
+                () -> new ClientIpQuotaRule(
                         "login_ip_hour", "account", "login", VerificationChannel.EMAIL, 1, Duration.ofHours(1)));
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new ClientIpIssueQuotaRule(
+                () -> new ClientIpQuotaRule(
                         "login-ip-hour", "account", "login", VerificationChannel.EMAIL, 0, Duration.ofHours(1)));
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new ClientIpIssueQuotaRule(
+                () -> new ClientIpQuotaRule(
                         "login-ip-hour", "account", "login", VerificationChannel.EMAIL, 1, Duration.ZERO));
     }
 
     @Test
     void builderRequiresEveryField() {
         NullPointerException exception = assertThrows(
-                NullPointerException.class,
-                () -> ClientIpIssueQuotaRule.builder().build());
+                NullPointerException.class, () -> ClientIpQuotaRule.builder().build());
         assertEquals("id must be configured", exception.getMessage());
     }
 
-    private static ClientIpIssueQuotaRule rule() {
-        return ClientIpIssueQuotaRule.builder()
+    private static ClientIpQuotaRule rule() {
+        return ClientIpQuotaRule.builder()
                 .id("login-ip-hour")
                 .namespace("account")
                 .purpose("login")
@@ -100,6 +99,6 @@ class ClientIpIssueQuotaRuleTest {
     }
 
     private static IssueContext withClientIp(IssueContext context, String clientIp) {
-        return context.with(ClientIpIssueQuotaRule.ATTRIBUTE_NAME, clientIp);
+        return context.with(ClientIpQuotaRule.ATTRIBUTE_NAME, clientIp);
     }
 }

@@ -2,9 +2,9 @@ package io.github.ringotangs.ringoboot.sample.verification;
 
 import io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationProperties;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
-import io.github.ringotangs.ringoboot.verification.limit.NamespaceIssueQuotaRule;
-import io.github.ringotangs.ringoboot.verification.limit.PurposeIssueQuotaRule;
-import io.github.ringotangs.ringoboot.verification.limit.SubjectIssueQuotaRule;
+import io.github.ringotangs.ringoboot.verification.limit.NamespaceQuotaRule;
+import io.github.ringotangs.ringoboot.verification.limit.PurposeQuotaRule;
+import io.github.ringotangs.ringoboot.verification.limit.SubjectQuotaRule;
 import java.time.Duration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -18,8 +18,8 @@ import org.springframework.context.annotation.Configuration;
 class IssueRateLimitConfiguration {
 
     @Bean
-    NamespaceIssueQuotaRule accountEmailHourlyQuotaRule() {
-        return NamespaceIssueQuotaRule.builder()
+    NamespaceQuotaRule accountEmailHourlyQuotaRule() {
+        return NamespaceQuotaRule.builder()
                 .id("account-email-hourly-quota")
                 .namespace("account")
                 .channel(VerificationChannel.EMAIL)
@@ -29,8 +29,8 @@ class IssueRateLimitConfiguration {
     }
 
     @Bean
-    PurposeIssueQuotaRule emailVerificationHourlyQuotaRule() {
-        return PurposeIssueQuotaRule.builder()
+    PurposeQuotaRule emailVerificationHourlyQuotaRule() {
+        return PurposeQuotaRule.builder()
                 .id("email-verification-hourly-quota")
                 .namespace("account")
                 .purpose("email-verification")
@@ -41,8 +41,8 @@ class IssueRateLimitConfiguration {
     }
 
     @Bean
-    SubjectIssueQuotaRule emailVerificationResendCooldownRule() {
-        return SubjectIssueQuotaRule.builder()
+    SubjectQuotaRule emailVerificationResendCooldownRule() {
+        return SubjectQuotaRule.builder()
                 .id("email-verification-resend-cooldown")
                 .namespace("account")
                 .purpose("email-verification")

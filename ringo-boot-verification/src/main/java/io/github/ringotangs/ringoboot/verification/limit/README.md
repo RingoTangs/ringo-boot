@@ -129,7 +129,7 @@ Spring Boot 自动配置不注册内置 `IssueRateLimitRule`。应用没有提�
 
 ### 重发冷却
 
-重发冷却是 `SubjectIssueQuotaRule` 的一种特殊配置：将 `maxIssues` 设置为 `1`，将 `window` 设置为两次签发之间的最短间隔。
+重发冷却是 `SubjectQuotaRule` 的一种特殊配置：将 `maxIssues` 设置为 `1`，将 `window` 设置为两次签发之间的最短间隔。
 该规则按 namespace、purpose、channel 和 subject 隔离，邮件、短信以及自定义渠道需要分别注册 Bean。
 
 固定的一次额度是“冷却”的必要语义：例如 60 秒冷却意味着两次签发至少间隔 60 秒。如果一个 60 秒窗口允许两次，用户可以在同一时刻
@@ -138,7 +138,7 @@ Spring Boot 自动配置不注册内置 `IssueRateLimitRule`。应用没有提�
 ```java
 @Bean
 IssueRateLimitRule loginEmailResendCooldownRule() {
-    return SubjectIssueQuotaRule.builder()
+    return SubjectQuotaRule.builder()
             .id("login-email-resend-cooldown")
             .namespace("account")
             .purpose("login")
@@ -157,9 +157,9 @@ core 提供三种周期配额规则。它们覆盖的范围逐级扩大，并且
 
 | 规则 | 匹配范围 | 额度桶 |
 | --- | --- | --- |
-| `SubjectIssueQuotaRule` | namespace + purpose + channel | namespace + purpose + channel + subject |
-| `PurposeIssueQuotaRule` | namespace + purpose + channel | namespace + purpose + channel |
-| `NamespaceIssueQuotaRule` | namespace + channel | namespace + channel |
+| `SubjectQuotaRule` | namespace + purpose + channel | namespace + purpose + channel + subject |
+| `PurposeQuotaRule` | namespace + purpose + channel | namespace + purpose + channel |
+| `NamespaceQuotaRule` | namespace + channel | namespace + channel |
 
 三种规则都强制绑定一个 `VerificationChannel`，不同渠道拥有独立额度。应用需要为实际使用的渠道分别注册规则 Bean。同一范围需要小时、天等
 多个窗口时，每个规则必须使用不同且稳定的 ID；建议在 ID 中包含渠道和窗口：
@@ -167,7 +167,7 @@ core 提供三种周期配额规则。它们覆盖的范围逐级扩大，并且
 ```java
 @Bean
 IssueRateLimitRule loginSubjectHourlyRule() {
-    return SubjectIssueQuotaRule.builder()
+    return SubjectQuotaRule.builder()
             .id("login-email-subject-hour")
             .namespace("account")
             .purpose("login")
@@ -179,7 +179,7 @@ IssueRateLimitRule loginSubjectHourlyRule() {
 
 @Bean
 IssueRateLimitRule loginSubjectDailyRule() {
-    return SubjectIssueQuotaRule.builder()
+    return SubjectQuotaRule.builder()
             .id("login-email-subject-day")
             .namespace("account")
             .purpose("login")
@@ -191,7 +191,7 @@ IssueRateLimitRule loginSubjectDailyRule() {
 
 @Bean
 IssueRateLimitRule loginPurposeMinuteRule() {
-    return PurposeIssueQuotaRule.builder()
+    return PurposeQuotaRule.builder()
             .id("login-email-purpose-minute")
             .namespace("account")
             .purpose("login")
@@ -203,7 +203,7 @@ IssueRateLimitRule loginPurposeMinuteRule() {
 
 @Bean
 IssueRateLimitRule accountNamespaceHourlyRule() {
-    return NamespaceIssueQuotaRule.builder()
+    return NamespaceQuotaRule.builder()
             .id("account-email-namespace-hour")
             .namespace("account")
             .channel(VerificationChannel.EMAIL)
@@ -413,7 +413,7 @@ IssueRateLimitRule loginIpHourlyRule() {
 }
 ```
 
-业务级或接收方级配额可以直接注册 `NamespaceIssueQuotaRule`、`PurposeIssueQuotaRule` 或 `SubjectIssueQuotaRule`。
+业务级或接收方级配额可以直接注册 `NamespaceQuotaRule`、`PurposeQuotaRule` 或 `SubjectQuotaRule`。
 接收方地址来自运行时 `VerificationKey.subject`，不应硬编码邮箱或手机号。所有 Rule Bean 的 ID 必须全局唯一，重复时应用启动失败。
 
 各渠道服务可以共享同一个 `IssueRateLimiter`。`IssueRateLimitManager` 会将完整 `IssueContext` 传给

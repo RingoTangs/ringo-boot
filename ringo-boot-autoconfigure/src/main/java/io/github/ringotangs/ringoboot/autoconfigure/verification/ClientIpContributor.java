@@ -2,7 +2,7 @@ package io.github.ringotangs.ringoboot.autoconfigure.verification;
 
 import io.github.ringotangs.ringoboot.verification.IssueContext;
 import io.github.ringotangs.ringoboot.verification.IssueContextContributor;
-import io.github.ringotangs.ringoboot.verification.limit.ClientIpIssueQuotaRule;
+import io.github.ringotangs.ringoboot.verification.limit.ClientIpQuotaRule;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Objects;
 
@@ -17,7 +17,7 @@ public final class ClientIpContributor implements IssueContextContributor {
     /**
      * 客户端 IP 地址在 {@link IssueContext#attributes()} 中使用的属性名。
      */
-    public static final String ATTRIBUTE_NAME = ClientIpIssueQuotaRule.ATTRIBUTE_NAME;
+    public static final String ATTRIBUTE_NAME = ClientIpQuotaRule.ATTRIBUTE_NAME;
 
     private final HttpServletRequest request;
 

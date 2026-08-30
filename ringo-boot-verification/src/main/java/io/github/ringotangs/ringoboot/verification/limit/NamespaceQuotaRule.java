@@ -18,7 +18,7 @@ import org.jspecify.annotations.Nullable;
  * @param maxIssues 滚动窗口内允许签发的最大次数
  * @param window    滚动窗口长度
  */
-public record NamespaceIssueQuotaRule(
+public record NamespaceQuotaRule(
         String id, String namespace, VerificationChannel channel, int maxIssues, Duration window)
         implements IssueRateLimitRule {
 
@@ -28,7 +28,7 @@ public record NamespaceIssueQuotaRule(
      * @throws NullPointerException     当规则标识、命名空间、渠道或窗口为 {@code null} 时
      * @throws IllegalArgumentException 当规则定义非法时
      */
-    public NamespaceIssueQuotaRule {
+    public NamespaceQuotaRule {
         Objects.requireNonNull(channel, "channel must not be null");
         KebabCase.validate("namespace", namespace);
         IssueRateLimitValidator.validateRuleDefinition(id, maxIssues, window);
@@ -128,8 +128,8 @@ public record NamespaceIssueQuotaRule(
          *
          * @return 完整并经过校验的业务命名空间配额规则
          */
-        public NamespaceIssueQuotaRule build() {
-            return new NamespaceIssueQuotaRule(
+        public NamespaceQuotaRule build() {
+            return new NamespaceQuotaRule(
                     Objects.requireNonNull(id, "id must be configured"),
                     Objects.requireNonNull(namespace, "namespace must be configured"),
                     Objects.requireNonNull(channel, "channel must be configured"),
