@@ -13,7 +13,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplicat
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.ProblemDetail;
 
-/** 在 Problem Details 和验证码功能均启用时自动配置验证码异常处理。 */
+/**
+ * 在 Problem Details 和验证码功能均启用时自动配置验证码异常处理。
+ */
 @AutoConfiguration(after = ProblemAutoConfiguration.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass({ProblemDetail.class, VerificationException.class})
