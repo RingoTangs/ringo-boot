@@ -1,11 +1,11 @@
 package io.github.ringotangs.ringoboot.autoconfigure.verification;
 
-import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisIssueRateLimitStore;
-import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimitStore;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitManager;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitStore;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
+import io.github.ringotangs.ringoboot.autoconfigure.verification.redis.RedisIssueLimitStore;
+import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueLimitStore;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitManager;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitRule;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitStore;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimiter;
 import java.util.List;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -26,10 +26,10 @@ import org.springframework.data.redis.core.StringRedisTemplate;
  * Store 或 Limiter 时，对应默认组件会自动回退。</p>
  */
 @AutoConfiguration(after = RedisAutoConfiguration.class)
-@ConditionalOnClass(IssueRateLimiter.class)
-@ConditionalOnMissingBean(IssueRateLimiter.class)
+@ConditionalOnClass(IssueLimiter.class)
+@ConditionalOnMissingBean(IssueLimiter.class)
 @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "enabled", havingValue = "true")
-public class IssueRateLimitAutoConfiguration {
+public class IssueLimitAutoConfiguration {
 
     /**
      * 收集容器内全部签发规则并创建签发限流入口。
@@ -41,13 +41,12 @@ public class IssueRateLimitAutoConfiguration {
      * @return 允许全部签发请求的实现或统一签发限流管理器
      */
     @Bean
-    IssueRateLimiter issueRateLimiter(
-            ObjectProvider<IssueRateLimitRule> rules, ObjectProvider<IssueRateLimitStore> stores) {
-        List<IssueRateLimitRule> ruleBeans = rules.orderedStream().toList();
+    IssueLimiter issueLimiter(ObjectProvider<IssueLimitRule> rules, ObjectProvider<IssueLimitStore> stores) {
+        List<IssueLimitRule> ruleBeans = rules.orderedStream().toList();
         if (ruleBeans.isEmpty()) {
-            return IssueRateLimiter.permitAll();
+            return IssueLimiter.permitAll();
         }
-        return new IssueRateLimitManager(ruleBeans, stores.getObject());
+        return new IssueLimitManager(ruleBeans, stores.getObject());
     }
 
     /**
@@ -56,15 +55,15 @@ public class IssueRateLimitAutoConfiguration {
      * @return 进程内验证码签发限流状态存储
      */
     @Bean
-    @ConditionalOnBean(IssueRateLimitRule.class)
-    @ConditionalOnMissingBean(IssueRateLimitStore.class)
+    @ConditionalOnBean(IssueLimitRule.class)
+    @ConditionalOnMissingBean(IssueLimitStore.class)
     @ConditionalOnProperty(
             prefix = VerificationProperties.PREFIX,
             name = "store",
             havingValue = "memory",
             matchIfMissing = true)
-    IssueRateLimitStore inMemoryIssueRateLimitStore() {
-        return new InMemoryIssueRateLimitStore();
+    IssueLimitStore inMemoryIssueLimitStore() {
+        return new InMemoryIssueLimitStore();
     }
 
     /**
@@ -72,7 +71,7 @@ public class IssueRateLimitAutoConfiguration {
      */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(StringRedisTemplate.class)
-    @ConditionalOnBean({StringRedisTemplate.class, IssueRateLimitRule.class})
+    @ConditionalOnBean({StringRedisTemplate.class, IssueLimitRule.class})
     @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "store", havingValue = "redis")
     static class RedisStoreConfiguration {
 
@@ -85,10 +84,10 @@ public class IssueRateLimitAutoConfiguration {
          * @return Redis 验证码签发限流状态存储
          */
         @Bean
-        @ConditionalOnMissingBean(IssueRateLimitStore.class)
-        IssueRateLimitStore redisIssueRateLimitStore(
+        @ConditionalOnMissingBean(IssueLimitStore.class)
+        IssueLimitStore redisIssueLimitStore(
                 StringRedisTemplate redisTemplate, VerificationHmacKey hmacKey, Environment environment) {
-            return new RedisIssueRateLimitStore(
+            return new RedisIssueLimitStore(
                     redisTemplate, hmacKey.getEncoded(), environment.getRequiredProperty("spring.application.name"));
         }
     }

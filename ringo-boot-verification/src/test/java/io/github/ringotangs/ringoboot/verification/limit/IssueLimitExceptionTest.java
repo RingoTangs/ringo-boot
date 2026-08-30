@@ -9,19 +9,19 @@ import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-class IssueRateLimitExceptionTest {
+class IssueLimitExceptionTest {
 
     @Test
-    void providesACommonHierarchyForEveryRateLimitFailure() {
-        IssueRateLimitExceededException exceeded = new IssueRateLimitExceededException(List.of(
+    void providesACommonHierarchyForEveryLimitFailure() {
+        IssueLimitExceededException exceeded = new IssueLimitExceededException(List.of(
                 new IssueLimitViolation("subject-minute", Duration.ofSeconds(30)),
                 new IssueLimitViolation("ip-hour", Duration.ofMinutes(10))));
-        MissingIssueRateLimitRuleException missing = new MissingIssueRateLimitRuleException();
-        IssueRateLimitStoreException store = new IssueRateLimitStoreException("store unavailable");
+        MissingIssueLimitRuleException missing = new MissingIssueLimitRuleException();
+        IssueLimitStoreException store = new IssueLimitStoreException("store unavailable");
 
-        assertInstanceOf(IssueRateLimitException.class, exceeded);
-        assertInstanceOf(IssueRateLimitException.class, missing);
-        assertInstanceOf(IssueRateLimitException.class, store);
+        assertInstanceOf(IssueLimitException.class, exceeded);
+        assertInstanceOf(IssueLimitException.class, missing);
+        assertInstanceOf(IssueLimitException.class, store);
         assertInstanceOf(VerificationException.class, exceeded);
         assertEquals(Duration.ofMinutes(10), exceeded.retryAfter());
         assertEquals(
@@ -31,11 +31,10 @@ class IssueRateLimitExceptionTest {
 
     @Test
     void rejectsInvalidExceededViolations() {
-        assertThrows(NullPointerException.class, () -> new IssueRateLimitExceededException(null));
-        assertThrows(IllegalArgumentException.class, () -> new IssueRateLimitExceededException(List.of()));
+        assertThrows(NullPointerException.class, () -> new IssueLimitExceededException(null));
+        assertThrows(IllegalArgumentException.class, () -> new IssueLimitExceededException(List.of()));
         IssueLimitViolation duplicate = new IssueLimitViolation("subject-minute", Duration.ZERO);
         assertThrows(
-                IllegalArgumentException.class,
-                () -> new IssueRateLimitExceededException(List.of(duplicate, duplicate)));
+                IllegalArgumentException.class, () -> new IssueLimitExceededException(List.of(duplicate, duplicate)));
     }
 }

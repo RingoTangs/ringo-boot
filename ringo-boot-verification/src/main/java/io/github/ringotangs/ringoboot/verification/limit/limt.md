@@ -165,7 +165,7 @@ Twilio 支持业务传入自定义限流键，例如用户 IP；Firebase 同时�
    - 告警、审计和动态黑名单。
 
 当前业务调用方仍只需调用 `VerificationService.issue(VerificationKey)`。签发服务在入口创建 `IssueContext`，通过
-`customizeIssueContext` 模板钩子补充环境信息后传给 `IssueRateLimiter.acquire(IssueContext, Instant)`，因此规则仍可使用 IP、设备、账号和租户维度：
+`customizeIssueContext` 模板钩子补充环境信息后传给 `IssueLimiter.acquire(IssueContext, Instant)`，因此规则仍可使用 IP、设备、账号和租户维度：
 
 ```java
 @Override

@@ -22,7 +22,7 @@ import org.jspecify.annotations.Nullable;
  */
 public record SubjectQuotaRule(
         String id, String namespace, String purpose, VerificationChannel channel, int maxIssues, Duration window)
-        implements IssueRateLimitRule {
+        implements IssueLimitRule {
 
     /**
      * 创建并校验验证主体配额规则。
@@ -34,7 +34,7 @@ public record SubjectQuotaRule(
         Objects.requireNonNull(channel, "channel must not be null");
         KebabCase.validate("namespace", namespace);
         KebabCase.validate("purpose", purpose);
-        IssueRateLimitValidator.validateRuleDefinition(id, maxIssues, window);
+        IssueLimitValidator.validateRuleDefinition(id, maxIssues, window);
     }
 
     /**

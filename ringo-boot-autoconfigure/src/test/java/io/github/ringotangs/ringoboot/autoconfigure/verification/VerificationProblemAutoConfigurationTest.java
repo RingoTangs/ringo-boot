@@ -6,9 +6,9 @@ import io.github.ringotangs.ringoboot.autoconfigure.problem.ProblemAutoConfigura
 import io.github.ringotangs.ringoboot.autoconfigure.problem.ProblemMessageResolver;
 import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitExceededException;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitViolation;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitExceededException;
-import io.github.ringotangs.ringoboot.verification.limit.MissingIssueRateLimitRuleException;
+import io.github.ringotangs.ringoboot.verification.limit.MissingIssueLimitRuleException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
 import java.time.Duration;
 import java.util.List;
@@ -124,7 +124,7 @@ class VerificationProblemAutoConfigurationTest {
                     assertThat(problem.getDetail()).isEqualTo("验证码服务暂时不可用");
 
                     ResponseEntity<ProblemDetail> throttled =
-                            handler.handleIssueRateLimitExceeded(new IssueRateLimitExceededException(
+                            handler.handleIssueLimitExceeded(new IssueLimitExceededException(
                                     List.of(new IssueLimitViolation("subject-minute", Duration.ofSeconds(3_478L)))));
                     assertThat(throttled.getBody())
                             .isNotNull()
@@ -146,7 +146,7 @@ class VerificationProblemAutoConfigurationTest {
                 .run(context -> {
                     VerificationExceptionHandler handler = context.getBean(VerificationExceptionHandler.class);
 
-                    assertThat(handler.handleIssueRateLimitExceeded(new IssueRateLimitExceededException(
+                    assertThat(handler.handleIssueLimitExceeded(new IssueLimitExceededException(
                                             List.of(new IssueLimitViolation("subject-minute", Duration.ofSeconds(2)))))
                                     .getBody())
                             .extracting(ProblemDetail::getTitle, ProblemDetail::getDetail)
@@ -161,7 +161,7 @@ class VerificationProblemAutoConfigurationTest {
                             .containsExactly(
                                     "Verification code generation failed",
                                     "The verification service encountered an internal error");
-                    assertThat(handler.handleVerificationException(new MissingIssueRateLimitRuleException()))
+                    assertThat(handler.handleVerificationException(new MissingIssueLimitRuleException()))
                             .extracting(ProblemDetail::getTitle, ProblemDetail::getDetail)
                             .containsExactly(
                                     "Verification configuration error",

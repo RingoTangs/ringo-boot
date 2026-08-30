@@ -8,7 +8,7 @@ import java.util.Objects;
 /**
  * 表示验证码签发请求正常达到一条或多条限流规则的额度上限。
  */
-public final class IssueRateLimitExceededException extends IssueRateLimitException {
+public final class IssueLimitExceededException extends IssueLimitException {
 
     private final List<IssueLimitViolation> violations;
 
@@ -19,7 +19,7 @@ public final class IssueRateLimitExceededException extends IssueRateLimitExcepti
      * @throws NullPointerException     当规则明细集合或任一元素为 {@code null} 时
      * @throws IllegalArgumentException 当规则明细为空或包含重复规则 ID 时
      */
-    public IssueRateLimitExceededException(List<IssueLimitViolation> violations) {
+    public IssueLimitExceededException(List<IssueLimitViolation> violations) {
         super("Verification code issuance rate limit exceeded");
         Objects.requireNonNull(violations, "violations must not be null");
         this.violations = List.copyOf(violations);

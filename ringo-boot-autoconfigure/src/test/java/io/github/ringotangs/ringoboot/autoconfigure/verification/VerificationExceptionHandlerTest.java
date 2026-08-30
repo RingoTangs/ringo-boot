@@ -13,10 +13,10 @@ import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.VerificationException;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitExceededException;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitStoreException;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitViolation;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitExceededException;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitStoreException;
-import io.github.ringotangs.ringoboot.verification.limit.MissingIssueRateLimitRuleException;
+import io.github.ringotangs.ringoboot.verification.limit.MissingIssueLimitRuleException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
 import java.net.URI;
 import java.time.Duration;
@@ -54,28 +54,28 @@ class VerificationExceptionHandlerTest {
     }
 
     @Test
-    void returnsSameSafeUnavailableProblemForSenderStoreAndRateLimitFailures(CapturedOutput output) {
+    void returnsSameSafeUnavailableProblemForSenderStoreAndLimitFailures(CapturedOutput output) {
         VerificationExceptionHandler handler = createDefaultHandler();
 
         ProblemDetail senderProblem = handler.handleVerificationException(new CodeSenderException(
                 VerificationChannel.EMAIL, "provider token=secret", new IllegalStateException("provider details")));
         ProblemDetail storeProblem = handler.handleVerificationException(
                 new VerificationStoreException("redis password=secret", new IllegalStateException("redis details")));
-        ProblemDetail rateLimitProblem = handler.handleVerificationException(new IssueRateLimitStoreException(
+        ProblemDetail limitProblem = handler.handleVerificationException(new IssueLimitStoreException(
                 "lua script secret diagnostics", new IllegalStateException("redis details")));
         ProblemDetail rejectedProblem =
                 handler.handleVerificationException(new CodeDeliveryRejectedException(VerificationChannel.SMS));
 
         assertServiceUnavailable(senderProblem);
         assertServiceUnavailable(storeProblem);
-        assertServiceUnavailable(rateLimitProblem);
+        assertServiceUnavailable(limitProblem);
         assertServiceUnavailable(rejectedProblem);
         assertThat(senderProblem.getDetail()).doesNotContain("provider", "secret");
         assertThat(storeProblem.getDetail()).doesNotContain("redis", "secret");
-        assertThat(rateLimitProblem.getDetail()).doesNotContain("lua", "redis", "secret");
+        assertThat(limitProblem.getDetail()).doesNotContain("lua", "redis", "secret");
         assertLogged(output, CodeSenderException.class);
         assertLogged(output, VerificationStoreException.class);
-        assertLogged(output, IssueRateLimitStoreException.class);
+        assertLogged(output, IssueLimitStoreException.class);
         assertLogged(output, CodeDeliveryRejectedException.class);
         assertThat(output).contains("channel=email", "channel=sms");
     }
@@ -86,7 +86,7 @@ class VerificationExceptionHandlerTest {
                 new ExceptionHandlerMethodResolver(VerificationExceptionHandler.class);
 
         assertHandler(resolver, new InvalidVerificationCodeException(), "handleInvalidVerificationCode");
-        assertHandler(resolver, exceeded(Duration.ofSeconds(1)), "handleIssueRateLimitExceeded");
+        assertHandler(resolver, exceeded(Duration.ofSeconds(1)), "handleIssueLimitExceeded");
         assertHandler(resolver, new CodeGenerationException("internal"), "handleVerificationException");
         assertHandler(
                 resolver,
@@ -95,8 +95,8 @@ class VerificationExceptionHandlerTest {
         assertHandler(
                 resolver, new CodeDeliveryRejectedException(VerificationChannel.SMS), "handleVerificationException");
         assertHandler(resolver, new VerificationStoreException("internal"), "handleVerificationException");
-        assertHandler(resolver, new IssueRateLimitStoreException("internal"), "handleVerificationException");
-        assertHandler(resolver, new MissingIssueRateLimitRuleException(), "handleVerificationException");
+        assertHandler(resolver, new IssueLimitStoreException("internal"), "handleVerificationException");
+        assertHandler(resolver, new MissingIssueLimitRuleException(), "handleVerificationException");
         assertHandler(resolver, new UnknownVerificationException("internal"), "handleVerificationException");
     }
 
@@ -112,10 +112,10 @@ class VerificationExceptionHandlerTest {
     }
 
     @Test
-    void returnsSafeInternalErrorForMissingRateLimitRule(CapturedOutput output) {
+    void returnsSafeInternalErrorForMissingLimitRule(CapturedOutput output) {
         VerificationExceptionHandler handler = createDefaultHandler();
-        MissingIssueRateLimitRuleException exception =
-                new MissingIssueRateLimitRuleException(new VerificationKey("account", "login", "user@example.com"));
+        MissingIssueLimitRuleException exception =
+                new MissingIssueLimitRuleException(new VerificationKey("account", "login", "user@example.com"));
 
         ProblemDetail problem = handler.handleVerificationException(exception);
 
@@ -126,7 +126,7 @@ class VerificationExceptionHandlerTest {
                 "Verification configuration error",
                 "The verification service is not configured for this operation");
         assertThat(problem.getDetail()).doesNotContain("account", "login", "example.com");
-        assertLogged(output, MissingIssueRateLimitRuleException.class);
+        assertLogged(output, MissingIssueLimitRuleException.class);
     }
 
     @Test
@@ -134,7 +134,7 @@ class VerificationExceptionHandlerTest {
         VerificationExceptionHandler handler = createDefaultHandler();
 
         ResponseEntity<ProblemDetail> throttledResponse =
-                handler.handleIssueRateLimitExceeded(exceeded(Duration.ofMillis(1201)));
+                handler.handleIssueLimitExceeded(exceeded(Duration.ofMillis(1201)));
         ProblemDetail throttled = throttledResponse.getBody();
         ProblemDetail invalid = handler.handleInvalidVerificationCode(new InvalidVerificationCodeException());
 
@@ -161,14 +161,14 @@ class VerificationExceptionHandlerTest {
     void logsThrottleViolationsAtDebugWithoutExposingThemInResponse(CapturedOutput output) {
         Logger logger = (Logger) LoggerFactory.getLogger(VerificationExceptionHandler.class);
         Level previousLevel = logger.getLevel();
-        IssueRateLimitExceededException exception = new IssueRateLimitExceededException(List.of(
+        IssueLimitExceededException exception = new IssueLimitExceededException(List.of(
                 new IssueLimitViolation("subject-minute", Duration.ofSeconds(30)),
                 new IssueLimitViolation("ip-hour", Duration.ofMinutes(10))));
 
         ResponseEntity<ProblemDetail> response;
         try {
             logger.setLevel(Level.DEBUG);
-            response = createDefaultHandler().handleIssueRateLimitExceeded(exception);
+            response = createDefaultHandler().handleIssueLimitExceeded(exception);
         } finally {
             logger.setLevel(previousLevel);
         }
@@ -194,7 +194,7 @@ class VerificationExceptionHandlerTest {
     })
     void formatsRetryAfterUsingAReadableUnit(long seconds, String expectedDetail) {
         ResponseEntity<ProblemDetail> response =
-                createDefaultHandler().handleIssueRateLimitExceeded(exceeded(Duration.ofSeconds(seconds)));
+                createDefaultHandler().handleIssueLimitExceeded(exceeded(Duration.ofSeconds(seconds)));
 
         assertThat(response.getBody())
                 .isNotNull()
@@ -207,9 +207,9 @@ class VerificationExceptionHandlerTest {
     @Test
     void roundsRetryAfterUpWithoutOverflowing() {
         ResponseEntity<ProblemDetail> fractional =
-                createDefaultHandler().handleIssueRateLimitExceeded(exceeded(Duration.ofNanos(1L)));
+                createDefaultHandler().handleIssueLimitExceeded(exceeded(Duration.ofNanos(1L)));
         ResponseEntity<ProblemDetail> maximum = createDefaultHandler()
-                .handleIssueRateLimitExceeded(exceeded(Duration.ofSeconds(Long.MAX_VALUE, 999_999_999L)));
+                .handleIssueLimitExceeded(exceeded(Duration.ofSeconds(Long.MAX_VALUE, 999_999_999L)));
 
         assertThat(fractional.getHeaders().getFirst(HttpHeaders.RETRY_AFTER)).isEqualTo("1");
         assertThat(maximum.getHeaders().getFirst(HttpHeaders.RETRY_AFTER)).isEqualTo(Long.toString(Long.MAX_VALUE));
@@ -223,8 +223,8 @@ class VerificationExceptionHandlerTest {
         return new VerificationExceptionHandler(resolver);
     }
 
-    private IssueRateLimitExceededException exceeded(Duration retryAfter) {
-        return new IssueRateLimitExceededException(List.of(new IssueLimitViolation("subject-minute", retryAfter)));
+    private IssueLimitExceededException exceeded(Duration retryAfter) {
+        return new IssueLimitExceededException(List.of(new IssueLimitViolation("subject-minute", retryAfter)));
     }
 
     private void assertServiceUnavailable(ProblemDetail problem) {

@@ -9,14 +9,14 @@ import java.util.Objects;
  * <p>该异常表示服务端限流配置缺失，不是正常达到额度上限。正常超限使用 {@link IssueLimitResult.Throttled} 表达。基于验证码键创建
  * 异常时，诊断消息不会包含可能为邮箱或手机号的 subject。
  */
-public final class MissingIssueRateLimitRuleException extends IssueRateLimitException {
+public final class MissingIssueLimitRuleException extends IssueLimitException {
 
     /**
      * 创建一个表示限流管理器没有配置任何规则的异常。
      *
-     * <p>该构造器通常由 {@link IssueRateLimitManager} 在创建阶段使用。
+     * <p>该构造器通常由 {@link IssueLimitManager} 在创建阶段使用。
      */
-    public MissingIssueRateLimitRuleException() {
+    public MissingIssueLimitRuleException() {
         super("at least one issue rate limit rule is required");
     }
 
@@ -28,7 +28,7 @@ public final class MissingIssueRateLimitRuleException extends IssueRateLimitExce
      * @param key 没有限流规则覆盖的验证码键
      * @throws NullPointerException 当验证码键为 {@code null} 时
      */
-    public MissingIssueRateLimitRuleException(VerificationKey key) {
+    public MissingIssueLimitRuleException(VerificationKey key) {
         super(message(Objects.requireNonNull(key, "key must not be null")));
     }
 

@@ -8,7 +8,7 @@ import io.github.ringotangs.ringoboot.verification.IssueContextManager;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimiter;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.time.Instant;
 import java.util.Objects;
@@ -25,7 +25,7 @@ public class SmsVerificationService extends AbstractVerificationService {
      *
      * @param codeGenerator       验证码生成器
      * @param store               验证码存储
-     * @param issueRateLimiter    验证码签发限流器
+     * @param issueLimiter    验证码签发限流器
      * @param verificationPolicy  服务级验证码策略
      * @param issueContextManager 统一准备最终签发上下文的 Manager
      * @param sender              短信发送器
@@ -33,11 +33,11 @@ public class SmsVerificationService extends AbstractVerificationService {
     public SmsVerificationService(
             CodeGenerator codeGenerator,
             VerificationStore store,
-            IssueRateLimiter issueRateLimiter,
+            IssueLimiter issueLimiter,
             VerificationPolicy verificationPolicy,
             IssueContextManager issueContextManager,
             SmsCodeSender sender) {
-        super(codeGenerator, store, issueRateLimiter, verificationPolicy, issueContextManager);
+        super(codeGenerator, store, issueLimiter, verificationPolicy, issueContextManager);
         this.sender = Objects.requireNonNull(sender, "sender must not be null");
     }
 

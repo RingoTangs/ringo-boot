@@ -10,7 +10,7 @@ import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 
-class IssueRateLimiterTest {
+class IssueLimiterTest {
 
     private static final VerificationKey KEY = new VerificationKey("account", "login", "user@example.com");
     private static final IssueContext CONTEXT =
@@ -19,7 +19,7 @@ class IssueRateLimiterTest {
 
     @Test
     void permitAllExplicitlyAllowsRequestsAndValidatesInputs() {
-        IssueRateLimiter limiter = IssueRateLimiter.permitAll();
+        IssueLimiter limiter = IssueLimiter.permitAll();
 
         assertInstanceOf(IssueLimitResult.Allowed.class, limiter.acquire(CONTEXT, NOW));
         assertThrows(NullPointerException.class, () -> limiter.acquire(null, NOW));

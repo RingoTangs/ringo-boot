@@ -22,7 +22,7 @@ sample 已引入 `spring-boot-starter-data-redis`。Spring Boot 创建 `StringRe
 `VerificationProperties.toPolicy()` 根据 `ringo.boot.verification.*` 配置创建，不注册为 Spring Bean；
 业务特定策略可通过 `VerificationService.issue(key, policy)` 在调用时传入。
 
-sample 不注册 `IssueRateLimitRule`，因此自动配置使用 `IssueRateLimiter.permitAll()`，不会创建签发限流 Store。Redis 仍用于
+sample 不注册 `IssueLimitRule`，因此自动配置使用 `IssueLimiter.permitAll()`，不会创建签发限流 Store。Redis 仍用于
 保存验证码状态，但不会写入签发限流 ZSET。实际应用需要限流时，可以在代码中注册规则 Bean；限流规则不支持 YAML 配置。
 
 `VerificationService` 只定义签发和校验的业务契约。`AbstractVerificationService` 是该契约的抽象骨架实现，统一编排生成、
@@ -33,13 +33,13 @@ sample 不注册 `IssueRateLimitRule`，因此自动配置使用 `IssueRateLimit
 @Bean
 EmailVerificationService emailVerificationService(
         VerificationStore store,
-        IssueRateLimiter issueRateLimiter,
+        IssueLimiter issueLimiter,
         VerificationProperties properties,
         EmailCodeSender sender) {
     return new EmailVerificationService(
             new NumericCodeGenerator(),
             store,
-            issueRateLimiter,
+            issueLimiter,
             properties.toPolicy(),
             sender);
 }

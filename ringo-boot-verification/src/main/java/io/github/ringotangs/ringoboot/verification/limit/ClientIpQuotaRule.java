@@ -24,7 +24,7 @@ import org.jspecify.annotations.Nullable;
  */
 public record ClientIpQuotaRule(
         String id, String namespace, String purpose, VerificationChannel channel, int maxIssues, Duration window)
-        implements IssueRateLimitRule {
+        implements IssueLimitRule {
 
     /**
      * 客户端 IP 地址在 {@link IssueContext#attributes()} 中使用的属性名。
@@ -41,7 +41,7 @@ public record ClientIpQuotaRule(
         Objects.requireNonNull(channel, "channel must not be null");
         KebabCase.validate("namespace", namespace);
         KebabCase.validate("purpose", purpose);
-        IssueRateLimitValidator.validateRuleDefinition(id, maxIssues, window);
+        IssueLimitValidator.validateRuleDefinition(id, maxIssues, window);
     }
 
     /**

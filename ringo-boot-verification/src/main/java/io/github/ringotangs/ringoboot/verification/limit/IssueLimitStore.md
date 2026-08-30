@@ -1,9 +1,9 @@
-# IssueRateLimitStore 设计与实现
+# IssueLimitStore 设计与实现
 
-本文详细解释 `IssueRateLimitStore` 的职责、数据模型和 `InMemoryIssueRateLimitStore` 的实现逻辑。阅读本文不需要预先了解
+本文详细解释 `IssueLimitStore` 的职责、数据模型和 `InMemoryIssueLimitStore` 的实现逻辑。阅读本文不需要预先了解
 限流算法，但建议先知道 `VerificationKey` 由 `namespace`、`purpose` 和 `subject` 组成。
 
-## 一、IssueRateLimitStore 解决什么问题
+## 一、IssueLimitStore 解决什么问题
 
 验证码签发可能同时受到多条规则限制，例如：
 
@@ -15,15 +15,15 @@
 
 ```mermaid
 flowchart LR
-    A[VerificationService.issue] --> B[IssueRateLimitManager]
-    B --> C[匹配 IssueRateLimitRule]
+    A[VerificationService.issue] --> B[IssueLimitManager]
+    B --> C[匹配 IssueLimitRule]
     C --> D[生成 IssueLimitQuota 列表]
-    D --> E[IssueRateLimitStore.acquire]
+    D --> E[IssueLimitStore.acquire]
     E --> F[Allowed]
     E --> G[Throttled]
 ```
 
-`IssueRateLimitStore` 不负责以下事情：
+`IssueLimitStore` 不负责以下事情：
 
 - 不匹配业务规则。
 - 不解析 IP、设备或租户等上下文。
@@ -31,16 +31,16 @@ flowchart LR
 - 不保存验证码、过期时间或校验失败次数。
 - 不发送短信或邮件。
 
-验证码本身由 `VerificationStore` 保存。`IssueRateLimitStore` 只保存签发额度的使用状态，两者不能混用。
+验证码本身由 `VerificationStore` 保存。`IssueLimitStore` 只保存签发额度的使用状态，两者不能混用。
 
 ## 二、Rule、Bucket、Quota 和 Store 的关系
 
 | 类型 | 职责 | 示例 |
 | --- | --- | --- |
-| `IssueRateLimitRule` | 定义适用条件、分桶方式、次数和窗口 | 同一邮箱 60 秒最多 2 次 |
+| `IssueLimitRule` | 定义适用条件、分桶方式、次数和窗口 | 同一邮箱 60 秒最多 2 次 |
 | `IssueLimitBucket` | 表示额度累计到谁的名下 | `account + login + user@example.com` |
 | `IssueLimitQuota` | 当前请求需要满足的一条完整额度 | 当前桶，60 秒最多 2 次 |
-| `IssueRateLimitStore` | 保存使用历史，原子检查并消费全部额度 | 判断本次是否还能签发 |
+| `IssueLimitStore` | 保存使用历史，原子检查并消费全部额度 | 判断本次是否还能签发 |
 
 `IssueLimitBucket` 只是额度身份，不包含最大次数、窗口或剩余次数。例如：
 
@@ -76,9 +76,9 @@ IssueLimitResult acquire(List<IssueLimitQuota> quotas, Instant requestedAt);
 6. Store 返回 `Allowed` 后，即使后续生成、存储或发送验证码失败，也不退还限流额度。
 
 正常额度耗尽返回 `IssueLimitResult.Throttled`，不抛异常。Redis、网络或原子操作失败使用
-`IssueRateLimitStoreException`；参数或实现违反契约时使用 Java 标准运行时异常。
+`IssueLimitStoreException`；参数或实现违反契约时使用 Java 标准运行时异常。
 
-## 四、InMemoryIssueRateLimitStore 保存什么
+## 四、InMemoryIssueLimitStore 保存什么
 
 内存实现的核心结构是：
 
@@ -117,7 +117,7 @@ Store 还保存每条历史记录的窗口，并拒绝同一个规则 ID 在运�
 
 ## 五、一次 acquire 如何执行
 
-`InMemoryIssueRateLimitStore.acquire` 使用一个同步临界区执行完整流程：
+`InMemoryIssueLimitStore.acquire` 使用一个同步临界区执行完整流程：
 
 ```text
 校验参数
@@ -197,19 +197,19 @@ application-hour：整个应用 1 小时最多 1000 次
 
 | 场景 | 处理方式 |
 | --- | --- |
-| Manager 没有配置任何规则 | 创建 Manager 时抛出 `MissingIssueRateLimitRuleException` |
-| 有规则，但当前 `VerificationKey` 没有匹配规则 | 拒绝签发并抛出 `MissingIssueRateLimitRuleException` |
+| Manager 没有配置任何规则 | 创建 Manager 时抛出 `MissingIssueLimitRuleException` |
+| 有规则，但当前 `VerificationKey` 没有匹配规则 | 拒绝签发并抛出 `MissingIssueLimitRuleException` |
 | Store 收到空 Quota 集合 | 抛出 `IllegalArgumentException` |
 | Quota 存在，但 Store 中没有桶历史 | 视为新桶，拥有完整初始额度 |
 | Quota 存在且额度尚未耗尽 | 记录本次时间并返回 `Allowed` |
 | Quota 存在但额度已经耗尽 | 不记录本次时间并返回 `Throttled` |
 
 因此，“存储中没有历史记录”和“没有配置额度”是两个完全不同的概念。需要明确关闭限流时，应使用
-`IssueRateLimiter.permitAll()`，不能依靠遗漏配置隐式绕过限流。
+`IssueLimiter.permitAll()`，不能依靠遗漏配置隐式绕过限流。
 
 ## 十、使用限制
 
-`InMemoryIssueRateLimitStore` 适用于：
+`InMemoryIssueLimitStore` 适用于：
 
 - 单元测试。
 - 本地开发。
@@ -221,11 +221,11 @@ application-hour：整个应用 1 小时最多 1000 次
 - 应用重启后全部限流记录丢失。
 - 不能在不同服务进程之间保证原子消费。
 
-多实例应用应使用 `RedisIssueRateLimitStore` 或实现满足相同契约的分布式 Store。
+多实例应用应使用 `RedisIssueLimitStore` 或实现满足相同契约的分布式 Store。
 
 ## 十一、自定义 Store 检查清单
 
-实现自定义 `IssueRateLimitStore` 时应确认：
+实现自定义 `IssueLimitStore` 时应确认：
 
 - 空 Quota 集合会被拒绝。
 - 所有 Quota 采用全有或全无的原子消费。
@@ -235,4 +235,4 @@ application-hour：整个应用 1 小时最多 1000 次
 - `ruleId + bucket` 能稳定区分历史记录。
 - 不在日志或外部存储 key 中暴露邮箱、手机号、IP 等 Bucket 原始分段。
 - 分布式部署时能够跨进程保持原子性。
-- 只用 `IssueRateLimitStoreException` 包装基础设施故障，不掩盖配置或编程错误。
+- 只用 `IssueLimitStoreException` 包装基础设施故障，不掩盖配置或编程错误。

@@ -15,7 +15,7 @@ import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimiter;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.lang.reflect.Modifier;
@@ -68,7 +68,7 @@ class SmsVerificationServiceTest {
                 () -> new SmsVerificationService(
                         length -> "123456",
                         new InMemoryVerificationStore(),
-                        IssueRateLimiter.permitAll(),
+                        IssueLimiter.permitAll(),
                         VerificationPolicy.defaults(),
                         new DefaultIssueContextManager(List.of()),
                         null));
@@ -82,7 +82,7 @@ class SmsVerificationServiceTest {
         assertDoesNotThrow(() -> SmsVerificationService.class.getConstructor(
                 CodeGenerator.class,
                 VerificationStore.class,
-                IssueRateLimiter.class,
+                IssueLimiter.class,
                 VerificationPolicy.class,
                 IssueContextManager.class,
                 SmsCodeSender.class));

@@ -7,12 +7,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
-import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimitStore;
+import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueLimitStore;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitManager;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
-import io.github.ringotangs.ringoboot.verification.limit.TestIssueRateLimitRule;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitManager;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitRule;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimiter;
+import io.github.ringotangs.ringoboot.verification.limit.TestIssueLimitRule;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.lang.reflect.Field;
@@ -160,11 +160,11 @@ class AbstractVerificationServiceLifecycleTest {
     }
 
     private TestVerificationService service(CodeGenerator generator, VerificationPolicy verificationPolicy) {
-        return new TestVerificationService(generator, store, testIssueRateLimiter(), verificationPolicy);
+        return new TestVerificationService(generator, store, testIssueLimiter(), verificationPolicy);
     }
 
-    private IssueRateLimiter testIssueRateLimiter() {
-        IssueRateLimitRule rule = new TestIssueRateLimitRule(
+    private IssueLimiter testIssueLimiter() {
+        IssueLimitRule rule = new TestIssueLimitRule(
                 "test-key-cooldown",
                 context -> IssueLimitBucket.of(
                         context.key().namespace(),
@@ -172,7 +172,7 @@ class AbstractVerificationServiceLifecycleTest {
                         context.key().subject()),
                 1,
                 Duration.ofSeconds(60));
-        return new IssueRateLimitManager(List.of(rule), new InMemoryIssueRateLimitStore());
+        return new IssueLimitManager(List.of(rule), new InMemoryIssueLimitStore());
     }
 
     private static final class TestVerificationService extends AbstractVerificationService {
@@ -182,9 +182,9 @@ class AbstractVerificationServiceLifecycleTest {
         private TestVerificationService(
                 CodeGenerator generator,
                 VerificationStore store,
-                IssueRateLimiter issueRateLimiter,
+                IssueLimiter issueLimiter,
                 VerificationPolicy verificationPolicy) {
-            super(generator, store, issueRateLimiter, verificationPolicy, new DefaultIssueContextManager(List.of()));
+            super(generator, store, issueLimiter, verificationPolicy, new DefaultIssueContextManager(List.of()));
         }
 
         @Override

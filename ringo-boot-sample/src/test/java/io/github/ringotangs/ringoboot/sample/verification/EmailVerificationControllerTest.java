@@ -10,7 +10,7 @@ import io.github.ringotangs.ringoboot.verification.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.IssueContext;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitRule;
 import io.github.ringotangs.ringoboot.verification.limit.NamespaceQuotaRule;
 import io.github.ringotangs.ringoboot.verification.limit.PurposeQuotaRule;
 import io.github.ringotangs.ringoboot.verification.limit.SubjectQuotaRule;
@@ -49,7 +49,7 @@ class EmailVerificationControllerTest {
     private CapturingEmailCodeSender sender;
 
     @Autowired
-    private List<IssueRateLimitRule> issueRateLimitRules;
+    private List<IssueLimitRule> issueLimitRules;
 
     @Test
     void issuesDeliversVerifiesAndConsumesCode() throws Exception {
@@ -98,8 +98,8 @@ class EmailVerificationControllerTest {
     }
 
     @Test
-    void registersLayeredIssueRateLimitRules() {
-        org.assertj.core.api.Assertions.assertThat(issueRateLimitRules)
+    void registersLayeredIssueLimitRules() {
+        org.assertj.core.api.Assertions.assertThat(issueLimitRules)
                 .containsExactlyInAnyOrder(
                         new NamespaceQuotaRule(
                                 "account-email-hourly-quota",

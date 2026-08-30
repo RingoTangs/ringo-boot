@@ -18,7 +18,7 @@ import java.util.Objects;
  * <p><strong>使用限制：</strong>历史状态不会跨进程共享，也不会持久化。该实现仅适用于单元测试、本地开发和单实例应用；多实例生产
  * 环境应使用能够提供跨进程原子性的 Redis Store 或自定义 Store。
  */
-public final class InMemoryIssueRateLimitStore implements IssueRateLimitStore {
+public final class InMemoryIssueLimitStore implements IssueLimitStore {
 
     /**
      * 每处理指定次数的额度获取后扫描并移除全部过期空桶。
@@ -48,7 +48,7 @@ public final class InMemoryIssueRateLimitStore implements IssueRateLimitStore {
      *
      * <p>实例之间不共享状态，应用重启后历史也不会保留。
      */
-    public InMemoryIssueRateLimitStore() {}
+    public InMemoryIssueLimitStore() {}
 
     /**
      * 在单个同步临界区内检查并消费全部签发配额。

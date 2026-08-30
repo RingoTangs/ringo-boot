@@ -8,8 +8,8 @@ import io.github.ringotangs.ringoboot.verification.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
 import io.github.ringotangs.ringoboot.verification.VerificationException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitExceededException;
-import io.github.ringotangs.ringoboot.verification.limit.MissingIssueRateLimitRuleException;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitExceededException;
+import io.github.ringotangs.ringoboot.verification.limit.MissingIssueLimitRuleException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.core.annotation.Order;
@@ -57,7 +57,7 @@ public class VerificationExceptionHandler {
         ProblemType problemType =
                 switch (exception) {
                     case CodeGenerationException ignored -> VerificationProblemType.GENERATION_FAILED;
-                    case MissingIssueRateLimitRuleException ignored -> VerificationProblemType.CONFIGURATION_ERROR;
+                    case MissingIssueLimitRuleException ignored -> VerificationProblemType.CONFIGURATION_ERROR;
                     default -> VerificationProblemType.SERVICE_UNAVAILABLE;
                 };
         return problemDetailFactory.create(ProblemException.withCause(problemType, exception));
@@ -69,8 +69,8 @@ public class VerificationExceptionHandler {
      * @param exception 签发额度超限异常
      * @return 通过响应头提供精确等待时间并包含友好 Problem Details 的限流响应
      */
-    @ExceptionHandler(IssueRateLimitExceededException.class)
-    public ResponseEntity<ProblemDetail> handleIssueRateLimitExceeded(IssueRateLimitExceededException exception) {
+    @ExceptionHandler(IssueLimitExceededException.class)
+    public ResponseEntity<ProblemDetail> handleIssueLimitExceeded(IssueLimitExceededException exception) {
         if (logger.isDebugEnabled()) {
             logger.debug("Verification code issuance throttled: violations=" + exception.violations());
         }

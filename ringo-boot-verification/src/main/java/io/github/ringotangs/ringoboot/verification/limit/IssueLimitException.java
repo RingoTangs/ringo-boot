@@ -7,7 +7,7 @@ import io.github.ringotangs.ringoboot.verification.VerificationException;
  *
  * <p>调用方可以捕获该类型统一处理正常超限、规则配置缺失和限流存储故障，并通过具体子类区分不同语义。
  */
-public abstract class IssueRateLimitException extends VerificationException {
+public abstract class IssueLimitException extends VerificationException {
 
     /**
      * 使用诊断消息创建异常。
@@ -15,7 +15,7 @@ public abstract class IssueRateLimitException extends VerificationException {
      * @param message 诊断消息
      * @throws NullPointerException 当诊断消息为 {@code null} 时
      */
-    protected IssueRateLimitException(String message) {
+    protected IssueLimitException(String message) {
         super(message);
     }
 
@@ -26,7 +26,7 @@ public abstract class IssueRateLimitException extends VerificationException {
      * @param cause 原始异常
      * @throws NullPointerException 当诊断消息或原始异常为 {@code null} 时
      */
-    protected IssueRateLimitException(String message, Throwable cause) {
+    protected IssueLimitException(String message, Throwable cause) {
         super(message, cause);
     }
 }

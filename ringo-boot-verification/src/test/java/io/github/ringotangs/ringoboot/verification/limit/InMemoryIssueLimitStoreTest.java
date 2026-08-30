@@ -10,13 +10,13 @@ import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-class InMemoryIssueRateLimitStoreTest {
+class InMemoryIssueLimitStoreTest {
 
     private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
 
     @Test
     void enforcesRollingWindowAndSeparatesBuckets() {
-        InMemoryIssueRateLimitStore store = new InMemoryIssueRateLimitStore();
+        InMemoryIssueLimitStore store = new InMemoryIssueLimitStore();
         IssueLimitQuota first = quota("subject-minute", "first", 2, Duration.ofMinutes(1));
         IssueLimitQuota second = quota("subject-minute", "second", 2, Duration.ofMinutes(1));
 
@@ -33,7 +33,7 @@ class InMemoryIssueRateLimitStoreTest {
 
     @Test
     void doesNotPartiallyConsumeWhenOneConstraintIsThrottled() {
-        InMemoryIssueRateLimitStore store = new InMemoryIssueRateLimitStore();
+        InMemoryIssueLimitStore store = new InMemoryIssueLimitStore();
         IssueLimitQuota hourly = quota("subject-hour", "user", 2, Duration.ofHours(1));
         IssueLimitQuota minute = quota("subject-minute", "user", 1, Duration.ofMinutes(1));
 
@@ -45,7 +45,7 @@ class InMemoryIssueRateLimitStoreTest {
 
     @Test
     void returnsLargestRetryAfterAcrossConstraints() {
-        InMemoryIssueRateLimitStore store = new InMemoryIssueRateLimitStore();
+        InMemoryIssueLimitStore store = new InMemoryIssueLimitStore();
         IssueLimitQuota minute = quota("ip-minute", "ip", 1, Duration.ofMinutes(1));
         IssueLimitQuota hour = quota("subject-hour", "user", 1, Duration.ofHours(1));
         store.acquire(List.of(minute), NOW);
@@ -65,7 +65,7 @@ class InMemoryIssueRateLimitStoreTest {
 
     @Test
     void validatesInputsAndStableRuleWindow() {
-        InMemoryIssueRateLimitStore store = new InMemoryIssueRateLimitStore();
+        InMemoryIssueLimitStore store = new InMemoryIssueLimitStore();
         IssueLimitQuota minute = quota("subject-limit", "user", 1, Duration.ofMinutes(1));
         store.acquire(List.of(minute), NOW);
 

@@ -4,7 +4,7 @@ import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationExcep
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitViolation;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimiter;
 import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.time.Clock;
@@ -22,7 +22,7 @@ public abstract class AbstractVerificationService implements VerificationService
 
     private final CodeGenerator codeGenerator;
     private final VerificationStore store;
-    private final IssueRateLimiter issueRateLimiter;
+    private final IssueLimiter issueLimiter;
     private final VerificationPolicy verificationPolicy;
     private final IssueContextManager issueContextManager;
     private final Clock clock = Clock.systemUTC();
@@ -32,19 +32,19 @@ public abstract class AbstractVerificationService implements VerificationService
      *
      * @param codeGenerator       验证码生成器
      * @param store               验证码状态存储
-     * @param issueRateLimiter    验证码签发限流器
+     * @param issueLimiter    验证码签发限流器
      * @param verificationPolicy  服务级验证码策略
      * @param issueContextManager 统一准备最终签发上下文的 Manager
      */
     protected AbstractVerificationService(
             CodeGenerator codeGenerator,
             VerificationStore store,
-            IssueRateLimiter issueRateLimiter,
+            IssueLimiter issueLimiter,
             VerificationPolicy verificationPolicy,
             IssueContextManager issueContextManager) {
         this.codeGenerator = Objects.requireNonNull(codeGenerator, "codeGenerator must not be null");
         this.store = Objects.requireNonNull(store, "store must not be null");
-        this.issueRateLimiter = Objects.requireNonNull(issueRateLimiter, "issueRateLimiter must not be null");
+        this.issueLimiter = Objects.requireNonNull(issueLimiter, "issueLimiter must not be null");
         this.verificationPolicy = Objects.requireNonNull(verificationPolicy, "verificationPolicy must not be null");
         this.issueContextManager = Objects.requireNonNull(issueContextManager, "issueContextManager must not be null");
     }
@@ -62,7 +62,7 @@ public abstract class AbstractVerificationService implements VerificationService
         IssueContextValidator.requirePreservedContext(baseContext, context, "issue context manager");
         Instant issuedAt = clock.instant();
         IssueLimitResult limitResult = Objects.requireNonNull(
-                issueRateLimiter.acquire(context, issuedAt), "issue rate limiter result must not be null");
+                issueLimiter.acquire(context, issuedAt), "issue rate limiter result must not be null");
         if (limitResult instanceof IssueLimitResult.Throttled(List<IssueLimitViolation> violations)) {
             return new IssueResult.Throttled(violations);
         }

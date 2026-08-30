@@ -10,11 +10,11 @@
 ```mermaid
 flowchart LR
     A[VerificationService.issue VerificationKey] --> B[创建并定制 IssueContext]
-    B --> C[IssueRateLimitManager]
+    B --> C[IssueLimitManager]
     R1[应用注册的冷却 Rule Bean] --> C
     R2[业务自定义 Rule Bean] --> C
     C --> D[IssueLimitQuota 列表]
-    D --> E{IssueRateLimitStore}
+    D --> E{IssueLimitStore}
     E --> F[InMemory store]
     E --> G[Redis store]
     E --> H[Allowed / Throttled]
@@ -24,21 +24,21 @@ flowchart LR
 | 组件 | 职责 | 是否理解业务含义 |
 | --- | --- | --- |
 | `IssueContext` | 保存 `VerificationKey`、渠道和应用提供的扩展属性 | 只保存数据，不解释属性 |
-| `IssueRateLimitRule` | 判断规则是否适用，并计算本次请求属于哪个额度桶 | 是 |
+| `IssueLimitRule` | 判断规则是否适用，并计算本次请求属于哪个额度桶 | 是 |
 | `IssueLimitBucket` | 用多个字符串分段表达额度累计身份 | 不解释分段 |
-| `IssueRateLimitManager` | 收集、匹配、校验规则并生成不可变签发配额 | 只负责编排 |
+| `IssueLimitManager` | 收集、匹配、校验规则并生成不可变签发配额 | 只负责编排 |
 | `IssueLimitQuota` | 保存已经解析完成的规则 ID、额度桶、最大次数和窗口 | 否 |
-| `IssueRateLimitStore` | 保存限流窗口状态，原子检查并消费全部签发配额 | 否 |
-| `IssueRateLimiter` | 验证码服务依赖的顶层限流入口 | 否 |
+| `IssueLimitStore` | 保存限流窗口状态，原子检查并消费全部签发配额 | 否 |
+| `IssueLimiter` | 验证码服务依赖的顶层限流入口 | 否 |
 
-`IssueRateLimitManager` 实现了 `IssueRateLimiter`。验证码服务只依赖 `IssueRateLimiter`，因此不知道应用使用了哪些规则，
+`IssueLimitManager` 实现了 `IssueLimiter`。验证码服务只依赖 `IssueLimiter`，因此不知道应用使用了哪些规则，
 也不知道额度保存在内存还是 Redis。
 
-`IssueRateLimitStore` 只保存签发限流的窗口和额度消费状态；`VerificationStore` 保存验证码摘要、过期时间和验证尝试次数。
+`IssueLimitStore` 只保存签发限流的窗口和额度消费状态；`VerificationStore` 保存验证码摘要、过期时间和验证尝试次数。
 两者名称相似，但数据模型和生命周期不同，不应由同一个实现混合承担。
 
-有关 Store 的职责、`InMemoryIssueRateLimitStore` 数据结构、滚动窗口算法和多配额原子消费的逐步说明，参见
-同目录下的 [`IssueRateLimitStore.md`](IssueRateLimitStore.md)。
+有关 Store 的职责、`InMemoryIssueLimitStore` 数据结构、滚动窗口算法和多配额原子消费的逐步说明，参见
+同目录下的 [`IssueLimitStore.md`](IssueLimitStore.md)。
 
 ## 二、签发上下文
 
@@ -101,7 +101,7 @@ final class WebEmailVerificationService extends EmailVerificationService {
 
 ## 三、规则如何工作
 
-`IssueRateLimitRule` 是声明式接口。一条规则需要回答五个问题：
+`IssueLimitRule` 是声明式接口。一条规则需要回答五个问题：
 
 | 方法 | 问题 |
 | --- | --- |
@@ -116,13 +116,13 @@ final class WebEmailVerificationService extends EmailVerificationService {
 
 ### 默认行为与严格管理器
 
-Spring Boot 自动配置不注册内置 `IssueRateLimitRule`。应用没有提供规则或自定义限流器时，自动配置使用
-`IssueRateLimiter.permitAll()`，不会创建限流状态 Store。应用注册任意规则 Bean 后才会创建 Store 和
-`IssueRateLimitManager`，正式启用签发限流。
+Spring Boot 自动配置不注册内置 `IssueLimitRule`。应用没有提供规则或自定义限流器时，自动配置使用
+`IssueLimiter.permitAll()`，不会创建限流状态 Store。应用注册任意规则 Bean 后才会创建 Store 和
+`IssueLimitManager`，正式启用签发限流。
 
 限流管理器采用严格拒绝策略：规则集合为空时无法创建；存在规则但没有任何规则匹配当前 `VerificationKey` 时，签发请求抛出
-`MissingIssueRateLimitRuleException`。因此应用自定义规则后，必须让这些 Bean 覆盖全部预期业务。
-应用也可以提供自定义 `IssueRateLimiter`，完全替换基于规则和 Store 的默认管理器。
+`MissingIssueLimitRuleException`。因此应用自定义规则后，必须让这些 Bean 覆盖全部预期业务。
+应用也可以提供自定义 `IssueLimiter`，完全替换基于规则和 Store 的默认管理器。
 
 `IssueLimitBucket` 只是额度累计身份，`IssueLimitQuota` 才定义窗口和最大次数。Store 中尚不存在某个桶的历史记录表示这是新桶，
 第一次请求拥有完整初始额度；没有匹配出任何 `IssueLimitQuota` 才属于配置缺失。
@@ -137,7 +137,7 @@ Spring Boot 自动配置不注册内置 `IssueRateLimitRule`。应用没有提�
 
 ```java
 @Bean
-IssueRateLimitRule loginEmailResendCooldownRule() {
+IssueLimitRule loginEmailResendCooldownRule() {
     return SubjectQuotaRule.builder()
             .id("login-email-resend-cooldown")
             .namespace("account")
@@ -166,7 +166,7 @@ core 提供三种周期配额规则。它们覆盖的范围逐级扩大，并且
 
 ```java
 @Bean
-IssueRateLimitRule loginSubjectHourlyRule() {
+IssueLimitRule loginSubjectHourlyRule() {
     return SubjectQuotaRule.builder()
             .id("login-email-subject-hour")
             .namespace("account")
@@ -178,7 +178,7 @@ IssueRateLimitRule loginSubjectHourlyRule() {
 }
 
 @Bean
-IssueRateLimitRule loginSubjectDailyRule() {
+IssueLimitRule loginSubjectDailyRule() {
     return SubjectQuotaRule.builder()
             .id("login-email-subject-day")
             .namespace("account")
@@ -190,7 +190,7 @@ IssueRateLimitRule loginSubjectDailyRule() {
 }
 
 @Bean
-IssueRateLimitRule loginPurposeMinuteRule() {
+IssueLimitRule loginPurposeMinuteRule() {
     return PurposeQuotaRule.builder()
             .id("login-email-purpose-minute")
             .namespace("account")
@@ -202,7 +202,7 @@ IssueRateLimitRule loginPurposeMinuteRule() {
 }
 
 @Bean
-IssueRateLimitRule accountNamespaceHourlyRule() {
+IssueLimitRule accountNamespaceHourlyRule() {
     return NamespaceQuotaRule.builder()
             .id("account-email-namespace-hour")
             .namespace("account")
@@ -218,12 +218,12 @@ IssueRateLimitRule accountNamespaceHourlyRule() {
 
 ### 全局额度规则
 
-使用固定的 `IssueLimitBucket` 可以让当前 `IssueRateLimitStore` 隔离范围内的全部验证码签发共享额度。内存 Store 下它只覆盖
+使用固定的 `IssueLimitBucket` 可以让当前 `IssueLimitStore` 隔离范围内的全部验证码签发共享额度。内存 Store 下它只覆盖
 当前 JVM；Redis Store 的 key 包含应用名称，因此默认覆盖同一应用名称的全部实例。该规则适合作为应用级突发流量兜底，不能
 替代短信或邮件供应商自己的发送配额和告警。
 
 ```java
-final class ApplicationHourlyRule implements IssueRateLimitRule {
+final class ApplicationHourlyRule implements IssueLimitRule {
     public String id() {
         return "application-hour";
     }
@@ -251,7 +251,7 @@ final class ApplicationHourlyRule implements IssueRateLimitRule {
 下面的规则只限制登录业务，同一 IP 一小时最多签发 10 次：
 
 ```java
-final class LoginIpHourlyRule implements IssueRateLimitRule {
+final class LoginIpHourlyRule implements IssueLimitRule {
     public String id() {
         return "login-ip-hour";
     }
@@ -295,7 +295,7 @@ context -> IssueLimitBucket.of(
 ["a", "bc"]
 ```
 
-具体编码和 HMAC 由 `IssueRateLimitStore` 统一处理，Rule Bean 不应该生成 Redis key，也不应该自行散列敏感数据。
+具体编码和 HMAC 由 `IssueLimitStore` 统一处理，Rule Bean 不应该生成 Redis key，也不应该自行散列敏感数据。
 
 ## 四、一次签发的完整流程
 
@@ -303,9 +303,9 @@ context -> IssueLimitBucket.of(
 sequenceDiagram
     participant App as 应用
     participant Service as VerificationService
-    participant Manager as IssueRateLimitManager
+    participant Manager as IssueLimitManager
     participant Rule as Rule Beans
-    participant LimitStore as IssueRateLimitStore
+    participant LimitStore as IssueLimitStore
     participant CodeStore as VerificationStore
     participant Sender as 渠道 Sender
 
@@ -339,7 +339,7 @@ sequenceDiagram
 5. `matches=false` 的规则不参与本次签发。
 6. 管理器先解析所有匹配规则的 bucket，任何规则解析失败时都不会访问限流状态存储。
 7. 管理器将规则快照转换成 `IssueLimitQuota` 列表。
-8. `IssueRateLimitStore` 在一个原子操作中检查所有签发配额。
+8. `IssueLimitStore` 在一个原子操作中检查所有签发配额。
 9. 任一规则超限时返回全部受限规则的 `ruleId` 和各自 `retryAfter`，总体等待时间取最大值，并且不能消费其他规则的额度。
 10. 所有规则允许时同时消费全部额度，然后验证码服务使用同一个上下文继续生成、存储和发送验证码。
 
@@ -361,16 +361,16 @@ sequenceDiagram
 
 ## 六、内存与 Redis 状态存储
 
-### InMemoryIssueRateLimitStore
+### InMemoryIssueLimitStore
 
 - 使用进程内 `Map` 和时间队列保存滚动窗口记录。
 - 通过同步方法保证单 JVM 内多规则原子执行。
 - 适合单元测试、本地开发和单实例应用。
 - 多实例部署时每个实例拥有独立额度，不能用于生产级分布式限流。
 
-详细实现示例参见 [`IssueRateLimitStore.md`](IssueRateLimitStore.md)。
+详细实现示例参见 [`IssueLimitStore.md`](IssueLimitStore.md)。
 
-### RedisIssueRateLimitStore
+### RedisIssueLimitStore
 
 - 每个 `ruleId + bucket` 使用一个 Redis ZSET。
 - ZSET score 是签发时间戳，member 是本次请求的随机标识。
@@ -391,10 +391,10 @@ sequenceDiagram
 
 启用验证码功能后，自动配置执行以下操作：
 
-1. 应用没有提供规则或自定义 Limiter 时，注册 `IssueRateLimiter.permitAll()`。
-2. 应用提供规则 Bean 时，根据 `store=memory|redis` 注册对应的 `IssueRateLimitStore`。
-3. 收集容器内所有 `IssueRateLimitRule` Bean，并创建 `IssueRateLimitManager`。
-4. 邮件和短信验证码服务注入最终的 `IssueRateLimiter`。
+1. 应用没有提供规则或自定义 Limiter 时，注册 `IssueLimiter.permitAll()`。
+2. 应用提供规则 Bean 时，根据 `store=memory|redis` 注册对应的 `IssueLimitStore`。
+3. 收集容器内所有 `IssueLimitRule` Bean，并创建 `IssueLimitManager`。
+4. 邮件和短信验证码服务注入最终的 `IssueLimiter`。
 
 限流规则不支持 YAML 配置。应用提供任意规则 Bean 即表示启用限流。如果自定义规则只覆盖部分业务，应用可以启动，但未被任何规则
 覆盖的 `namespace + purpose` 会在首次签发时抛出配置异常，不会生成、存储或发送验证码。
@@ -403,12 +403,12 @@ sequenceDiagram
 
 ```java
 @Bean
-IssueRateLimitRule applicationHourlyRule() {
+IssueLimitRule applicationHourlyRule() {
     return new ApplicationHourlyRule();
 }
 
 @Bean
-IssueRateLimitRule loginIpHourlyRule() {
+IssueLimitRule loginIpHourlyRule() {
     return new LoginIpHourlyRule();
 }
 ```
@@ -416,18 +416,18 @@ IssueRateLimitRule loginIpHourlyRule() {
 业务级或接收方级配额可以直接注册 `NamespaceQuotaRule`、`PurposeQuotaRule` 或 `SubjectQuotaRule`。
 接收方地址来自运行时 `VerificationKey.subject`，不应硬编码邮箱或手机号。所有 Rule Bean 的 ID 必须全局唯一，重复时应用启动失败。
 
-各渠道服务可以共享同一个 `IssueRateLimiter`。`IssueRateLimitManager` 会将完整 `IssueContext` 传给
-`IssueRateLimitRule.matches` 并仅执行匹配的规则，无需在创建 Manager 前按 channel 预先过滤。单渠道规则应在
+各渠道服务可以共享同一个 `IssueLimiter`。`IssueLimitManager` 会将完整 `IssueContext` 传给
+`IssueLimitRule.matches` 并仅执行匹配的规则，无需在创建 Manager 前按 channel 预先过滤。单渠道规则应在
 `matches` 中比较 `IssueContext.channel`；有意忽略 channel 则表示该规则共享多个渠道的配额。
 
 扩展和回退规则：
 
 | 应用提供的 Bean | 自动配置行为 |
 | --- | --- |
-| 无 | 使用 `IssueRateLimiter.permitAll()`，不创建限流 Store |
-| `IssueRateLimitRule` | 收集所有应用规则，并自动创建 Store 和 `IssueRateLimitManager` |
-| `IssueRateLimitStore` | 使用自定义限流状态存储，仍自动收集所有规则 |
-| `IssueRateLimiter` | 完全替换默认管理器和框架自动创建的限流状态存储 |
+| 无 | 使用 `IssueLimiter.permitAll()`，不创建限流 Store |
+| `IssueLimitRule` | 收集所有应用规则，并自动创建 Store 和 `IssueLimitManager` |
+| `IssueLimitStore` | 使用自定义限流状态存储，仍自动收集所有规则 |
+| `IssueLimiter` | 完全替换默认管理器和框架自动创建的限流状态存储 |
 
 需要向上下文增加 IP、设备或租户等应用信号时，应继承对应的 `EmailVerificationService` 或
 `SmsVerificationService`，覆盖 `customizeIssueContext`，再由应用将自定义服务显式注册为 Bean。
@@ -455,7 +455,7 @@ IssueRateLimitRule loginIpHourlyRule() {
 - 不在 Rule Bean 中访问 Redis、数据库或远程服务。
 - Rule Bean 保持无状态、线程安全，启动后不动态改变窗口和配额。
 - 不在日志中输出 bucket 的原始分段。
-- 多实例生产环境使用 Redis 状态存储或其他满足原子契约的自定义 `IssueRateLimitStore`。
+- 多实例生产环境使用 Redis 状态存储或其他满足原子契约的自定义 `IssueLimitStore`。
 
 有关业界常见限流层次和建议阈值，参见同目录下的 `limt.md`。
 
@@ -465,9 +465,9 @@ IssueRateLimitRule loginIpHourlyRule() {
 | --- | --- | --- |
 | 参数为 null | `NullPointerException` | 调用方或扩展实现违反非空契约 |
 | 规则、上下文或配额非法 | `IllegalArgumentException` | 配置或调用错误 |
-| 没有规则或当前业务未被规则覆盖 | `MissingIssueRateLimitRuleException` | 严格拒绝签发的限流配置错误 |
+| 没有规则或当前业务未被规则覆盖 | `MissingIssueLimitRuleException` | 严格拒绝签发的限流配置错误 |
 | 正常达到签发上限 | `IssueLimitResult.Throttled` | 可预期的限流结果，不是异常 |
-| Redis、网络或原子操作失败 | `IssueRateLimitStoreException` | 限流基础设施技术故障 |
+| Redis、网络或原子操作失败 | `IssueLimitStoreException` | 限流基础设施技术故障 |
 
-不要捕获并统一包装所有 `RuntimeException`。自定义 Store 应只把底层基础设施故障包装成 `IssueRateLimitStoreException`；规则实现
+不要捕获并统一包装所有 `RuntimeException`。自定义 Store 应只把底层基础设施故障包装成 `IssueLimitStoreException`；规则实现
 缺少属性、返回空值或声明非法时应保留编程错误语义，便于开发阶段尽早发现问题。

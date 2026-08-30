@@ -14,8 +14,8 @@ import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.email.EmailVerificationService;
 import io.github.ringotangs.ringoboot.verification.email.StdoutEmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitStore;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitStore;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimiter;
 import io.github.ringotangs.ringoboot.verification.sms.SmsCodeSender;
 import io.github.ringotangs.ringoboot.verification.sms.SmsVerificationService;
 import io.github.ringotangs.ringoboot.verification.sms.StdoutSmsCodeSender;
@@ -41,7 +41,7 @@ class VerificationAutoConfigurationTest {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withConfiguration(
-                    AutoConfigurations.of(VerificationAutoConfiguration.class, IssueRateLimitAutoConfiguration.class))
+                    AutoConfigurations.of(VerificationAutoConfiguration.class, IssueLimitAutoConfiguration.class))
             .withPropertyValues("spring.application.name=test-application");
 
     @Test
@@ -95,7 +95,7 @@ class VerificationAutoConfigurationTest {
     }
 
     @Test
-    void verificationConfigurationDoesNotOwnRateLimitInfrastructure() {
+    void verificationConfigurationDoesNotOwnLimitInfrastructure() {
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(VerificationAutoConfiguration.class))
                 .withPropertyValues("ringo.boot.verification.enabled=true")
@@ -104,7 +104,7 @@ class VerificationAutoConfigurationTest {
                     assertThat(context).hasSingleBean(VerificationStore.class);
                     assertThat(context).hasSingleBean(EmailCodeSender.class);
                     assertThat(context).hasSingleBean(SmsCodeSender.class);
-                    assertThat(context).doesNotHaveBean(IssueRateLimiter.class);
+                    assertThat(context).doesNotHaveBean(IssueLimiter.class);
                     assertThat(context).doesNotHaveBean(EmailVerificationService.class);
                     assertThat(context).doesNotHaveBean(SmsVerificationService.class);
                 });
@@ -166,8 +166,8 @@ class VerificationAutoConfigurationTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(VerificationStore.class);
                     assertThat(context.getBean(VerificationStore.class)).isInstanceOf(RedisVerificationStore.class);
-                    assertThat(context).hasSingleBean(IssueRateLimiter.class);
-                    assertThat(context).doesNotHaveBean(IssueRateLimitStore.class);
+                    assertThat(context).hasSingleBean(IssueLimiter.class);
+                    assertThat(context).doesNotHaveBean(IssueLimitStore.class);
                     assertThat(context.getBeansOfType(InMemoryVerificationStore.class))
                             .isEmpty();
                 });
@@ -178,7 +178,7 @@ class VerificationAutoConfigurationTest {
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
                         VerificationAutoConfiguration.class,
-                        IssueRateLimitAutoConfiguration.class,
+                        IssueLimitAutoConfiguration.class,
                         RedisAutoConfiguration.class))
                 .withPropertyValues(
                         "spring.application.name=test-application",
@@ -260,8 +260,8 @@ class VerificationAutoConfigurationTest {
                     assertThat(context).doesNotHaveBean(VerificationPolicy.class);
                     assertThat(context).hasSingleBean(VerificationStore.class);
                     assertThat(context.getBean(VerificationStore.class)).isInstanceOf(InMemoryVerificationStore.class);
-                    assertThat(context).hasSingleBean(IssueRateLimiter.class);
-                    assertThat(context).doesNotHaveBean(IssueRateLimitStore.class);
+                    assertThat(context).hasSingleBean(IssueLimiter.class);
+                    assertThat(context).doesNotHaveBean(IssueLimitStore.class);
                     assertThat(context).doesNotHaveBean(EmailVerificationService.class);
                     assertThat(context).doesNotHaveBean(SmsVerificationService.class);
 

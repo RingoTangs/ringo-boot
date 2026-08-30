@@ -15,7 +15,7 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "enabled", havingValue = "true")
-class IssueRateLimitConfiguration {
+class IssueLimitConfiguration {
 
     @Bean
     NamespaceQuotaRule accountEmailHourlyQuotaRule() {

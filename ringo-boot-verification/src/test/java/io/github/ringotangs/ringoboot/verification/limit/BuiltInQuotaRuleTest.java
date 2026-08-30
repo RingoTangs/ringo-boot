@@ -81,7 +81,7 @@ class BuiltInQuotaRuleTest {
         SubjectQuotaRule hourly = subjectRule("login-email-subject-hour", 5, Duration.ofHours(1));
         SubjectQuotaRule daily = subjectRule("login-email-subject-day", 10, Duration.ofDays(1));
         AtomicReference<List<IssueLimitQuota>> captured = new AtomicReference<>();
-        IssueRateLimitManager manager = new IssueRateLimitManager(List.of(hourly, daily), (quotas, requestedAt) -> {
+        IssueLimitManager manager = new IssueLimitManager(List.of(hourly, daily), (quotas, requestedAt) -> {
             captured.set(quotas);
             return new IssueLimitResult.Allowed();
         });
@@ -97,7 +97,7 @@ class BuiltInQuotaRuleTest {
     void subjectRuleWithOneIssueEnforcesResendCooldown() {
         SubjectQuotaRule cooldown = subjectRule("login-email-resend-cooldown", 1, Duration.ofMinutes(1));
         Instant firstIssue = Instant.parse("2026-01-01T00:00:00Z");
-        IssueRateLimitManager manager = new IssueRateLimitManager(List.of(cooldown), new InMemoryIssueRateLimitStore());
+        IssueLimitManager manager = new IssueLimitManager(List.of(cooldown), new InMemoryIssueLimitStore());
 
         assertInstanceOf(IssueLimitResult.Allowed.class, manager.acquire(LOGIN_EMAIL, firstIssue));
         IssueLimitResult.Throttled throttled = assertInstanceOf(

@@ -6,14 +6,14 @@ package io.github.ringotangs.ringoboot.verification.limit;
  * <p>该异常用于包装 Redis、网络、脚本协议或密码算法等基础设施故障，不表示正常达到额度上限。诊断消息可能包含内部信息，
  * 不应直接作为客户端错误详情返回。
  */
-public final class IssueRateLimitStoreException extends IssueRateLimitException {
+public final class IssueLimitStoreException extends IssueLimitException {
 
     /**
      * 使用诊断消息创建限流存储异常。
      *
      * @param message 诊断消息
      */
-    public IssueRateLimitStoreException(String message) {
+    public IssueLimitStoreException(String message) {
         super(message);
     }
 
@@ -23,7 +23,7 @@ public final class IssueRateLimitStoreException extends IssueRateLimitException 
      * @param message 诊断消息
      * @param cause   原始异常
      */
-    public IssueRateLimitStoreException(String message, Throwable cause) {
+    public IssueLimitStoreException(String message, Throwable cause) {
         super(message, cause);
     }
 }

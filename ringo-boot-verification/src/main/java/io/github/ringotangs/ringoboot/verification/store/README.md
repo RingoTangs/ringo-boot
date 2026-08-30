@@ -346,9 +346,9 @@ entries.compute(key, (ignored, existing) -> {
 
 ## 九、不要和签发限流 Store 混淆
 
-项目中还有一个名称相似的 `IssueRateLimitStore`，两者职责不同：
+项目中还有一个名称相似的 `IssueLimitStore`，两者职责不同：
 
-| 对比项 | `VerificationStore` | `IssueRateLimitStore` |
+| 对比项 | `VerificationStore` | `IssueLimitStore` |
 | --- | --- | --- |
 | 保存内容 | 验证码摘要、过期时间、剩余校验次数。 | 每条限流规则的签发历史和额度状态。 |
 | 使用阶段 | 验证码签发后的保存和用户提交后的校验。 | 生成验证码之前判断是否允许签发。 |

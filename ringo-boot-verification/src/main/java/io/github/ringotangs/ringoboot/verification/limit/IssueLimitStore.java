@@ -9,11 +9,11 @@ import java.util.List;
  * <p>Store 只处理 {@link IssueLimitQuota} 和对应的滚动窗口状态，不保存验证码，也不理解验证码业务字段或执行规则匹配。
  * 单 JVM 实现至少应保证线程安全；分布式实现必须保证跨进程原子性。
  *
- * <p>实现应使用 {@link IssueRateLimitStoreException} 包装 Redis、网络或其他基础设施故障，不应使用它包装参数错误、非法配额或实现违反
+ * <p>实现应使用 {@link IssueLimitStoreException} 包装 Redis、网络或其他基础设施故障，不应使用它包装参数错误、非法配额或实现违反
  * 接口契约造成的编程错误。
  */
 @FunctionalInterface
-public interface IssueRateLimitStore {
+public interface IssueLimitStore {
 
     /**
      * 原子获取全部配额对应的一次签发名额。
@@ -26,7 +26,7 @@ public interface IssueRateLimitStore {
      * @return 允许签发或受限结果
      * @throws NullPointerException 当配额集合、任一配额或请求时间为 {@code null} 时
      * @throws IllegalArgumentException 当配额集合为空、配额不受当前 Store 支持或同一规则的运行时定义发生变化时
-     * @throws IssueRateLimitStoreException 当底层存储或原子操作失败时
+     * @throws IssueLimitStoreException 当底层存储或原子操作失败时
      */
-    IssueLimitResult acquire(List<IssueLimitQuota> quotas, Instant requestedAt) throws IssueRateLimitStoreException;
+    IssueLimitResult acquire(List<IssueLimitQuota> quotas, Instant requestedAt) throws IssueLimitStoreException;
 }

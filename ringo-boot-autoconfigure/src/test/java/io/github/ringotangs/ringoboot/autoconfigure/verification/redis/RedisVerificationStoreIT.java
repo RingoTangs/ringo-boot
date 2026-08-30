@@ -7,7 +7,7 @@ import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitQuota;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitStore;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -33,7 +33,7 @@ class RedisVerificationStoreIT extends VerificationStoreContract {
 
     private static LettuceConnectionFactory connectionFactory;
     private static VerificationStore store;
-    private static IssueRateLimitStore issueRateLimitStore;
+    private static IssueLimitStore issueLimitStore;
 
     @BeforeAll
     static void createStore() {
@@ -58,7 +58,7 @@ class RedisVerificationStoreIT extends VerificationStoreContract {
         byte[] secret = new byte[32];
         new SecureRandom().nextBytes(secret);
         store = new RedisVerificationStore(redisTemplate, secret, Duration.ofMinutes(1), "ringo-boot-redis-it");
-        issueRateLimitStore = new RedisIssueRateLimitStore(redisTemplate, secret, "ringo-boot-redis-it");
+        issueLimitStore = new RedisIssueLimitStore(redisTemplate, secret, "ringo-boot-redis-it");
     }
 
     @AfterAll
@@ -85,7 +85,7 @@ class RedisVerificationStoreIT extends VerificationStoreContract {
             for (int index = 0; index < threads; index++) {
                 futures[index] = executor.submit(() -> {
                     start.await();
-                    return issueRateLimitStore.acquire(java.util.List.of(quota), requestedAt);
+                    return issueLimitStore.acquire(java.util.List.of(quota), requestedAt);
                 });
             }
             start.countDown();
@@ -107,13 +107,13 @@ class RedisVerificationStoreIT extends VerificationStoreContract {
         IssueLimitQuota quota = quota(key);
 
         assertInstanceOf(
-                IssueLimitResult.Allowed.class, issueRateLimitStore.acquire(java.util.List.of(quota), Instant.now()));
+                IssueLimitResult.Allowed.class, issueLimitStore.acquire(java.util.List.of(quota), Instant.now()));
         assertInstanceOf(
-                IssueLimitResult.Throttled.class, issueRateLimitStore.acquire(java.util.List.of(quota), Instant.now()));
+                IssueLimitResult.Throttled.class, issueLimitStore.acquire(java.util.List.of(quota), Instant.now()));
         Thread.sleep(600);
 
         assertInstanceOf(
-                IssueLimitResult.Allowed.class, issueRateLimitStore.acquire(java.util.List.of(quota), Instant.now()));
+                IssueLimitResult.Allowed.class, issueLimitStore.acquire(java.util.List.of(quota), Instant.now()));
     }
 
     private static IssueLimitQuota quota(VerificationKey key) {

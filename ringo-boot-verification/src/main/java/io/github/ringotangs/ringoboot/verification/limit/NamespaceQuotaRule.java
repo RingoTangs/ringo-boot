@@ -20,7 +20,7 @@ import org.jspecify.annotations.Nullable;
  */
 public record NamespaceQuotaRule(
         String id, String namespace, VerificationChannel channel, int maxIssues, Duration window)
-        implements IssueRateLimitRule {
+        implements IssueLimitRule {
 
     /**
      * 创建并校验业务命名空间配额规则。
@@ -31,7 +31,7 @@ public record NamespaceQuotaRule(
     public NamespaceQuotaRule {
         Objects.requireNonNull(channel, "channel must not be null");
         KebabCase.validate("namespace", namespace);
-        IssueRateLimitValidator.validateRuleDefinition(id, maxIssues, window);
+        IssueLimitValidator.validateRuleDefinition(id, maxIssues, window);
     }
 
     /**

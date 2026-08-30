@@ -8,14 +8,14 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
-import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueRateLimitStore;
+import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueLimitStore;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitManager;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitManager;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimiter;
-import io.github.ringotangs.ringoboot.verification.limit.MissingIssueRateLimitRuleException;
-import io.github.ringotangs.ringoboot.verification.limit.TestIssueRateLimitRule;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitRule;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimiter;
+import io.github.ringotangs.ringoboot.verification.limit.MissingIssueLimitRuleException;
+import io.github.ringotangs.ringoboot.verification.limit.TestIssueLimitRule;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
@@ -183,7 +183,7 @@ class AbstractVerificationServiceTest {
     @Test
     void appliesContributorsInOrderAndPassesSameContextToLimiterAndDelivery() {
         AtomicReference<IssueContext> captured = new AtomicReference<>();
-        IssueRateLimiter limiter = (context, requestedAt) -> {
+        IssueLimiter limiter = (context, requestedAt) -> {
             captured.set(context);
             return new IssueLimitResult.Allowed();
         };
@@ -208,7 +208,7 @@ class AbstractVerificationServiceTest {
     void rejectsInvalidContributorResultsBeforeAcquiringQuota() {
         VerificationKey otherKey = new VerificationKey("account", "login", "other@example.com");
         AtomicInteger acquisitions = new AtomicInteger();
-        IssueRateLimiter limiter = (context, requestedAt) -> {
+        IssueLimiter limiter = (context, requestedAt) -> {
             acquisitions.incrementAndGet();
             return new IssueLimitResult.Allowed();
         };
@@ -246,7 +246,7 @@ class AbstractVerificationServiceTest {
     void rejectsInvalidCustomManagerResultsBeforeAcquiringQuota() {
         VerificationKey otherKey = new VerificationKey("account", "login", "other@example.com");
         AtomicInteger acquisitions = new AtomicInteger();
-        IssueRateLimiter limiter = (context, requestedAt) -> {
+        IssueLimiter limiter = (context, requestedAt) -> {
             acquisitions.incrementAndGet();
             return new IssueLimitResult.Allowed();
         };
@@ -278,7 +278,7 @@ class AbstractVerificationServiceTest {
 
     @Test
     void contributorsCannotRemoveOrReplaceExistingAttributes() {
-        IssueRateLimiter limiter = (context, requestedAt) -> new IssueLimitResult.Allowed();
+        IssueLimiter limiter = (context, requestedAt) -> new IssueLimitResult.Allowed();
         CapturingVerificationService replaced = serviceWithContributors(
                 limiter,
                 List.of(
@@ -301,7 +301,7 @@ class AbstractVerificationServiceTest {
     }
 
     @Test
-    void doesNotGenerateStoreOrDispatchWhenNoRateLimitRuleMatches() {
+    void doesNotGenerateStoreOrDispatchWhenNoLimitRuleMatches() {
         AtomicInteger generations = new AtomicInteger();
         AtomicInteger stores = new AtomicInteger();
         VerificationStore store = new StubVerificationStore() {
@@ -311,8 +311,8 @@ class AbstractVerificationServiceTest {
                 return super.store(key, code, policy, issuedAt);
             }
         };
-        IssueRateLimiter limiter = (context, requestedAt) -> {
-            throw new MissingIssueRateLimitRuleException(context.key());
+        IssueLimiter limiter = (context, requestedAt) -> {
+            throw new MissingIssueLimitRuleException(context.key());
         };
         CapturingVerificationService template = new CapturingVerificationService(
                 length -> {
@@ -324,7 +324,7 @@ class AbstractVerificationServiceTest {
                 VerificationPolicy.defaults(),
                 new DefaultIssueContextManager(List.of()));
 
-        assertThrows(MissingIssueRateLimitRuleException.class, () -> template.issue(LOGIN));
+        assertThrows(MissingIssueLimitRuleException.class, () -> template.issue(LOGIN));
         assertEquals(0, generations.get());
         assertEquals(0, stores.get());
         assertEquals(0, template.dispatches());
@@ -355,7 +355,7 @@ class AbstractVerificationServiceTest {
                 () -> new CapturingVerificationService(
                         length -> "123456",
                         new InMemoryVerificationStore(),
-                        IssueRateLimiter.permitAll(),
+                        IssueLimiter.permitAll(),
                         VerificationPolicy.defaults(),
                         (IssueContextManager) null));
         assertThrows(NullPointerException.class, () -> template.issue((VerificationKey) null));
@@ -369,7 +369,7 @@ class AbstractVerificationServiceTest {
         assertDoesNotThrow(() -> AbstractVerificationService.class.getDeclaredConstructor(
                 CodeGenerator.class,
                 VerificationStore.class,
-                IssueRateLimiter.class,
+                IssueLimiter.class,
                 VerificationPolicy.class,
                 IssueContextManager.class));
     }
@@ -380,11 +380,11 @@ class AbstractVerificationServiceTest {
 
     private CapturingVerificationService template(
             CodeGenerator generator, VerificationStore store, VerificationPolicy verificationPolicy) {
-        return new CapturingVerificationService(generator, store, testIssueRateLimiter(), verificationPolicy);
+        return new CapturingVerificationService(generator, store, testIssueLimiter(), verificationPolicy);
     }
 
-    private IssueRateLimiter testIssueRateLimiter() {
-        IssueRateLimitRule rule = new TestIssueRateLimitRule(
+    private IssueLimiter testIssueLimiter() {
+        IssueLimitRule rule = new TestIssueLimitRule(
                 "test-key-cooldown",
                 context -> IssueLimitBucket.of(
                         context.key().namespace(),
@@ -392,11 +392,11 @@ class AbstractVerificationServiceTest {
                         context.key().subject()),
                 1,
                 Duration.ofSeconds(60));
-        return new IssueRateLimitManager(List.of(rule), new InMemoryIssueRateLimitStore());
+        return new IssueLimitManager(List.of(rule), new InMemoryIssueLimitStore());
     }
 
     private CapturingVerificationService serviceWithContributors(
-            IssueRateLimiter limiter, List<IssueContextContributor> contributors) {
+            IssueLimiter limiter, List<IssueContextContributor> contributors) {
         return new CapturingVerificationService(
                 length -> "123456",
                 new InMemoryVerificationStore(),
@@ -413,29 +413,29 @@ class AbstractVerificationServiceTest {
         private CodeSendResult result = CodeSendResult.ACCEPTED;
 
         private CapturingVerificationService(CodeGenerator generator, VerificationStore store) {
-            this(generator, store, IssueRateLimiter.permitAll(), VerificationPolicy.defaults());
+            this(generator, store, IssueLimiter.permitAll(), VerificationPolicy.defaults());
         }
 
         private CapturingVerificationService(
                 CodeGenerator generator, VerificationStore store, VerificationPolicy verificationPolicy) {
-            this(generator, store, IssueRateLimiter.permitAll(), verificationPolicy);
+            this(generator, store, IssueLimiter.permitAll(), verificationPolicy);
         }
 
         private CapturingVerificationService(
                 CodeGenerator generator,
                 VerificationStore store,
-                IssueRateLimiter issueRateLimiter,
+                IssueLimiter issueLimiter,
                 VerificationPolicy verificationPolicy) {
-            this(generator, store, issueRateLimiter, verificationPolicy, new DefaultIssueContextManager(List.of()));
+            this(generator, store, issueLimiter, verificationPolicy, new DefaultIssueContextManager(List.of()));
         }
 
         private CapturingVerificationService(
                 CodeGenerator generator,
                 VerificationStore store,
-                IssueRateLimiter issueRateLimiter,
+                IssueLimiter issueLimiter,
                 VerificationPolicy verificationPolicy,
                 IssueContextManager issueContextManager) {
-            super(generator, store, issueRateLimiter, verificationPolicy, issueContextManager);
+            super(generator, store, issueLimiter, verificationPolicy, issueContextManager);
         }
 
         @Override

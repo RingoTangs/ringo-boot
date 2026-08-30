@@ -7,12 +7,12 @@ import java.util.Objects;
 /**
  * 统一校验签发限流规则定义中的公共字段。
  */
-final class IssueRateLimitValidator {
+final class IssueLimitValidator {
 
     /**
      * 工具类不允许实例化。
      */
-    private IssueRateLimitValidator() {}
+    private IssueLimitValidator() {}
 
     /**
      * 校验规则标识、最大签发次数和滚动窗口。
