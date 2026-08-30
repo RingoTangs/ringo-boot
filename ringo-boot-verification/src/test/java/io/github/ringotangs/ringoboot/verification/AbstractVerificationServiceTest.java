@@ -269,20 +269,6 @@ class AbstractVerificationServiceTest {
     }
 
     @Test
-    @SuppressWarnings("removal")
-    void supportsDeprecatedContextCustomizerBeforeContributors() {
-        LegacyCustomizingVerificationService service =
-                new LegacyCustomizingVerificationService(List.of(context -> context.with("device-id", "device-1")));
-
-        service.issue(LOGIN);
-
-        assertEquals(
-                "tenant-1", service.delivery().context().attribute("tenant-id").orElseThrow());
-        assertEquals(
-                "device-1", service.delivery().context().attribute("device-id").orElseThrow());
-    }
-
-    @Test
     void doesNotGenerateStoreOrDispatchWhenNoRateLimitRuleMatches() {
         AtomicInteger generations = new AtomicInteger();
         AtomicInteger stores = new AtomicInteger();
@@ -493,43 +479,6 @@ class AbstractVerificationServiceTest {
         }
 
         private record TestDispatch(IssueContext context, String code, Instant expiresAt) {}
-    }
-
-    @SuppressWarnings("removal")
-    private static final class LegacyCustomizingVerificationService extends AbstractVerificationService {
-
-        private final AtomicReference<LegacyDispatch> delivery = new AtomicReference<>();
-
-        private LegacyCustomizingVerificationService(List<IssueContextContributor> contributors) {
-            super(
-                    length -> "123456",
-                    new InMemoryVerificationStore(),
-                    IssueRateLimiter.permitAll(),
-                    VerificationPolicy.defaults(),
-                    contributors);
-        }
-
-        @Override
-        protected IssueContext customizeIssueContext(IssueContext context) {
-            return context.with("tenant-id", "tenant-1");
-        }
-
-        @Override
-        protected CodeSendResult dispatch(IssueContext context, String code, Instant expiresAt) {
-            delivery.set(new LegacyDispatch(context, code, expiresAt));
-            return CodeSendResult.ACCEPTED;
-        }
-
-        @Override
-        protected VerificationChannel channel() {
-            return VerificationChannel.EMAIL;
-        }
-
-        private LegacyDispatch delivery() {
-            return delivery.get();
-        }
-
-        private record LegacyDispatch(IssueContext context, String code, Instant expiresAt) {}
     }
 
     private static class StubVerificationStore implements VerificationStore {

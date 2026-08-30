@@ -116,11 +116,7 @@ public abstract class AbstractVerificationService implements VerificationService
     public final IssueResult issue(VerificationKey key) throws VerificationException {
         Objects.requireNonNull(key, "key must not be null");
         VerificationChannel channel = Objects.requireNonNull(channel(), "verification channel must not be null");
-        IssueContext baseContext = IssueContext.of(key, channel, verificationPolicy);
-        IssueContext context = requirePreservedContext(
-                baseContext,
-                Objects.requireNonNull(customizeIssueContext(baseContext), "customized issue context must not be null"),
-                "issue context customizer");
+        IssueContext context = IssueContext.of(key, channel, verificationPolicy);
         for (int index = 0; index < contextContributors.size(); index++) {
             IssueContextContributor contributor = contextContributors.get(index);
             IssueContext contributed = Objects.requireNonNull(
@@ -171,21 +167,6 @@ public abstract class AbstractVerificationService implements VerificationService
      * @return 稳定的验证码渠道
      */
     protected abstract VerificationChannel channel();
-
-    /**
-     * 为当前服务补充签发流程属性。
-     *
-     * <p>子类可以返回增加属性后的新上下文，但不能替换验证码键、渠道或策略。
-     *
-     * @deprecated 使用构造器注入 {@link IssueContextContributor}；该继承扩展点将在下一个主版本移除
-     *
-     * @param context 包含验证码键和渠道的基础签发上下文
-     * @return 当前服务补充后的签发上下文
-     */
-    @Deprecated(forRemoval = true)
-    protected IssueContext customizeIssueContext(IssueContext context) {
-        return context;
-    }
 
     private IssueResult dispatchStoredCode(IssueContext context, String code, Instant expiresAt) {
         try {
