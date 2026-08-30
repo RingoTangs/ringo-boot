@@ -1,15 +1,15 @@
-package io.github.ringotangs.ringoboot.autoconfigure.verification;
+package io.github.ringotangs.ringoboot.verification.limit;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.ringotangs.ringoboot.verification.IssueContext;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
-import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
 
@@ -21,14 +21,10 @@ class ClientIpIssueQuotaRuleTest {
     void matchesConfiguredBusinessScopeWithoutInspectingClientIp() {
         ClientIpIssueQuotaRule rule = rule();
 
-        assertThat(rule.matches(context("account", "login", VerificationChannel.EMAIL, "user-1")))
-                .isTrue();
-        assertThat(rule.matches(context("account", "register", VerificationChannel.EMAIL, "user-1")))
-                .isFalse();
-        assertThat(rule.matches(context("profile", "login", VerificationChannel.EMAIL, "user-1")))
-                .isFalse();
-        assertThat(rule.matches(context("account", "login", VerificationChannel.SMS, "user-1")))
-                .isFalse();
+        assertTrue(rule.matches(context("account", "login", VerificationChannel.EMAIL, "user-1")));
+        assertFalse(rule.matches(context("account", "register", VerificationChannel.EMAIL, "user-1")));
+        assertFalse(rule.matches(context("profile", "login", VerificationChannel.EMAIL, "user-1")));
+        assertFalse(rule.matches(context("account", "login", VerificationChannel.SMS, "user-1")));
     }
 
     @Test
@@ -39,9 +35,10 @@ class ClientIpIssueQuotaRuleTest {
         IssueContext second =
                 withClientIp(context("account", "login", VerificationChannel.EMAIL, "user-2"), "203.0.113.10");
 
-        assertThat(rule.bucket(first)).isEqualTo(rule.bucket(second));
-        assertThat(rule.bucket(first))
-                .isEqualTo(IssueLimitBucket.of("account", "login", VerificationChannel.EMAIL.value(), "203.0.113.10"));
+        assertEquals(rule.bucket(first), rule.bucket(second));
+        assertEquals(
+                IssueLimitBucket.of("account", "login", VerificationChannel.EMAIL.value(), "203.0.113.10"),
+                rule.bucket(first));
     }
 
     @Test
@@ -49,8 +46,8 @@ class ClientIpIssueQuotaRuleTest {
         ClientIpIssueQuotaRule rule = rule();
         IssueContext context = context("account", "login", VerificationChannel.EMAIL, "user-1");
 
-        assertThat(rule.bucket(withClientIp(context, "203.0.113.10")))
-                .isNotEqualTo(rule.bucket(withClientIp(context, "203.0.113.11")));
+        assertNotEquals(
+                rule.bucket(withClientIp(context, "203.0.113.10")), rule.bucket(withClientIp(context, "203.0.113.11")));
     }
 
     @Test
@@ -58,30 +55,33 @@ class ClientIpIssueQuotaRuleTest {
         ClientIpIssueQuotaRule rule = rule();
         IssueContext context = context("account", "login", VerificationChannel.EMAIL, "user-1");
 
-        assertThat(rule.matches(context)).isTrue();
-        assertThatIllegalStateException()
-                .isThrownBy(() -> rule.bucket(context))
-                .withMessage("required issue context attribute is missing: client-ip");
+        assertTrue(rule.matches(context));
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> rule.bucket(context));
+        assertEquals("required issue context attribute is missing: client-ip", exception.getMessage());
     }
 
     @Test
     void validatesRuleDefinition() {
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> new ClientIpIssueQuotaRule(
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new ClientIpIssueQuotaRule(
                         "login_ip_hour", "account", "login", VerificationChannel.EMAIL, 1, Duration.ofHours(1)));
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> new ClientIpIssueQuotaRule(
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new ClientIpIssueQuotaRule(
                         "login-ip-hour", "account", "login", VerificationChannel.EMAIL, 0, Duration.ofHours(1)));
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> new ClientIpIssueQuotaRule(
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new ClientIpIssueQuotaRule(
                         "login-ip-hour", "account", "login", VerificationChannel.EMAIL, 1, Duration.ZERO));
     }
 
     @Test
     void builderRequiresEveryField() {
-        assertThatNullPointerException()
-                .isThrownBy(() -> ClientIpIssueQuotaRule.builder().build())
-                .withMessage("id must be configured");
+        NullPointerException exception = assertThrows(
+                NullPointerException.class,
+                () -> ClientIpIssueQuotaRule.builder().build());
+        assertEquals("id must be configured", exception.getMessage());
     }
 
     private static ClientIpIssueQuotaRule rule() {
@@ -100,6 +100,6 @@ class ClientIpIssueQuotaRuleTest {
     }
 
     private static IssueContext withClientIp(IssueContext context, String clientIp) {
-        return context.with(ClientIpContributor.ATTRIBUTE_NAME, clientIp);
+        return context.with(ClientIpIssueQuotaRule.ATTRIBUTE_NAME, clientIp);
     }
 }

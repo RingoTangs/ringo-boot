@@ -1,11 +1,8 @@
-package io.github.ringotangs.ringoboot.autoconfigure.verification;
+package io.github.ringotangs.ringoboot.verification.limit;
 
 import io.github.ringotangs.ringoboot.core.KebabCase;
 import io.github.ringotangs.ringoboot.verification.IssueContext;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
-import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitRule;
-import io.github.ringotangs.ringoboot.verification.limit.IssueRateLimitValidator;
 import java.time.Duration;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
@@ -14,8 +11,7 @@ import org.jspecify.annotations.Nullable;
  * 按客户端 IP 地址限制指定业务用途的验证码签发次数。
  *
  * <p>该规则匹配指定 namespace、purpose 和 channel，额度桶由 namespace、purpose、channel 和
- * {@link ClientIpContributor#ATTRIBUTE_NAME client-ip} 属性组成。因此，同一业务用途下不同验证主体从同一客户端 IP 发起的请求会
- * 共享额度。
+ * {@value #ATTRIBUTE_NAME} 属性组成。因此，同一业务用途下不同验证主体从同一客户端 IP 发起的请求会共享额度。
  *
  * <p>规则只消费已经写入 {@link IssueContext} 的客户端 IP，不负责解析代理请求头、校验 IP 格式或规范化 IPv6 地址。
  *
@@ -29,6 +25,11 @@ import org.jspecify.annotations.Nullable;
 public record ClientIpIssueQuotaRule(
         String id, String namespace, String purpose, VerificationChannel channel, int maxIssues, Duration window)
         implements IssueRateLimitRule {
+
+    /**
+     * 客户端 IP 地址在 {@link IssueContext#attributes()} 中使用的属性名。
+     */
+    public static final String ATTRIBUTE_NAME = "client-ip";
 
     /**
      * 创建并校验客户端 IP 配额规则。
@@ -63,9 +64,9 @@ public record ClientIpIssueQuotaRule(
     @Override
     public IssueLimitBucket bucket(IssueContext context) {
         Objects.requireNonNull(context, "context must not be null");
-        String clientIp = context.attribute(ClientIpContributor.ATTRIBUTE_NAME)
-                .orElseThrow(() -> new IllegalStateException(
-                        "required issue context attribute is missing: " + ClientIpContributor.ATTRIBUTE_NAME));
+        String clientIp = context.attribute(ATTRIBUTE_NAME)
+                .orElseThrow(() ->
+                        new IllegalStateException("required issue context attribute is missing: " + ATTRIBUTE_NAME));
         return IssueLimitBucket.of(namespace, purpose, channel.value(), clientIp);
     }
 

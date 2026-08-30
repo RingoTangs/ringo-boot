@@ -11,6 +11,7 @@ import io.github.ringotangs.ringoboot.verification.IssueContext;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
+import io.github.ringotangs.ringoboot.verification.limit.ClientIpIssueQuotaRule;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -20,6 +21,11 @@ class ClientIpContributorTest {
 
     private static final VerificationKey KEY = new VerificationKey("account", "login", "user@example.com");
     private static final VerificationPolicy POLICY = VerificationPolicy.defaults();
+
+    @Test
+    void usesClientIpRuleAttributeName() {
+        assertThat(ClientIpContributor.ATTRIBUTE_NAME).isEqualTo(ClientIpIssueQuotaRule.ATTRIBUTE_NAME);
+    }
 
     @ParameterizedTest
     @ValueSource(strings = {"203.0.113.10", "2001:db8::1"})
