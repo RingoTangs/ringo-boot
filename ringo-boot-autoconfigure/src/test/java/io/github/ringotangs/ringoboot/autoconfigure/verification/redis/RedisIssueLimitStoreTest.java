@@ -9,10 +9,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitQuota;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitStoreException;
+import io.github.ringotangs.ringoboot.verification.limit.SubjectQuotaRule;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -55,10 +57,18 @@ class RedisIssueLimitStoreTest {
         when(redisTemplate.execute(any(RedisScript.class), anyList(), any(Object[].class)))
                 .thenReturn(List.of(0L));
         RedisIssueLimitStore store = store(redisTemplate);
+        String generatedRuleId = SubjectQuotaRule.builder()
+                .namespace("account")
+                .purpose("login")
+                .channel(VerificationChannel.EMAIL)
+                .maxIssues(1)
+                .window(Duration.ofMinutes(1))
+                .build()
+                .id();
 
         store.acquire(
                 List.of(
-                        quota("subject-minute", "user@example.com", 1, Duration.ofMinutes(1)),
+                        quota(generatedRuleId, "user@example.com", 1, Duration.ofMinutes(1)),
                         quota("ip-hour", "203.0.113.10", 10, Duration.ofHours(1))),
                 NOW);
 
@@ -69,6 +79,8 @@ class RedisIssueLimitStoreTest {
                 .allSatisfy(key -> assertThat(key)
                         .startsWith("{test-application:verification:issue-limit}:v1:")
                         .doesNotContain("user@example.com", "203.0.113.10"));
+        assertThat(keys.getValue().getFirst())
+                .startsWith("{test-application:verification:issue-limit}:v1:" + generatedRuleId + ':');
     }
 
     @Test

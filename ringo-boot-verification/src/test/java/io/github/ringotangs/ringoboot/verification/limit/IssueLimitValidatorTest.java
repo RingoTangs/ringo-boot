@@ -13,7 +13,7 @@ class IssueLimitValidatorTest {
         assertDoesNotThrow(
                 () -> IssueLimitValidator.validateRuleDefinition("login-subject-minute", 2, Duration.ofMinutes(1)));
         assertDoesNotThrow(() -> IssueLimitValidator.validateRuleDefinition(
-                "rule:subject-quota@ns:account@purpose:login@channel:email@issues:2@window:1minutes",
+                "rule:subject-quota:ns:account:purpose:login:channel:email:issues:2:window:1minutes",
                 2,
                 Duration.ofMinutes(1)));
     }
@@ -36,6 +36,12 @@ class IssueLimitValidatorTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> IssueLimitValidator.validateRuleDefinition("Subject-Minute", 1, Duration.ofMinutes(1)));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> IssueLimitValidator.validateRuleDefinition(
+                        "rule:subject-quota@ns:account@purpose:login@channel:email@issues:2@window:1minutes",
+                        2,
+                        Duration.ofMinutes(1)));
     }
 
     @Test

@@ -30,7 +30,7 @@ class BuiltInQuotaRuleTest {
                 .window(Duration.ofHours(1))
                 .build();
 
-        assertEquals("rule:namespace-quota@ns:account@channel:email@issues:100@window:1hours", rule.id());
+        assertEquals("rule:namespace-quota:ns:account:channel:email:issues:100:window:1hours", rule.id());
         assertEquals(IssueLimitBucket.of("account", "email"), rule.bucket(LOGIN_EMAIL));
         assertTrue(rule.appliesTo(context("account", "register", "other@example.com", "email")));
         assertFalse(rule.appliesTo(context("account", "login", "13800138000", "sms")));
@@ -47,7 +47,7 @@ class BuiltInQuotaRuleTest {
                 .window(Duration.ofMinutes(1))
                 .build();
 
-        assertEquals("rule:purpose-quota@ns:account@purpose:login@channel:email@issues:20@window:1minutes", rule.id());
+        assertEquals("rule:purpose-quota:ns:account:purpose:login:channel:email:issues:20:window:1minutes", rule.id());
         assertEquals(IssueLimitBucket.of("account", "login", "email"), rule.bucket(LOGIN_EMAIL));
         assertTrue(rule.appliesTo(context("account", "login", "other@example.com", "email")));
         assertFalse(rule.appliesTo(context("account", "login", "13800138000", "sms")));
@@ -66,7 +66,7 @@ class BuiltInQuotaRuleTest {
                 new VerificationKey("account", "login", "user@example.com"), voice, VerificationPolicy.defaults());
         SubjectQuotaRule voiceRule = subjectRule(voice, 5, Duration.ofHours(1));
 
-        assertEquals("rule:subject-quota@ns:account@purpose:login@channel:email@issues:5@window:1hours", rule.id());
+        assertEquals("rule:subject-quota:ns:account:purpose:login:channel:email:issues:5:window:1hours", rule.id());
         assertTrue(rule.appliesTo(LOGIN_EMAIL));
         assertTrue(rule.appliesTo(anotherSubject));
         assertFalse(rule.appliesTo(sms));
@@ -92,8 +92,8 @@ class BuiltInQuotaRuleTest {
 
         assertEquals(
                 List.of(
-                        "rule:subject-quota@ns:account@purpose:login@channel:email@issues:5@window:1hours",
-                        "rule:subject-quota@ns:account@purpose:login@channel:email@issues:10@window:1days"),
+                        "rule:subject-quota:ns:account:purpose:login:channel:email:issues:5:window:1hours",
+                        "rule:subject-quota:ns:account:purpose:login:channel:email:issues:10:window:1days"),
                 captured.get().stream().map(IssueLimitQuota::ruleId).toList());
     }
 

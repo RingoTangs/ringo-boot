@@ -58,7 +58,7 @@ class IssueLimitRuleIdTest {
     }
 
     private static void assertWindow(Duration window, String expected) {
-        assertTrue(subjectId(window).endsWith("@window:" + expected));
+        assertTrue(subjectId(window).endsWith(":window:" + expected));
     }
 
     private static String subjectId(Duration window) {

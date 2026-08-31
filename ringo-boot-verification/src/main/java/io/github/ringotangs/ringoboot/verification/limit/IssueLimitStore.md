@@ -102,7 +102,7 @@ History
 
 ```text
 HistoryKey:
-  ruleId = rule:subject-quota@ns:account@purpose:login@channel:email@issues:5@window:1minutes
+  ruleId = rule:subject-quota:ns:account:purpose:login:channel:email:issues:5:window:1minutes
   bucket = [account, login, user@example.com]
 
 History:

@@ -21,7 +21,7 @@ class ClientIpQuotaRuleTest {
     void appliesToConfiguredBusinessScopeWithoutInspectingClientIp() {
         ClientIpQuotaRule rule = rule();
 
-        assertEquals("rule:client-ip-quota@ns:account@purpose:login@channel:email@issues:10@window:1hours", rule.id());
+        assertEquals("rule:client-ip-quota:ns:account:purpose:login:channel:email:issues:10:window:1hours", rule.id());
         assertTrue(rule.appliesTo(context("account", "login", VerificationChannel.EMAIL, "user-1")));
         assertFalse(rule.appliesTo(context("account", "register", VerificationChannel.EMAIL, "user-1")));
         assertFalse(rule.appliesTo(context("profile", "login", VerificationChannel.EMAIL, "user-1")));
