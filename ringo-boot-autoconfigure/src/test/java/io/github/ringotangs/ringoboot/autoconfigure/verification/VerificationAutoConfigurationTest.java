@@ -108,40 +108,74 @@ class VerificationAutoConfigurationTest {
     }
 
     @Test
-    void configuresClientIpContributorInServletApplication() {
+    void doesNotConfigureClientIpContributorByDefault() {
         webContextRunner.run(context -> {
             assertThat(context).hasNotFailed();
-            assertThat(context).hasSingleBean(ClientIpContributor.class);
-
-            MockHttpServletRequest request = new MockHttpServletRequest(
-                    context.getSourceApplicationContext().getServletContext());
-            request.setRemoteAddr("203.0.113.10");
-            RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
-            try {
-                IssueContext issueContext = IssueContext.of(
-                        new VerificationKey("account", "login", "user@example.com"),
-                        VerificationChannel.EMAIL,
-                        VerificationPolicy.defaults());
-
-                IssueContext enriched =
-                        context.getBean(IssueContextManager.class).enrich(issueContext);
-
-                assertThat(enriched.attribute(ClientIpContributor.ATTRIBUTE_NAME))
-                        .contains("203.0.113.10");
-            } finally {
-                RequestContextHolder.resetRequestAttributes();
-            }
+            assertThat(context).doesNotHaveBean(ClientIpContributor.class);
         });
+    }
+
+    @Test
+    void clientIpContributorSwitchDoesNotEnableVerification() {
+        new WebApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(VerificationAutoConfiguration.class))
+                .withPropertyValues("ringo.boot.verification.contributor.client-ip=true")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).doesNotHaveBean(ClientIpContributor.class);
+                });
+    }
+
+    @Test
+    void doesNotConfigureClientIpContributorWhenExplicitlyDisabled() {
+        webContextRunner
+                .withPropertyValues("ringo.boot.verification.contributor.client-ip=false")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).doesNotHaveBean(ClientIpContributor.class);
+                });
+    }
+
+    @Test
+    void configuresClientIpContributorInServletApplication() {
+        webContextRunner
+                .withPropertyValues("ringo.boot.verification.contributor.client-ip=true")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(ClientIpContributor.class);
+
+                    MockHttpServletRequest request = new MockHttpServletRequest(
+                            context.getSourceApplicationContext().getServletContext());
+                    request.setRemoteAddr("203.0.113.10");
+                    RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+                    try {
+                        IssueContext issueContext = IssueContext.of(
+                                new VerificationKey("account", "login", "user@example.com"),
+                                VerificationChannel.EMAIL,
+                                VerificationPolicy.defaults());
+
+                        IssueContext enriched =
+                                context.getBean(IssueContextManager.class).enrich(issueContext);
+
+                        assertThat(enriched.attribute(ClientIpContributor.ATTRIBUTE_NAME))
+                                .contains("203.0.113.10");
+                    } finally {
+                        RequestContextHolder.resetRequestAttributes();
+                    }
+                });
     }
 
     @Test
     void customClientIpContributorOverridesDefault() {
         ClientIpContributor contributor = new ClientIpContributor(requestProvider());
 
-        webContextRunner.withBean(ClientIpContributor.class, () -> contributor).run(context -> {
-            assertThat(context).hasSingleBean(ClientIpContributor.class);
-            assertThat(context.getBean(ClientIpContributor.class)).isSameAs(contributor);
-        });
+        webContextRunner
+                .withPropertyValues("ringo.boot.verification.contributor.client-ip=true")
+                .withBean(ClientIpContributor.class, () -> contributor)
+                .run(context -> {
+                    assertThat(context).hasSingleBean(ClientIpContributor.class);
+                    assertThat(context.getBean(ClientIpContributor.class)).isSameAs(contributor);
+                });
     }
 
     @Test
@@ -195,7 +229,8 @@ class VerificationAutoConfigurationTest {
     void configuresVerificationWithoutSpringWeb() {
         contextRunner
                 .withClassLoader(new FilteredClassLoader("org.springframework.web"))
-                .withPropertyValues("ringo.boot.verification.enabled=true")
+                .withPropertyValues(
+                        "ringo.boot.verification.enabled=true", "ringo.boot.verification.contributor.client-ip=true")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(VerificationStore.class);

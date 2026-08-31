@@ -42,62 +42,34 @@ flowchart LR
 
 ## 二、签发上下文
 
-业务代码调用 `VerificationService.issue(key)` 时只需传递 `VerificationKey`。`AbstractVerificationService` 在入口创建一次
-`IssueContext`，并调用 `customizeIssueContext` 模板钩子补充环境信息或流程属性。最终上下文包含三部分：
+业务代码调用 `VerificationService.issue(key)` 时只需传递 `VerificationKey`。`AbstractVerificationService` 在入口创建
+`IssueContext`，再由 `IssueContextManager` 按顺序执行容器中的 `IssueContextContributor`，补充请求级环境信息或流程属性。
+最终上下文包含三部分：
 
 1. `VerificationKey`：框架已有的 `namespace`、`purpose` 和 `subject`。
 2. `VerificationChannel`：稳定的邮件、短信或自定义渠道标识。
 3. `Map<String, String> attributes`：应用定义的 IP、设备、账号、租户等信息。
 
-```java
-VerificationKey key = new VerificationKey(
-        "account",
-        "login",
-        "user@example.com");
+Web 应用可以显式开启自动配置的 `ClientIpContributor`：
 
-@Override
-protected IssueContext customizeIssueContext(IssueContext context) {
-    return context
-            .with("ip-address", resolveTrustedClientIp())
-            .with("device-id", resolveTrustedDeviceId());
-}
+```yaml
+ringo:
+  boot:
+    verification:
+      contributor:
+        client-ip: true
 ```
 
-verification 模块不定义属性名常量。实际应用应在自己的模块中统一声明属性名，避免多个调用方使用不同拼写：
-
-```java
-public final class VerificationIssueAttributes {
-
-    public static final String IP_ADDRESS = "ip-address";
-    public static final String DEVICE_ID = "device-id";
-
-    private VerificationIssueAttributes() {}
-}
-```
+该开关默认为 `false`。开启后，Servlet Web 应用会把 `HttpServletRequest.getRemoteAddr()` 返回的值写入
+`ClientIpQuotaRule.ATTRIBUTE_NAME` 对应的上下文属性。其他环境信号可由应用实现并注册自定义
+`IssueContextContributor` Bean。
 
 `IssueContext` 是不可变对象，`with` 会返回一个新实例。它的 `toString()` 不输出 subject 和属性值，避免邮箱、手机号、
 IP 等信息意外进入日志。
 
-verification 模块不依赖 Servlet API，也不会默认解析 HTTP 请求。Web 应用需要 IP 或设备规则时，可以继承对应的渠道服务并覆盖模板钩子：
-
-```java
-final class WebEmailVerificationService extends EmailVerificationService {
-
-    @Override
-    protected IssueContext customizeIssueContext(IssueContext context) {
-        HttpServletRequest request = currentRequest();
-        return context
-                .with("ip-address", resolveTrustedClientIp(request))
-                .with("device-id", resolveTrustedDeviceId(request));
-    }
-}
-```
-
-内置邮件和短信服务允许继承，但它们的 `channel()` 方法不可覆盖。模板方法还会校验定制结果没有替换原始
-`VerificationKey` 或渠道，并把同一个最终上下文传给限流、存储键提取和发送流程。
-
-不要直接信任任意客户端提交的 `X-Forwarded-For` 或设备标识。只有在反向代理链已经受信且应用正确配置转发头处理后，才能从转发头
-提取客户端 IP；设备标识也应由应用完成签名校验或可信绑定。规则只消费解析后的属性，不应访问 `HttpServletRequest`。
+不要直接信任任意客户端提交的 `X-Forwarded-For` 或设备标识。`ClientIpContributor` 不会自行解析代理请求头；
+反向代理场景必须先在可信 Servlet 基础设施中配置远端地址解析。设备标识也应由应用完成签名校验或可信绑定。
+规则只消费已写入上下文的属性，不应访问 `HttpServletRequest`。
 
 ## 三、规则如何工作
 
@@ -246,33 +218,19 @@ final class ApplicationHourlyRule implements IssueLimitRule {
 }
 ```
 
-### 自定义 IP 规则
+### 客户端 IP 规则
 
-下面的规则只限制登录业务，同一 IP 一小时最多签发 10 次：
+下面的规则限制指定 namespace、purpose 和 channel，同一 IP 一小时最多签发 10 次：
 
 ```java
-final class LoginIpHourlyRule implements IssueLimitRule {
-    public String id() {
-        return "login-ip-hour";
-    }
-
-    public boolean appliesTo(IssueContext context) {
-        return context.key().purpose().equals("login");
-    }
-
-    public IssueLimitBucket bucket(IssueContext context) {
-        return IssueLimitBucket.of(
-                context.attribute("ip-address").orElseThrow());
-    }
-
-    public int maxIssues() {
-        return 10;
-    }
-
-    public Duration window() {
-        return Duration.ofHours(1);
-    }
-}
+ClientIpQuotaRule.builder()
+        .id("login-email-ip-hour")
+        .namespace("account")
+        .purpose("login")
+        .channel(VerificationChannel.EMAIL)
+        .maxIssues(10)
+        .window(Duration.ofHours(1))
+        .build();
 ```
 
 `appliesTo` 只判断业务是否适用。规则已经匹配后，如果生成 bucket 所需的属性缺失，应立即抛出异常，不应静默跳过安全规则。
@@ -303,6 +261,7 @@ context -> IssueLimitBucket.of(
 sequenceDiagram
     participant App as 应用
     participant Service as VerificationService
+    participant ContextManager as IssueContextManager
     participant Manager as IssueLimitManager
     participant Rule as Rule Beans
     participant LimitStore as IssueLimitStore
@@ -311,7 +270,8 @@ sequenceDiagram
 
     App->>Service: issue(VerificationKey)
     Service->>Service: IssueContext.of(key, channel, policy)
-    Service->>Service: customizeIssueContext(baseContext)
+    Service->>ContextManager: enrich(baseContext)
+    ContextManager-->>Service: enriched context
     Service->>Manager: acquire(context, requestedAt)
     Manager->>Rule: appliesTo(context)
     Rule-->>Manager: true / false
@@ -429,8 +389,8 @@ IssueLimitRule loginIpHourlyRule() {
 | `IssueLimitStore` | 使用自定义限流状态存储，仍自动收集所有规则 |
 | `IssueLimiter` | 完全替换默认管理器和框架自动创建的限流状态存储 |
 
-需要向上下文增加 IP、设备或租户等应用信号时，应继承对应的 `EmailVerificationService` 或
-`SmsVerificationService`，覆盖 `customizeIssueContext`，再由应用将自定义服务显式注册为 Bean。
+需要向上下文增加 IP、设备或租户等应用信号时，应注册 `IssueContextContributor` Bean。Servlet Web 应用可通过
+`ringo.boot.verification.contributor.client-ip=true` 开启内置的 `ClientIpContributor`。
 
 ## 八、推荐的初始规则
 
@@ -450,7 +410,7 @@ IssueLimitRule loginIpHourlyRule() {
 
 - 使用稳定、唯一的 kebab-case `id`。
 - `appliesTo` 只负责业务匹配，不用它掩盖缺失的安全属性。
-- 在验证码服务的 `customizeIssueContext` 中集中读取环境信号，不在 Rule Bean 中访问 HTTP 请求。
+- 通过 `IssueContextContributor` 集中读取环境信号，不在 Rule Bean 中访问 HTTP 请求。
 - bucket 中包含真正需要共享额度的字段，不包含无关字段。
 - 不在 Rule Bean 中访问 Redis、数据库或远程服务。
 - Rule Bean 保持无状态、线程安全，启动后不动态改变窗口和配额。

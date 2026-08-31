@@ -164,17 +164,15 @@ Twilio 支持业务传入自定义限流键，例如用户 IP；Firebase 同时�
    - 租户、供应商、地区及成本配额。
    - 告警、审计和动态黑名单。
 
-当前业务调用方仍只需调用 `VerificationService.issue(VerificationKey)`。签发服务在入口创建 `IssueContext`，通过
-`customizeIssueContext` 模板钩子补充环境信息后传给 `IssueLimiter.acquire(IssueContext, Instant)`，因此规则仍可使用 IP、设备、账号和租户维度：
+当前业务调用方仍只需调用 `VerificationService.issue(VerificationKey)`。签发服务在入口创建 `IssueContext`，再由
+`IssueContextManager` 调用 `IssueContextContributor` 补充环境信息后传给 `IssueLimiter.acquire(IssueContext, Instant)`，
+因此规则仍可使用 IP、设备、账号和租户维度：
 
 ```java
-@Override
-protected IssueContext customizeIssueContext(IssueContext context) {
-    return context
-            .with("ip-address", resolveTrustedClientIp())
-            .with("device-id", resolveTrustedDeviceId());
-}
+IssueContextContributor deviceIdContributor =
+        context -> context.with("device-id", resolveTrustedDeviceId());
 ```
 
-需要环境维度的应用应继承对应的邮件或短信验证码服务并覆盖该模板方法，再把自定义服务注册为 Bean。HTTP 请求提取和可信代理策略属于
+需要环境维度的应用应注册对应的 Contributor Bean。Servlet Web 应用可通过
+`ringo.boot.verification.contributor.client-ip=true` 开启内置客户端 IP Contributor。HTTP 请求提取和可信代理策略属于
 应用层职责，限流规则本身只读取上下文，不直接依赖 Web API。

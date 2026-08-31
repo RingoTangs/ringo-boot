@@ -23,7 +23,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 /**
- * 自动配置验证码状态存储、默认渠道发送器和 Servlet 请求上下文贡献器。
+ * 自动配置验证码状态存储、默认渠道发送器和可选的 Servlet 请求上下文贡献器。
  *
  * <p>仅在显式启用验证码功能时生效。验证服务和验证码生成器由应用显式组装；每个默认基础设施组件都会在应用提供同类型 Bean 时回退。</p>
  */
@@ -105,6 +105,10 @@ public class VerificationAutoConfiguration {
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
     @ConditionalOnClass(HttpServletRequest.class)
+    @ConditionalOnProperty(
+            prefix = VerificationProperties.PREFIX + ".contributor",
+            name = "client-ip",
+            havingValue = "true")
     static class ServletContextConfiguration {
 
         /**
