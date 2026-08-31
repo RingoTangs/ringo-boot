@@ -87,7 +87,7 @@ IP 等信息意外进入日志。
 规则会生成：
 
 ```text
-rule:subject-quota:ns:account:purpose:email-verification:channel:email:issues:5:window:1minutes
+rule@subject-quota:ns@account:purpose@email-verification:channel@email:issues@5:window@1minutes
 ```
 
 窗口使用能够精确表达该 `Duration` 的最大单位，因此 `Duration.ofSeconds(60)` 与 `Duration.ofMinutes(1)` 会生成相同 ID。

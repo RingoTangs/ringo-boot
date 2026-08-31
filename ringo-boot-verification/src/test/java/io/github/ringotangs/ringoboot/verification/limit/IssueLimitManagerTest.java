@@ -74,7 +74,7 @@ class IssueLimitManagerTest {
 
         assertInstanceOf(IssueLimitResult.Allowed.class, manager.acquire(CONTEXT, NOW));
         assertEquals(
-                List.of("rule:purpose-quota:ns:account:purpose:login:channel:email:issues:10:window:1minutes"),
+                List.of("rule@purpose-quota:ns@account:purpose@login:channel@email:issues@10:window@1minutes"),
                 captured.get().stream().map(IssueLimitQuota::ruleId).toList());
     }
 

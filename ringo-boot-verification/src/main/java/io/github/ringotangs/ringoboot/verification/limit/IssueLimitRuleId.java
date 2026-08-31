@@ -14,17 +14,17 @@ final class IssueLimitRuleId {
 
     private static final String TOKEN = "[a-z0-9]+(?:-[a-z0-9]+)*";
     private static final Pattern CUSTOM_ID = Pattern.compile(TOKEN);
-    private static final Pattern GENERATED_ID = Pattern.compile("rule:(?:namespace-quota:ns:"
+    private static final Pattern GENERATED_ID = Pattern.compile("rule@(?:namespace-quota:ns@"
             + TOKEN
-            + ":channel:"
+            + ":channel@"
             + TOKEN
-            + "|(?:purpose|subject|client-ip)-quota:ns:"
+            + "|(?:purpose|subject|client-ip)-quota:ns@"
             + TOKEN
-            + ":purpose:"
+            + ":purpose@"
             + TOKEN
-            + ":channel:"
+            + ":channel@"
             + TOKEN
-            + "):issues:[1-9][0-9]*:window:[1-9][0-9]*(?:days|hours|minutes|seconds|milliseconds|nanoseconds)");
+            + "):issues@[1-9][0-9]*:window@[1-9][0-9]*(?:days|hours|minutes|seconds|milliseconds|nanoseconds)");
 
     private static final BigInteger NANOS_PER_MILLISECOND = BigInteger.valueOf(1_000_000L);
     private static final BigInteger NANOS_PER_SECOND = BigInteger.valueOf(1_000_000_000L);
@@ -74,15 +74,15 @@ final class IssueLimitRuleId {
             int maxIssues,
             Duration window) {
         StringBuilder id =
-                new StringBuilder("rule:").append(type).append(":ns:").append(namespace);
+                new StringBuilder("rule@").append(type).append(":ns@").append(namespace);
         if (purpose != null) {
-            id.append(":purpose:").append(purpose);
+            id.append(":purpose@").append(purpose);
         }
-        return id.append(":channel:")
+        return id.append(":channel@")
                 .append(channel.value())
-                .append(":issues:")
+                .append(":issues@")
                 .append(maxIssues)
-                .append(":window:")
+                .append(":window@")
                 .append(formatWindow(window))
                 .toString();
     }
