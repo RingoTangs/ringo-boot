@@ -44,7 +44,12 @@
 
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>ringo-boot-autoconfigure</artifactId>
+            <artifactId>ringo-boot-problem-autoconfigure</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>ringo-boot-verification-autoconfigure</artifactId>
         </dependency>
 
         <dependency>
