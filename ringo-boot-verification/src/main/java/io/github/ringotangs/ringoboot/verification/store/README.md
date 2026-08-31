@@ -30,9 +30,9 @@ flowchart LR
 | 类型                         | 职责                                                                       |
 |------------------------------|----------------------------------------------------------------------------|
 | `VerificationStore`          | 定义保存、校验并消费、按验证码失效三种原子操作。                           |
-| `InMemoryVerificationStore`  | 基于 `ConcurrentHashMap` 的线程安全内存实现。                               |
+| `InMemoryVerificationStore`  | 基于 `ConcurrentHashMap` 的线程安全内存实现。                              |
 | `StoreResult`                | 返回验证码成功保存后计算出的过期时间。                                     |
-| `VerificationStoreException` | 统一表达 Redis、数据库或第三方存储的连接、超时、序列化及原子操作故障。      |
+| `VerificationStoreException` | 统一表达 Redis、数据库或第三方存储的连接、超时、序列化及原子操作故障。     |
 
 `VerificationStoreException` 是运行时异常，但接口方法仍显式声明它，目的是提醒实现者和调用者：存储操作可能因
 基础设施故障而失败。自定义实现应把供应商异常包装成该异常，不应把 Lettuce、JDBC 等底层异常直接泄露给上层。
@@ -231,7 +231,7 @@ length(code)      | code
 
 | 回调返回值                              | Map 状态                                           | 使用场景                             |
 |-----------------------------------------|----------------------------------------------------|--------------------------------------|
-| `null`                                  | 删除该 Key 的记录；原本不存在时继续保持不存在。   | 未找到、成功、过期或尝试次数耗尽。   |
+| `null`                                  | 删除该 Key 的记录；原本不存在时继续保持不存在。    | 未找到、成功、过期或尝试次数耗尽。   |
 | `existing.withRemainingAttempts(...)`   | 使用剩余次数更少的新 `Entry` 替换旧状态。          | 验证码不匹配但仍可继续尝试。         |
 
 例如，两个请求同时使用正确验证码校验同一个 Key：
@@ -294,13 +294,13 @@ entries.compute(key, (ignored, existing) -> {
 `invalidate` 中的 `AtomicBoolean` 作用相同：它只负责把“是否删除成功”从 `computeIfPresent` 回调传递出来。摘要比较与条件删除
 仍然由 `computeIfPresent` 作为一个原子操作完成，不是由 `AtomicBoolean` 保证。
 
-| 组件                                 | 实际职责                                             |
-|--------------------------------------|------------------------------------------------------|
-| `ConcurrentHashMap.compute`          | 原子完成同一个 Key 的读取、判断、扣减和删除。        |
-| `ConcurrentHashMap.computeIfPresent` | 在记录存在时原子完成摘要比较和条件删除。             |
+| 组件                                  | 实际职责                                              |
+|---------------------------------------|-------------------------------------------------------|
+| `ConcurrentHashMap.compute`           | 原子完成同一个 Key 的读取、判断、扣减和删除。         |
+| `ConcurrentHashMap.computeIfPresent`  | 在记录存在时原子完成摘要比较和条件删除。              |
 | `AtomicReference<VerifyResult>`       | 将校验结果从 Lambda 回调传递到方法返回值。            |
-| `AtomicBoolean`                      | 将条件删除结果从 Lambda 回调传递到方法返回值。       |
-| `MessageDigest.isEqual`              | 以常量时间比较摘要，不负责并发控制。                 |
+| `AtomicBoolean`                       | 将条件删除结果从 Lambda 回调传递到方法返回值。        |
+| `MessageDigest.isEqual`               | 以常量时间比较摘要，不负责并发控制。                  |
 
 ## 七、状态变化示例
 

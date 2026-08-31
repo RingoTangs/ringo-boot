@@ -24,11 +24,11 @@ Allowed 或 Throttled
 
 ## 内置规则
 
-| 规则                 | 匹配范围                      | bucket 分段                           | 典型用途               |
-|----------------------|-------------------------------|---------------------------------------|------------------------|
-| `NamespaceQuotaRule` | namespace + channel           | namespace、channel                    | 业务模块或渠道总量兜底 |
-| `PurposeQuotaRule`   | namespace + purpose + channel | namespace、purpose、channel           | 单个验证码用途总量     |
-| `SubjectQuotaRule`   | namespace + purpose + channel | namespace、purpose、channel、subject  | 接收方冷却或周期配额   |
+| 规则                 | 匹配范围                      | bucket 分段                            | 典型用途               |
+|----------------------|-------------------------------|----------------------------------------|------------------------|
+| `NamespaceQuotaRule` | namespace + channel           | namespace、channel                     | 业务模块或渠道总量兜底 |
+| `PurposeQuotaRule`   | namespace + purpose + channel | namespace、purpose、channel            | 单个验证码用途总量     |
+| `SubjectQuotaRule`   | namespace + purpose + channel | namespace、purpose、channel、subject   | 接收方冷却或周期配额   |
 | `ClientIpQuotaRule`  | namespace + purpose + channel | namespace、purpose、channel、client IP | 来源 IP 配额           |
 
 规则的 `appliesTo` 只判断业务范围是否匹配，`bucket` 决定哪些请求共享额度。不同规则即使解析出相同 bucket，也会因为规则 ID 不同而使用
