@@ -12,6 +12,10 @@ class IssueLimitValidatorTest {
     void acceptsValidRuleDefinition() {
         assertDoesNotThrow(
                 () -> IssueLimitValidator.validateRuleDefinition("login-subject-minute", 2, Duration.ofMinutes(1)));
+        assertDoesNotThrow(() -> IssueLimitValidator.validateRuleDefinition(
+                "rule:subject-quota@ns:account@purpose:login@channel:email@issues:2@window:1minutes",
+                2,
+                Duration.ofMinutes(1)));
     }
 
     @Test

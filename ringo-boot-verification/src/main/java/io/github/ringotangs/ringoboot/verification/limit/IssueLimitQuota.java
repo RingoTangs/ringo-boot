@@ -20,7 +20,7 @@ public record IssueLimitQuota(String ruleId, IssueLimitBucket bucket, int maxIss
      * 创建并校验已解析的签发配额。
      *
      * @throws NullPointerException 当规则标识、额度桶或窗口为 {@code null} 时
-     * @throws IllegalArgumentException 当规则标识不是 kebab-case、最大签发次数不为正数或窗口不为正数时
+     * @throws IllegalArgumentException 当规则标识格式非法、最大签发次数不为正数或窗口不为正数时
      */
     public IssueLimitQuota {
         Objects.requireNonNull(bucket, "bucket must not be null");

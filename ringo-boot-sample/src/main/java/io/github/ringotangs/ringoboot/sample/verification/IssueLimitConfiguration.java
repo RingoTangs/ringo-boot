@@ -20,7 +20,6 @@ class IssueLimitConfiguration {
     @Bean
     NamespaceQuotaRule accountEmailHourlyQuotaRule() {
         return NamespaceQuotaRule.builder()
-                .id("account-email-hourly-quota")
                 .namespace("account")
                 .channel(VerificationChannel.EMAIL)
                 .maxIssues(1_00)
@@ -31,7 +30,6 @@ class IssueLimitConfiguration {
     @Bean
     PurposeQuotaRule emailVerificationHourlyQuotaRule() {
         return PurposeQuotaRule.builder()
-                .id("email-verification-hourly-quota")
                 .namespace("account")
                 .purpose("email-verification")
                 .channel(VerificationChannel.EMAIL)
@@ -43,7 +41,6 @@ class IssueLimitConfiguration {
     @Bean
     SubjectQuotaRule emailVerificationResendCooldownRule() {
         return SubjectQuotaRule.builder()
-                .id("email-verification-resend-cooldown")
                 .namespace("account")
                 .purpose("email-verification")
                 .channel(VerificationChannel.EMAIL)

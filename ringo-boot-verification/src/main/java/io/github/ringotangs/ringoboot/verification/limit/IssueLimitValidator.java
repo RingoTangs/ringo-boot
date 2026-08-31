@@ -1,6 +1,5 @@
 package io.github.ringotangs.ringoboot.verification.limit;
 
-import io.github.ringotangs.ringoboot.core.KebabCase;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -21,10 +20,22 @@ final class IssueLimitValidator {
      * @param maxIssues 滚动窗口内允许签发的最大次数
      * @param window    滚动窗口长度
      * @throws NullPointerException     当规则标识或窗口为 {@code null} 时
-     * @throws IllegalArgumentException 当规则标识不是 kebab-case、最大次数不为正数或窗口不为正数时
+     * @throws IllegalArgumentException 当规则标识格式非法、最大次数不为正数或窗口不为正数时
      */
     static void validateRuleDefinition(String id, int maxIssues, Duration window) {
-        KebabCase.validate("rule id", id);
+        IssueLimitRuleId.validate("rule id", id);
+        validateRuleDefinition(maxIssues, window);
+    }
+
+    /**
+     * 校验内置规则自动生成标识以外的公共定义。
+     *
+     * @param maxIssues 滚动窗口内允许签发的最大次数
+     * @param window    滚动窗口长度
+     * @throws NullPointerException     当窗口为 {@code null} 时
+     * @throws IllegalArgumentException 当最大次数不为正数或窗口不为正数时
+     */
+    static void validateRuleDefinition(int maxIssues, Duration window) {
         Objects.requireNonNull(window, "window must not be null");
         if (maxIssues <= 0) {
             throw new IllegalArgumentException("maxIssues must be greater than 0: " + maxIssues);

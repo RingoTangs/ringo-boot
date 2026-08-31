@@ -53,7 +53,6 @@ class IssueLimitManagerTest {
     @Test
     void selectsBuiltInRulesByContextChannel() {
         IssueLimitRule emailRule = PurposeQuotaRule.builder()
-                .id("login-email-minute")
                 .namespace("account")
                 .purpose("login")
                 .channel(VerificationChannel.EMAIL)
@@ -61,7 +60,6 @@ class IssueLimitManagerTest {
                 .window(Duration.ofMinutes(1))
                 .build();
         IssueLimitRule smsRule = PurposeQuotaRule.builder()
-                .id("login-sms-minute")
                 .namespace("account")
                 .purpose("login")
                 .channel(VerificationChannel.SMS)
@@ -76,7 +74,7 @@ class IssueLimitManagerTest {
 
         assertInstanceOf(IssueLimitResult.Allowed.class, manager.acquire(CONTEXT, NOW));
         assertEquals(
-                List.of("login-email-minute"),
+                List.of("rule:purpose-quota@ns:account@purpose:login@channel:email@issues:10@window:1minutes"),
                 captured.get().stream().map(IssueLimitQuota::ruleId).toList());
     }
 
@@ -131,6 +129,13 @@ class IssueLimitManagerTest {
     @Test
     void rejectsDuplicateAndInvalidRuleDeclarations() {
         IssueLimitRule rule = rule("subject-minute", context -> true, "subject");
+        IssueLimitRule builtInRule = SubjectQuotaRule.builder()
+                .namespace("account")
+                .purpose("login")
+                .channel(VerificationChannel.EMAIL)
+                .maxIssues(5)
+                .window(Duration.ofMinutes(1))
+                .build();
         IssueLimitRule invalidRule = new IssueLimitRule() {
             @Override
             public String id() {
@@ -160,6 +165,10 @@ class IssueLimitManagerTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> new IssueLimitManager(List.of(rule, rule), (rules, time) -> new IssueLimitResult.Allowed()));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new IssueLimitManager(
+                        List.of(builtInRule, builtInRule), (rules, time) -> new IssueLimitResult.Allowed()));
         assertThrows(
                 IllegalArgumentException.class,
                 () -> new IssueLimitManager(List.of(invalidRule), (rules, time) -> new IssueLimitResult.Allowed()));

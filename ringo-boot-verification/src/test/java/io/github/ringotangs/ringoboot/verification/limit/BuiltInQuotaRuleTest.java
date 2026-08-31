@@ -24,13 +24,13 @@ class BuiltInQuotaRuleTest {
     @Test
     void namespaceRuleAggregatesPurposesAndSubjectsWithinOneChannel() {
         NamespaceQuotaRule rule = NamespaceQuotaRule.builder()
-                .id("account-email-hour")
                 .namespace("account")
                 .channel(VerificationChannel.EMAIL)
                 .maxIssues(100)
                 .window(Duration.ofHours(1))
                 .build();
 
+        assertEquals("rule:namespace-quota@ns:account@channel:email@issues:100@window:1hours", rule.id());
         assertEquals(IssueLimitBucket.of("account", "email"), rule.bucket(LOGIN_EMAIL));
         assertTrue(rule.appliesTo(context("account", "register", "other@example.com", "email")));
         assertFalse(rule.appliesTo(context("account", "login", "13800138000", "sms")));
@@ -40,7 +40,6 @@ class BuiltInQuotaRuleTest {
     @Test
     void purposeRuleAggregatesSubjectsWithinOneChannel() {
         PurposeQuotaRule rule = PurposeQuotaRule.builder()
-                .id("login-email-minute")
                 .namespace("account")
                 .purpose("login")
                 .channel(VerificationChannel.EMAIL)
@@ -48,6 +47,7 @@ class BuiltInQuotaRuleTest {
                 .window(Duration.ofMinutes(1))
                 .build();
 
+        assertEquals("rule:purpose-quota@ns:account@purpose:login@channel:email@issues:20@window:1minutes", rule.id());
         assertEquals(IssueLimitBucket.of("account", "login", "email"), rule.bucket(LOGIN_EMAIL));
         assertTrue(rule.appliesTo(context("account", "login", "other@example.com", "email")));
         assertFalse(rule.appliesTo(context("account", "login", "13800138000", "sms")));
@@ -57,16 +57,16 @@ class BuiltInQuotaRuleTest {
 
     @Test
     void subjectRuleSeparatesChannelsAndSubjects() {
-        SubjectQuotaRule rule = subjectRule("login-email-subject-hour", 5, Duration.ofHours(1));
+        SubjectQuotaRule rule = subjectRule(VerificationChannel.EMAIL, 5, Duration.ofHours(1));
         IssueContext sms = context("account", "login", "user@example.com", "sms");
         IssueContext anotherSubject = context("account", "login", "other@example.com", "email");
-        SubjectQuotaRule smsRule =
-                subjectRule("login-sms-subject-hour", VerificationChannel.SMS, 5, Duration.ofHours(1));
+        SubjectQuotaRule smsRule = subjectRule(VerificationChannel.SMS, 5, Duration.ofHours(1));
         VerificationChannel voice = VerificationChannel.of("voice");
         IssueContext voiceContext = IssueContext.of(
                 new VerificationKey("account", "login", "user@example.com"), voice, VerificationPolicy.defaults());
-        SubjectQuotaRule voiceRule = subjectRule("login-voice-subject-hour", voice, 5, Duration.ofHours(1));
+        SubjectQuotaRule voiceRule = subjectRule(voice, 5, Duration.ofHours(1));
 
+        assertEquals("rule:subject-quota@ns:account@purpose:login@channel:email@issues:5@window:1hours", rule.id());
         assertTrue(rule.appliesTo(LOGIN_EMAIL));
         assertTrue(rule.appliesTo(anotherSubject));
         assertFalse(rule.appliesTo(sms));
@@ -80,8 +80,8 @@ class BuiltInQuotaRuleTest {
 
     @Test
     void multipleSubjectWindowsAreSubmittedTogether() {
-        SubjectQuotaRule hourly = subjectRule("login-email-subject-hour", 5, Duration.ofHours(1));
-        SubjectQuotaRule daily = subjectRule("login-email-subject-day", 10, Duration.ofDays(1));
+        SubjectQuotaRule hourly = subjectRule(VerificationChannel.EMAIL, 5, Duration.ofHours(1));
+        SubjectQuotaRule daily = subjectRule(VerificationChannel.EMAIL, 10, Duration.ofDays(1));
         AtomicReference<List<IssueLimitQuota>> captured = new AtomicReference<>();
         IssueLimitManager manager = new IssueLimitManager(List.of(hourly, daily), (quotas, requestedAt) -> {
             captured.set(quotas);
@@ -91,13 +91,15 @@ class BuiltInQuotaRuleTest {
         manager.acquire(LOGIN_EMAIL, Instant.parse("2026-01-01T00:00:00Z"));
 
         assertEquals(
-                List.of("login-email-subject-hour", "login-email-subject-day"),
+                List.of(
+                        "rule:subject-quota@ns:account@purpose:login@channel:email@issues:5@window:1hours",
+                        "rule:subject-quota@ns:account@purpose:login@channel:email@issues:10@window:1days"),
                 captured.get().stream().map(IssueLimitQuota::ruleId).toList());
     }
 
     @Test
     void subjectRuleWithOneIssueEnforcesResendCooldown() {
-        SubjectQuotaRule cooldown = subjectRule("login-email-resend-cooldown", 1, Duration.ofMinutes(1));
+        SubjectQuotaRule cooldown = subjectRule(VerificationChannel.EMAIL, 1, Duration.ofMinutes(1));
         Instant firstIssue = Instant.parse("2026-01-01T00:00:00Z");
         IssueLimitManager manager = new IssueLimitManager(List.of(cooldown), new InMemoryIssueLimitStore());
 
@@ -111,20 +113,16 @@ class BuiltInQuotaRuleTest {
     @Test
     void buildersCreateTheSameValuesAsCanonicalConstructors() {
         assertEquals(
-                new NamespaceQuotaRule(
-                        "account-email-hour", "account", VerificationChannel.EMAIL, 100, Duration.ofHours(1)),
+                new NamespaceQuotaRule("account", VerificationChannel.EMAIL, 100, Duration.ofHours(1)),
                 NamespaceQuotaRule.builder()
-                        .id("account-email-hour")
                         .namespace("account")
                         .channel(VerificationChannel.EMAIL)
                         .maxIssues(100)
                         .window(Duration.ofHours(1))
                         .build());
         assertEquals(
-                new PurposeQuotaRule(
-                        "login-email-minute", "account", "login", VerificationChannel.EMAIL, 20, Duration.ofMinutes(1)),
+                new PurposeQuotaRule("account", "login", VerificationChannel.EMAIL, 20, Duration.ofMinutes(1)),
                 PurposeQuotaRule.builder()
-                        .id("login-email-minute")
                         .namespace("account")
                         .purpose("login")
                         .channel(VerificationChannel.EMAIL)
@@ -132,14 +130,8 @@ class BuiltInQuotaRuleTest {
                         .window(Duration.ofMinutes(1))
                         .build());
         assertEquals(
-                new SubjectQuotaRule(
-                        "login-email-subject-hour",
-                        "account",
-                        "login",
-                        VerificationChannel.EMAIL,
-                        5,
-                        Duration.ofHours(1)),
-                subjectRule("login-email-subject-hour", 5, Duration.ofHours(1)));
+                new SubjectQuotaRule("account", "login", VerificationChannel.EMAIL, 5, Duration.ofHours(1)),
+                subjectRule(VerificationChannel.EMAIL, 5, Duration.ofHours(1)));
     }
 
     @Test
@@ -147,7 +139,6 @@ class BuiltInQuotaRuleTest {
         assertThrows(
                 NullPointerException.class,
                 () -> SubjectQuotaRule.builder()
-                        .namespace("account")
                         .purpose("login")
                         .channel(VerificationChannel.EMAIL)
                         .maxIssues(5)
@@ -156,16 +147,6 @@ class BuiltInQuotaRuleTest {
         assertThrows(
                 NullPointerException.class,
                 () -> SubjectQuotaRule.builder()
-                        .id("login-email-subject-hour")
-                        .purpose("login")
-                        .channel(VerificationChannel.EMAIL)
-                        .maxIssues(5)
-                        .window(Duration.ofHours(1))
-                        .build());
-        assertThrows(
-                NullPointerException.class,
-                () -> SubjectQuotaRule.builder()
-                        .id("login-email-subject-hour")
                         .namespace("account")
                         .channel(VerificationChannel.EMAIL)
                         .maxIssues(5)
@@ -174,7 +155,6 @@ class BuiltInQuotaRuleTest {
         assertThrows(
                 NullPointerException.class,
                 () -> SubjectQuotaRule.builder()
-                        .id("login-email-subject-hour")
                         .namespace("account")
                         .purpose("login")
                         .channel(VerificationChannel.EMAIL)
@@ -183,7 +163,6 @@ class BuiltInQuotaRuleTest {
         assertThrows(
                 NullPointerException.class,
                 () -> SubjectQuotaRule.builder()
-                        .id("login-email-subject-hour")
                         .namespace("account")
                         .purpose("login")
                         .channel(VerificationChannel.EMAIL)
@@ -192,7 +171,6 @@ class BuiltInQuotaRuleTest {
         assertThrows(
                 NullPointerException.class,
                 () -> SubjectQuotaRule.builder()
-                        .id("login-email-subject-hour")
                         .namespace("account")
                         .purpose("login")
                         .maxIssues(5)
@@ -200,41 +178,28 @@ class BuiltInQuotaRuleTest {
                         .build());
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new NamespaceQuotaRule(
-                        "Account-Hour", "account", VerificationChannel.EMAIL, 1, Duration.ofHours(1)));
+                () -> new NamespaceQuotaRule("user_account", VerificationChannel.EMAIL, 1, Duration.ofHours(1)));
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new NamespaceQuotaRule(
-                        "account-email-hour", "user_account", VerificationChannel.EMAIL, 1, Duration.ofHours(1)));
+                () -> new PurposeQuotaRule("account", "user_login", VerificationChannel.EMAIL, 1, Duration.ofHours(1)));
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new PurposeQuotaRule(
-                        "login-email-hour",
-                        "account",
-                        "user_login",
-                        VerificationChannel.EMAIL,
-                        1,
-                        Duration.ofHours(1)));
+                () -> new SubjectQuotaRule("account", "login", VerificationChannel.EMAIL, 0, Duration.ofHours(1)));
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new SubjectQuotaRule(
-                        "login-email-hour", "account", "login", VerificationChannel.EMAIL, 0, Duration.ofHours(1)));
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> new SubjectQuotaRule(
-                        "login-email-hour", "account", "login", VerificationChannel.EMAIL, 1, Duration.ZERO));
+                () -> new SubjectQuotaRule("account", "login", VerificationChannel.EMAIL, 1, Duration.ZERO));
         assertThrows(
                 NullPointerException.class,
-                () -> new SubjectQuotaRule("login-email-hour", "account", "login", null, 1, Duration.ofHours(1)));
+                () -> new SubjectQuotaRule("account", "login", null, 1, Duration.ofHours(1)));
     }
 
     @Test
     void rejectsNullContexts() {
-        NamespaceQuotaRule namespace = new NamespaceQuotaRule(
-                "account-email-hour", "account", VerificationChannel.EMAIL, 100, Duration.ofHours(1));
-        PurposeQuotaRule purpose = new PurposeQuotaRule(
-                "login-email-hour", "account", "login", VerificationChannel.EMAIL, 50, Duration.ofHours(1));
-        SubjectQuotaRule subject = subjectRule("login-email-subject-hour", 5, Duration.ofHours(1));
+        NamespaceQuotaRule namespace =
+                new NamespaceQuotaRule("account", VerificationChannel.EMAIL, 100, Duration.ofHours(1));
+        PurposeQuotaRule purpose =
+                new PurposeQuotaRule("account", "login", VerificationChannel.EMAIL, 50, Duration.ofHours(1));
+        SubjectQuotaRule subject = subjectRule(VerificationChannel.EMAIL, 5, Duration.ofHours(1));
 
         assertThrows(NullPointerException.class, () -> namespace.appliesTo(null));
         assertThrows(NullPointerException.class, () -> namespace.bucket(null));
@@ -244,14 +209,8 @@ class BuiltInQuotaRuleTest {
         assertThrows(NullPointerException.class, () -> subject.bucket(null));
     }
 
-    private static SubjectQuotaRule subjectRule(String id, int maxIssues, Duration window) {
-        return subjectRule(id, VerificationChannel.EMAIL, maxIssues, window);
-    }
-
-    private static SubjectQuotaRule subjectRule(
-            String id, VerificationChannel channel, int maxIssues, Duration window) {
+    private static SubjectQuotaRule subjectRule(VerificationChannel channel, int maxIssues, Duration window) {
         return SubjectQuotaRule.builder()
-                .id(id)
                 .namespace("account")
                 .purpose("login")
                 .channel(channel)

@@ -18,7 +18,8 @@ public interface IssueLimitRule {
     /**
      * 返回全局唯一且稳定的规则标识。
      *
-     * <p>标识必须使用 kebab-case，例如 {@code login-ip-hour}。修改标识会创建新的额度历史，不能用于仅调整展示名称。
+     * <p>内置规则根据规则类型和全部定义参数自动生成标识；自定义实现应返回全局唯一且稳定的
+     * kebab-case 标识，例如 {@code login-ip-hour}。修改标识会创建新的额度历史。
      *
      * @return 规则标识
      */

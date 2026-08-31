@@ -15,7 +15,6 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>规则只消费已经写入 {@link IssueContext} 的客户端 IP，不负责解析代理请求头、校验 IP 格式或规范化 IPv6 地址。
  *
- * @param id        全局唯一且稳定的规则标识
  * @param namespace 需要限制的业务命名空间
  * @param purpose   需要限制的验证码用途
  * @param channel   需要限制的验证码渠道
@@ -23,7 +22,7 @@ import org.jspecify.annotations.Nullable;
  * @param window    滚动窗口长度
  */
 public record ClientIpQuotaRule(
-        String id, String namespace, String purpose, VerificationChannel channel, int maxIssues, Duration window)
+        String namespace, String purpose, VerificationChannel channel, int maxIssues, Duration window)
         implements IssueLimitRule {
 
     /**
@@ -34,14 +33,14 @@ public record ClientIpQuotaRule(
     /**
      * 创建并校验客户端 IP 配额规则。
      *
-     * @throws NullPointerException     当规则标识、业务范围、渠道或窗口为 {@code null} 时
+     * @throws NullPointerException     当业务范围、渠道或窗口为 {@code null} 时
      * @throws IllegalArgumentException 当规则定义非法时
      */
     public ClientIpQuotaRule {
         Objects.requireNonNull(channel, "channel must not be null");
         KebabCase.validate("namespace", namespace);
         KebabCase.validate("purpose", purpose);
-        IssueLimitValidator.validateRuleDefinition(id, maxIssues, window);
+        IssueLimitValidator.validateRuleDefinition(maxIssues, window);
     }
 
     /**
@@ -51,6 +50,11 @@ public record ClientIpQuotaRule(
      */
     public static Builder builder() {
         return new Builder();
+    }
+
+    @Override
+    public String id() {
+        return IssueLimitRuleId.clientIpQuota(namespace, purpose, channel, maxIssues, window);
     }
 
     @Override
@@ -75,7 +79,6 @@ public record ClientIpQuotaRule(
      */
     public static final class Builder {
 
-        private @Nullable String id;
         private @Nullable String namespace;
         private @Nullable String purpose;
         private @Nullable VerificationChannel channel;
@@ -83,11 +86,6 @@ public record ClientIpQuotaRule(
         private @Nullable Duration window;
 
         private Builder() {}
-
-        public Builder id(String id) {
-            this.id = Objects.requireNonNull(id, "id must not be null");
-            return this;
-        }
 
         public Builder namespace(String namespace) {
             this.namespace = Objects.requireNonNull(namespace, "namespace must not be null");
@@ -116,7 +114,6 @@ public record ClientIpQuotaRule(
 
         public ClientIpQuotaRule build() {
             return new ClientIpQuotaRule(
-                    Objects.requireNonNull(id, "id must be configured"),
                     Objects.requireNonNull(namespace, "namespace must be configured"),
                     Objects.requireNonNull(purpose, "purpose must be configured"),
                     Objects.requireNonNull(channel, "channel must be configured"),

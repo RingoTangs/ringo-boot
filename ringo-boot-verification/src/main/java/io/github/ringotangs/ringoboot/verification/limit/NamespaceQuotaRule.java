@@ -12,26 +12,24 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>该规则匹配指定 namespace 和 channel 下的全部用途和验证主体，额度桶由 namespace 和 channel 组成。适合用作指定渠道的业务模块级成本和突发流量兜底。
  *
- * @param id        全局唯一且稳定的规则标识
  * @param namespace 需要限制的业务命名空间
  * @param channel   需要限制的验证码渠道
  * @param maxIssues 滚动窗口内允许签发的最大次数
  * @param window    滚动窗口长度
  */
-public record NamespaceQuotaRule(
-        String id, String namespace, VerificationChannel channel, int maxIssues, Duration window)
+public record NamespaceQuotaRule(String namespace, VerificationChannel channel, int maxIssues, Duration window)
         implements IssueLimitRule {
 
     /**
      * 创建并校验业务命名空间配额规则。
      *
-     * @throws NullPointerException     当规则标识、命名空间、渠道或窗口为 {@code null} 时
+     * @throws NullPointerException     当命名空间、渠道或窗口为 {@code null} 时
      * @throws IllegalArgumentException 当规则定义非法时
      */
     public NamespaceQuotaRule {
         Objects.requireNonNull(channel, "channel must not be null");
         KebabCase.validate("namespace", namespace);
-        IssueLimitValidator.validateRuleDefinition(id, maxIssues, window);
+        IssueLimitValidator.validateRuleDefinition(maxIssues, window);
     }
 
     /**
@@ -41,6 +39,11 @@ public record NamespaceQuotaRule(
      */
     public static Builder builder() {
         return new Builder();
+    }
+
+    @Override
+    public String id() {
+        return IssueLimitRuleId.namespaceQuota(namespace, channel, maxIssues, window);
     }
 
     @Override
@@ -60,24 +63,12 @@ public record NamespaceQuotaRule(
      */
     public static final class Builder {
 
-        private @Nullable String id;
         private @Nullable String namespace;
         private @Nullable VerificationChannel channel;
         private @Nullable Integer maxIssues;
         private @Nullable Duration window;
 
         private Builder() {}
-
-        /**
-         * 设置规则标识。
-         *
-         * @param id 全局唯一且稳定的规则标识
-         * @return 当前 Builder
-         */
-        public Builder id(String id) {
-            this.id = Objects.requireNonNull(id, "id must not be null");
-            return this;
-        }
 
         /**
          * 设置业务命名空间。
@@ -130,7 +121,6 @@ public record NamespaceQuotaRule(
          */
         public NamespaceQuotaRule build() {
             return new NamespaceQuotaRule(
-                    Objects.requireNonNull(id, "id must be configured"),
                     Objects.requireNonNull(namespace, "namespace must be configured"),
                     Objects.requireNonNull(channel, "channel must be configured"),
                     Objects.requireNonNull(maxIssues, "maxIssues must be configured"),

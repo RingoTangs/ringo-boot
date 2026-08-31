@@ -101,26 +101,11 @@ class EmailVerificationControllerTest {
     void registersLayeredIssueLimitRules() {
         org.assertj.core.api.Assertions.assertThat(issueLimitRules)
                 .containsExactlyInAnyOrder(
-                        new NamespaceQuotaRule(
-                                "account-email-hourly-quota",
-                                "account",
-                                VerificationChannel.EMAIL,
-                                100,
-                                Duration.ofHours(1L)),
+                        new NamespaceQuotaRule("account", VerificationChannel.EMAIL, 100, Duration.ofHours(1L)),
                         new PurposeQuotaRule(
-                                "email-verification-hourly-quota",
-                                "account",
-                                "email-verification",
-                                VerificationChannel.EMAIL,
-                                10,
-                                Duration.ofHours(1L)),
+                                "account", "email-verification", VerificationChannel.EMAIL, 10, Duration.ofHours(1L)),
                         new SubjectQuotaRule(
-                                "email-verification-resend-cooldown",
-                                "account",
-                                "email-verification",
-                                VerificationChannel.EMAIL,
-                                5,
-                                Duration.ofMinutes(1L)));
+                                "account", "email-verification", VerificationChannel.EMAIL, 5, Duration.ofMinutes(1L)));
     }
 
     @Test

@@ -13,7 +13,6 @@ import org.jspecify.annotations.Nullable;
  * <p>该规则匹配指定 namespace、purpose 和 channel，额度桶由 namespace、purpose、channel 和运行时 subject 组成。因此不同渠道
  * 或验证主体拥有独立的周期额度。
  *
- * @param id        全局唯一且稳定的规则标识
  * @param namespace 需要限制的业务命名空间
  * @param purpose   需要限制的验证码用途
  * @param channel   需要限制的验证码渠道
@@ -21,20 +20,20 @@ import org.jspecify.annotations.Nullable;
  * @param window    滚动窗口长度
  */
 public record SubjectQuotaRule(
-        String id, String namespace, String purpose, VerificationChannel channel, int maxIssues, Duration window)
+        String namespace, String purpose, VerificationChannel channel, int maxIssues, Duration window)
         implements IssueLimitRule {
 
     /**
      * 创建并校验验证主体配额规则。
      *
-     * @throws NullPointerException     当规则标识、业务范围、渠道或窗口为 {@code null} 时
+     * @throws NullPointerException     当业务范围、渠道或窗口为 {@code null} 时
      * @throws IllegalArgumentException 当规则定义非法时
      */
     public SubjectQuotaRule {
         Objects.requireNonNull(channel, "channel must not be null");
         KebabCase.validate("namespace", namespace);
         KebabCase.validate("purpose", purpose);
-        IssueLimitValidator.validateRuleDefinition(id, maxIssues, window);
+        IssueLimitValidator.validateRuleDefinition(maxIssues, window);
     }
 
     /**
@@ -44,6 +43,11 @@ public record SubjectQuotaRule(
      */
     public static Builder builder() {
         return new Builder();
+    }
+
+    @Override
+    public String id() {
+        return IssueLimitRuleId.subjectQuota(namespace, purpose, channel, maxIssues, window);
     }
 
     @Override
@@ -66,7 +70,6 @@ public record SubjectQuotaRule(
      */
     public static final class Builder {
 
-        private @Nullable String id;
         private @Nullable String namespace;
         private @Nullable String purpose;
         private @Nullable VerificationChannel channel;
@@ -74,17 +77,6 @@ public record SubjectQuotaRule(
         private @Nullable Duration window;
 
         private Builder() {}
-
-        /**
-         * 设置规则标识。
-         *
-         * @param id 全局唯一且稳定的规则标识
-         * @return 当前 Builder
-         */
-        public Builder id(String id) {
-            this.id = Objects.requireNonNull(id, "id must not be null");
-            return this;
-        }
 
         /**
          * 设置业务命名空间。
@@ -148,7 +140,6 @@ public record SubjectQuotaRule(
          */
         public SubjectQuotaRule build() {
             return new SubjectQuotaRule(
-                    Objects.requireNonNull(id, "id must be configured"),
                     Objects.requireNonNull(namespace, "namespace must be configured"),
                     Objects.requireNonNull(purpose, "purpose must be configured"),
                     Objects.requireNonNull(channel, "channel must be configured"),

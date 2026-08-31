@@ -21,6 +21,7 @@ class ClientIpQuotaRuleTest {
     void appliesToConfiguredBusinessScopeWithoutInspectingClientIp() {
         ClientIpQuotaRule rule = rule();
 
+        assertEquals("rule:client-ip-quota@ns:account@purpose:login@channel:email@issues:10@window:1hours", rule.id());
         assertTrue(rule.appliesTo(context("account", "login", VerificationChannel.EMAIL, "user-1")));
         assertFalse(rule.appliesTo(context("account", "register", VerificationChannel.EMAIL, "user-1")));
         assertFalse(rule.appliesTo(context("profile", "login", VerificationChannel.EMAIL, "user-1")));
@@ -65,27 +66,24 @@ class ClientIpQuotaRuleTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> new ClientIpQuotaRule(
-                        "login_ip_hour", "account", "login", VerificationChannel.EMAIL, 1, Duration.ofHours(1)));
+                        "user_account", "login", VerificationChannel.EMAIL, 1, Duration.ofHours(1)));
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new ClientIpQuotaRule(
-                        "login-ip-hour", "account", "login", VerificationChannel.EMAIL, 0, Duration.ofHours(1)));
+                () -> new ClientIpQuotaRule("account", "login", VerificationChannel.EMAIL, 0, Duration.ofHours(1)));
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new ClientIpQuotaRule(
-                        "login-ip-hour", "account", "login", VerificationChannel.EMAIL, 1, Duration.ZERO));
+                () -> new ClientIpQuotaRule("account", "login", VerificationChannel.EMAIL, 1, Duration.ZERO));
     }
 
     @Test
     void builderRequiresEveryField() {
         NullPointerException exception = assertThrows(
                 NullPointerException.class, () -> ClientIpQuotaRule.builder().build());
-        assertEquals("id must be configured", exception.getMessage());
+        assertEquals("namespace must be configured", exception.getMessage());
     }
 
     private static ClientIpQuotaRule rule() {
         return ClientIpQuotaRule.builder()
-                .id("login-ip-hour")
                 .namespace("account")
                 .purpose("login")
                 .channel(VerificationChannel.EMAIL)

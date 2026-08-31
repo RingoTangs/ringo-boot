@@ -83,8 +83,18 @@ IP 等信息意外进入日志。
 | `maxIssues()` | 一个窗口最多允许多少次？ |
 | `window()` | 滚动窗口有多长？ |
 
-规则 ID 必须是全局唯一的 kebab-case，例如 `login-ip-hour`。ID 会参与内存桶和 Redis key 的生成，修改 ID 等同于创建一条
-全新的规则，其历史额度不会延续。
+四种内置规则会根据规则类型和全部定义参数自动生成全局唯一 ID，不需要手动调用 `id(...)`。例如，接收方每分钟最多签发 5 次的
+规则会生成：
+
+```text
+rule:subject-quota@ns:account@purpose:email-verification@channel:email@issues:5@window:1minutes
+```
+
+窗口使用能够精确表达该 `Duration` 的最大单位，因此 `Duration.ofSeconds(60)` 与 `Duration.ofMinutes(1)` 会生成相同 ID。
+自定义 `IssueLimitRule` 仍应返回稳定、唯一的 kebab-case ID，例如 `login-ip-hour`。
+
+ID 会参与内存桶和 Redis key 的生成。内置规则修改 namespace、purpose、channel、maxIssues 或 window 后会生成新的 ID，等同于
+创建一条全新的规则，其历史额度不会延续。
 
 ### 默认行为与严格管理器
 
@@ -111,7 +121,6 @@ Spring Boot 自动配置不注册内置 `IssueLimitRule`。应用没有提供规
 @Bean
 IssueLimitRule loginEmailResendCooldownRule() {
     return SubjectQuotaRule.builder()
-            .id("login-email-resend-cooldown")
             .namespace("account")
             .purpose("login")
             .channel(VerificationChannel.EMAIL)
@@ -140,7 +149,6 @@ core 提供三种周期配额规则。它们覆盖的范围逐级扩大，并且
 @Bean
 IssueLimitRule loginSubjectHourlyRule() {
     return SubjectQuotaRule.builder()
-            .id("login-email-subject-hour")
             .namespace("account")
             .purpose("login")
             .channel(VerificationChannel.EMAIL)
@@ -152,7 +160,6 @@ IssueLimitRule loginSubjectHourlyRule() {
 @Bean
 IssueLimitRule loginSubjectDailyRule() {
     return SubjectQuotaRule.builder()
-            .id("login-email-subject-day")
             .namespace("account")
             .purpose("login")
             .channel(VerificationChannel.EMAIL)
@@ -164,7 +171,6 @@ IssueLimitRule loginSubjectDailyRule() {
 @Bean
 IssueLimitRule loginPurposeMinuteRule() {
     return PurposeQuotaRule.builder()
-            .id("login-email-purpose-minute")
             .namespace("account")
             .purpose("login")
             .channel(VerificationChannel.EMAIL)
@@ -176,7 +182,6 @@ IssueLimitRule loginPurposeMinuteRule() {
 @Bean
 IssueLimitRule accountNamespaceHourlyRule() {
     return NamespaceQuotaRule.builder()
-            .id("account-email-namespace-hour")
             .namespace("account")
             .channel(VerificationChannel.EMAIL)
             .maxIssues(1000)
@@ -224,7 +229,6 @@ final class ApplicationHourlyRule implements IssueLimitRule {
 
 ```java
 ClientIpQuotaRule.builder()
-        .id("login-email-ip-hour")
         .namespace("account")
         .purpose("login")
         .channel(VerificationChannel.EMAIL)
@@ -408,7 +412,7 @@ IssueLimitRule loginIpHourlyRule() {
 
 ## 九、实现自定义规则时的检查清单
 
-- 使用稳定、唯一的 kebab-case `id`。
+- 自定义规则使用稳定、唯一的 kebab-case `id`；内置规则的 ID 由定义参数自动生成。
 - `appliesTo` 只负责业务匹配，不用它掩盖缺失的安全属性。
 - 通过 `IssueContextContributor` 集中读取环境信号，不在 Rule Bean 中访问 HTTP 请求。
 - bucket 中包含真正需要共享额度的字段，不包含无关字段。

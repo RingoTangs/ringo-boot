@@ -102,7 +102,7 @@ History
 
 ```text
 HistoryKey:
-  ruleId = account-login-subject-minute
+  ruleId = rule:subject-quota@ns:account@purpose:login@channel:email@issues:5@window:1minutes
   bucket = [account, login, user@example.com]
 
 History:
@@ -112,6 +112,9 @@ History:
 
 `timestamps` 按时间保存该额度桶在当前滚动窗口内已经成功获取名额的时刻。不同规则即使生成相同 Bucket，也使用不同历史记录，
 因为规则 ID 是历史键的一部分。
+
+内置规则的 ID 包含规则类型和全部定义参数，由规则自动生成。修改范围、最大次数或窗口会生成新的 ID，因此不会错误复用旧配置的
+限流历史。自定义规则仍需要自行提供稳定、唯一的 ID。
 
 Store 还保存每条历史记录的窗口，并拒绝同一个规则 ID 在运行期间改变窗口。这样可以避免旧状态按照两种不同窗口解释。
 
