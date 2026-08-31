@@ -19,6 +19,7 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import org.jspecify.annotations.Nullable;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
@@ -38,7 +39,7 @@ import org.springframework.data.redis.core.script.RedisScript;
  * {identity-service:verification:issue-limit}:v1:login-subject-minute:{bucketDigest}
  * }</pre>
  *
- * <p>花括号中的应用级 hash tag 使同一次请求涉及的全部 key 位于 Redis Cluster 的同一个 slot，以满足多 key Lua
+ * <p>花括号中的应用级哈希标签使同一次请求涉及的全部 key 位于 Redis Cluster 的同一个 slot，以满足多 key Lua
  * 脚本的执行要求。相应地，同一应用的限流 key 也会集中到该 slot，部署时应结合实际签发流量评估容量。
  *
  * <p>额度桶可能包含手机号、邮箱或 IP。原始分段不会写入 Redis，而是与摘要域、应用名称和规则标识一起计算
@@ -204,7 +205,7 @@ public final class RedisIssueLimitStore implements IssueLimitStore {
             arguments.add(Integer.toString(quota.maxIssues()));
         }
 
-        List<?> result;
+        @Nullable List<?> result;
         try {
             result = redisTemplate.execute(ACQUIRE_SCRIPT, keys, arguments.toArray());
         } catch (DataAccessException exception) {
@@ -248,11 +249,11 @@ public final class RedisIssueLimitStore implements IssueLimitStore {
     /**
      * 创建一条规则下某个额度桶对应的 Redis key。
      *
-     * <p>完整业务范围直接作为 Cluster hash tag，不再重复业务前缀。规则标识保持可读，额度桶只以 HMAC 摘要形式出现。
+     * <p>完整业务范围直接作为 Cluster 哈希标签，不再重复业务前缀。规则标识保持可读，额度桶只以 HMAC 摘要形式出现。
      *
      * @param ruleId 产生额度的稳定规则标识
      * @param bucket 包含业务累计身份分段的额度桶
-     * @return 带应用隔离、Cluster hash tag、存储版本和额度桶摘要的 Redis key
+     * @return 带应用隔离、Cluster 哈希标签、存储版本和额度桶摘要的 Redis key
      */
     private String redisKey(String ruleId, IssueLimitBucket bucket) {
         String hashTag = applicationName + ":verification:issue-limit";
@@ -307,7 +308,7 @@ public final class RedisIssueLimitStore implements IssueLimitStore {
      * @return 指定位置的整数值
      * @throws IssueLimitStoreException 当返回值为空、长度不足或指定元素不是数字时
      */
-    private long number(List<?> result, int index) {
+    private long number(@Nullable List<?> result, int index) {
         if (result == null || result.size() <= index || !(result.get(index) instanceof Number value)) {
             throw new IssueLimitStoreException("Redis issue rate limit script returned an invalid result");
         }

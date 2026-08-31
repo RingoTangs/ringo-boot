@@ -24,12 +24,12 @@ Allowed 或 Throttled
 
 ## 内置规则
 
-| 规则 | 匹配范围 | bucket 分段 | 典型用途 |
-| --- | --- | --- | --- |
-| `NamespaceQuotaRule` | namespace + channel | namespace、channel | 业务模块或渠道总量兜底 |
-| `PurposeQuotaRule` | namespace + purpose + channel | namespace、purpose、channel | 单个验证码用途总量 |
-| `SubjectQuotaRule` | namespace + purpose + channel | namespace、purpose、channel、subject | 接收方冷却或周期配额 |
-| `ClientIpQuotaRule` | namespace + purpose + channel | namespace、purpose、channel、client IP | 来源 IP 配额 |
+| 规则                 | 匹配范围                      | bucket 分段                           | 典型用途               |
+|----------------------|-------------------------------|---------------------------------------|------------------------|
+| `NamespaceQuotaRule` | namespace + channel           | namespace、channel                    | 业务模块或渠道总量兜底 |
+| `PurposeQuotaRule`   | namespace + purpose + channel | namespace、purpose、channel           | 单个验证码用途总量     |
+| `SubjectQuotaRule`   | namespace + purpose + channel | namespace、purpose、channel、subject  | 接收方冷却或周期配额   |
+| `ClientIpQuotaRule`  | namespace + purpose + channel | namespace、purpose、channel、client IP | 来源 IP 配额           |
 
 规则的 `appliesTo` 只判断业务范围是否匹配，`bucket` 决定哪些请求共享额度。不同规则即使解析出相同 bucket，也会因为规则 ID 不同而使用
 独立的限流历史。
@@ -173,11 +173,11 @@ Redis key 包含应用隔离、Cluster hash tag、存储版本、规则 ID 和 b
 
 以下情况不是正常限流结果：
 
-| 异常 | 含义 |
-| --- | --- |
-| `MissingIssueLimitRuleException` | 已启用规则管理，但当前请求没有规则覆盖 |
-| `IssueLimitStoreException` | Store 或底层原子操作发生技术故障 |
-| `IllegalArgumentException` | 规则定义、额度或窗口违反契约 |
+| 异常                                 | 含义                                     |
+|--------------------------------------|------------------------------------------|
+| `MissingIssueLimitRuleException`     | 已启用规则管理，但当前请求没有规则覆盖   |
+| `IssueLimitStoreException`           | Store 或底层原子操作发生技术故障         |
+| `IllegalArgumentException`           | 规则定义、额度或窗口违反契约             |
 
 ## 自定义扩展
 

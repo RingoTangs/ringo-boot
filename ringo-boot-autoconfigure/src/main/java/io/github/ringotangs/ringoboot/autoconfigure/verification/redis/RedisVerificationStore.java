@@ -339,6 +339,7 @@ public final class RedisVerificationStore implements VerificationStore {
      * @return 脚本结果，Redis 未返回值时为 {@code null}
      * @throws VerificationStoreException 当 Redis 访问失败时
      */
+    @SuppressWarnings("DataFlowIssue")
     private <T extends @Nullable Object> @Nullable T execute(RedisScript<T> script, String key, String... arguments) {
         try {
             return redisTemplate.execute(script, List.of(key), (Object[]) arguments);

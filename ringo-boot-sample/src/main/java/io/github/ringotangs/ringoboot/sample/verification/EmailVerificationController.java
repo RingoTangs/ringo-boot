@@ -66,6 +66,7 @@ public class EmailVerificationController {
      *
      * @param email 目标邮箱 / the destination email address
      */
+    @SuppressWarnings("unused")
     public record IssueEmailCodeRequest(@NotBlank @Email String email) {
 
         /**
@@ -97,6 +98,7 @@ public class EmailVerificationController {
      * @param email 目标邮箱 / the destination email address
      * @param code 六位数字验证码 / the six-digit verification code
      */
+    @SuppressWarnings("unused")
     public record VerifyEmailCodeRequest(
             @NotBlank @Email String email,
             @NotBlank @Pattern(regexp = "\\d{6}") String code) {

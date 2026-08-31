@@ -68,6 +68,7 @@ public record SubjectQuotaRule(
     /**
      * 使用具名配置项构建验证主体配额规则。
      */
+    @SuppressWarnings("NullableProblems")
     public static final class Builder {
 
         private @Nullable String namespace;

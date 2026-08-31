@@ -23,5 +23,6 @@ public interface SmsCodeSender {
      * @return 供应商接受状态
      * @throws CodeSenderException 当短信派发操作失败时
      */
+    @SuppressWarnings("SameReturnValue")
     CodeSendResult send(IssueContext context, String code, Instant expiresAt) throws CodeSenderException;
 }

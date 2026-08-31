@@ -61,6 +61,7 @@ public record NamespaceQuotaRule(String namespace, VerificationChannel channel, 
     /**
      * 使用具名配置项构建业务命名空间配额规则。
      */
+    @SuppressWarnings("NullableProblems")
     public static final class Builder {
 
         private @Nullable String namespace;

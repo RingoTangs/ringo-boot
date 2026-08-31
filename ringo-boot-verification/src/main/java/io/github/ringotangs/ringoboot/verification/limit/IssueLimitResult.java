@@ -35,6 +35,7 @@ public sealed interface IssueLimitResult permits IssueLimitResult.Allowed, Issue
          * @throws NullPointerException     当规则明细集合或任一元素为 {@code null} 时
          * @throws IllegalArgumentException 当规则明细为空或包含重复规则 ID 时
          */
+        @SuppressWarnings("DuplicatedCode")
         public Throttled {
             Objects.requireNonNull(violations, "violations must not be null");
             violations = List.copyOf(violations);

@@ -77,6 +77,7 @@ public record ClientIpQuotaRule(
     /**
      * 使用具名配置项构建客户端 IP 配额规则。
      */
+    @SuppressWarnings("NullableProblems")
     public static final class Builder {
 
         private @Nullable String namespace;

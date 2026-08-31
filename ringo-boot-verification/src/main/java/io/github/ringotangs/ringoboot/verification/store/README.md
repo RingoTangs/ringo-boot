@@ -27,12 +27,12 @@ flowchart LR
 
 ## 二、包内类型的职责
 
-| 类型 | 职责 |
-| --- | --- |
-| `VerificationStore` | 定义保存、校验并消费、按验证码失效三种原子操作。 |
-| `InMemoryVerificationStore` | 基于 `ConcurrentHashMap` 的线程安全内存实现。 |
-| `StoreResult` | 返回验证码成功保存后计算出的过期时间。 |
-| `VerificationStoreException` | 统一表达 Redis、数据库或第三方存储的连接、超时、序列化及原子操作故障。 |
+| 类型                         | 职责                                                                       |
+|------------------------------|----------------------------------------------------------------------------|
+| `VerificationStore`          | 定义保存、校验并消费、按验证码失效三种原子操作。                           |
+| `InMemoryVerificationStore`  | 基于 `ConcurrentHashMap` 的线程安全内存实现。                               |
+| `StoreResult`                | 返回验证码成功保存后计算出的过期时间。                                     |
+| `VerificationStoreException` | 统一表达 Redis、数据库或第三方存储的连接、超时、序列化及原子操作故障。      |
 
 `VerificationStoreException` 是运行时异常，但接口方法仍显式声明它，目的是提醒实现者和调用者：存储操作可能因
 基础设施故障而失败。自定义实现应把供应商异常包装成该异常，不应把 Lettuce、JDBC 等底层异常直接泄露给上层。
@@ -50,11 +50,11 @@ VerificationKey key = new VerificationKey(
 
 三个分段分别表示：
 
-| 分段 | 示例 | 含义 |
-| --- | --- | --- |
-| `namespace` | `account` | 验证码所属业务模块。 |
-| `purpose` | `login` | 验证码的业务用途。 |
-| `subject` | `user@example.com` | 本次验证的主体，例如邮箱、手机号或账号。 |
+| 分段        | 示例               | 含义                                           |
+|-------------|--------------------|------------------------------------------------|
+| `namespace` | `account`          | 验证码所属业务模块。                           |
+| `purpose`   | `login`            | 验证码的业务用途。                             |
+| `subject`   | `user@example.com` | 本次验证的主体，例如邮箱、手机号或账号。       |
 
 因此，下面任意分段不同都会形成独立记录：
 
@@ -99,13 +99,13 @@ VerifyResult verifyAndConsume(
 
 该方法不是普通的只读查询，而是一个原子状态变更操作：
 
-| 返回值 | 条件 | 调用后的记录状态 |
-| --- | --- | --- |
-| `NOT_FOUND` | 对应 Key 没有记录。 | 仍然不存在。 |
-| `EXPIRED` | 校验时间已经达到或超过过期时间。 | 删除。 |
-| `MISMATCH` | 验证码不匹配，但仍有剩余次数。 | 扣减一次，继续保留。 |
-| `ATTEMPTS_EXHAUSTED` | 本次错误校验耗尽最后一次机会。 | 删除。 |
-| `SUCCESS` | 验证码匹配且未过期。 | 删除，不能再次使用。 |
+| 返回值               | 条件                                   | 调用后的记录状态       |
+|----------------------|----------------------------------------|------------------------|
+| `NOT_FOUND`          | 对应 Key 没有记录。                    | 仍然不存在。           |
+| `EXPIRED`            | 校验时间已经达到或超过过期时间。       | 删除。                 |
+| `MISMATCH`           | 验证码不匹配，但仍有剩余次数。         | 扣减一次，继续保留。   |
+| `ATTEMPTS_EXHAUSTED` | 本次错误校验耗尽最后一次机会。         | 删除。                 |
+| `SUCCESS`            | 验证码匹配且未过期。                   | 删除，不能再次使用。   |
 
 这里的“消费”是指成功后立即删除验证码。校验和删除必须在同一个原子操作中完成，否则两个并发请求可能都先读取到
 有效验证码，然后同时返回成功。
@@ -229,10 +229,10 @@ length(code)      | code
 
 `compute` 回调的返回值决定 Map 中该 Key 的新状态：
 
-| 回调返回值 | Map 状态 | 使用场景 |
-| --- | --- | --- |
-| `null` | 删除该 Key 的记录；原本不存在时继续保持不存在。 | 未找到、成功、过期或尝试次数耗尽。 |
-| `existing.withRemainingAttempts(...)` | 使用剩余次数更少的新 `Entry` 替换旧状态。 | 验证码不匹配但仍可继续尝试。 |
+| 回调返回值                              | Map 状态                                           | 使用场景                             |
+|-----------------------------------------|----------------------------------------------------|--------------------------------------|
+| `null`                                  | 删除该 Key 的记录；原本不存在时继续保持不存在。   | 未找到、成功、过期或尝试次数耗尽。   |
+| `existing.withRemainingAttempts(...)`   | 使用剩余次数更少的新 `Entry` 替换旧状态。          | 验证码不匹配但仍可继续尝试。         |
 
 例如，两个请求同时使用正确验证码校验同一个 Key：
 
@@ -263,7 +263,7 @@ sequenceDiagram
 不负责。验证码状态更新的原子性来自 `ConcurrentHashMap.compute`，`AtomicReference<VerifyResult>` 只是把回调中得到的
 校验结果传递到回调外：
 
-```java
+```text
 AtomicReference<VerifyResult> result =
         new AtomicReference<>(VerifyResult.NOT_FOUND);
 
@@ -279,7 +279,7 @@ return result.get();
 之所以需要一个可变容器，是因为 Java Lambda 捕获的局部变量必须是 `final` 或 effectively final，不能在回调中直接给普通
 局部变量重新赋值：
 
-```java
+```text
 VerifyResult result = VerifyResult.NOT_FOUND;
 
 entries.compute(key, (ignored, existing) -> {
@@ -294,13 +294,13 @@ entries.compute(key, (ignored, existing) -> {
 `invalidate` 中的 `AtomicBoolean` 作用相同：它只负责把“是否删除成功”从 `computeIfPresent` 回调传递出来。摘要比较与条件删除
 仍然由 `computeIfPresent` 作为一个原子操作完成，不是由 `AtomicBoolean` 保证。
 
-| 组件 | 实际职责 |
-| --- | --- |
-| `ConcurrentHashMap.compute` | 原子完成同一个 Key 的读取、判断、扣减和删除。 |
-| `ConcurrentHashMap.computeIfPresent` | 在记录存在时原子完成摘要比较和条件删除。 |
-| `AtomicReference<VerifyResult>` | 将校验结果从 Lambda 回调传递到方法返回值。 |
-| `AtomicBoolean` | 将条件删除结果从 Lambda 回调传递到方法返回值。 |
-| `MessageDigest.isEqual` | 以常量时间比较摘要，不负责并发控制。 |
+| 组件                                 | 实际职责                                             |
+|--------------------------------------|------------------------------------------------------|
+| `ConcurrentHashMap.compute`          | 原子完成同一个 Key 的读取、判断、扣减和删除。        |
+| `ConcurrentHashMap.computeIfPresent` | 在记录存在时原子完成摘要比较和条件删除。             |
+| `AtomicReference<VerifyResult>`       | 将校验结果从 Lambda 回调传递到方法返回值。            |
+| `AtomicBoolean`                      | 将条件删除结果从 Lambda 回调传递到方法返回值。       |
+| `MessageDigest.isEqual`              | 以常量时间比较摘要，不负责并发控制。                 |
 
 ## 七、状态变化示例
 
@@ -342,18 +342,19 @@ entries.compute(key, (ignored, existing) -> {
 多实例部署应使用满足 `VerificationStore` 原子契约的共享存储。项目提供的 `RedisVerificationStore` 位于
 `ringo-boot-autoconfigure` 模块，其 Redis key、Hash value、HMAC 密钥和部署方式参见：
 
-[Redis 验证码存储部署指南](../../../../../../../../../../ringo-boot-autoconfigure/src/main/java/io/github/ringotangs/ringoboot/autoconfigure/verification/redis/README.md)
+具体部署方式参见仓库中的
+`ringo-boot-autoconfigure/src/main/java/io/github/ringotangs/ringoboot/autoconfigure/verification/redis/README.md`。
 
 ## 九、不要和签发限流 Store 混淆
 
 项目中还有一个名称相似的 `IssueLimitStore`，两者职责不同：
 
-| 对比项 | `VerificationStore` | `IssueLimitStore` |
-| --- | --- | --- |
-| 保存内容 | 验证码摘要、过期时间、剩余校验次数。 | 每条限流规则的签发历史和额度状态。 |
-| 使用阶段 | 验证码签发后的保存和用户提交后的校验。 | 生成验证码之前判断是否允许签发。 |
-| 主要原子性 | 校验、扣减尝试次数和一次性消费。 | 同时检查并消费本次请求涉及的全部限流额度。 |
-| 生命周期 | 到期、校验成功、次数耗尽或发送失败补偿后结束。 | 按限流窗口滚动清理。 |
+| 对比项     | `VerificationStore`                              | `IssueLimitStore`                              |
+|------------|--------------------------------------------------|------------------------------------------------|
+| 保存内容   | 验证码摘要、过期时间、剩余校验次数。             | 每条限流规则的签发历史和额度状态。             |
+| 使用阶段   | 验证码签发后的保存和用户提交后的校验。           | 生成验证码之前判断是否允许签发。               |
+| 主要原子性 | 校验、扣减尝试次数和一次性消费。                 | 同时检查并消费本次请求涉及的全部限流额度。     |
+| 生命周期   | 到期、校验成功、次数耗尽或发送失败补偿后结束。   | 按限流窗口滚动清理。                           |
 
 签发额度成功消费后，即使后续生成、存储或发送失败，也不会退还限流额度。这是防止攻击者通过制造发送失败绕过限流的安全策略，
 与 `VerificationStore.invalidate` 撤销不可用验证码并不冲突。

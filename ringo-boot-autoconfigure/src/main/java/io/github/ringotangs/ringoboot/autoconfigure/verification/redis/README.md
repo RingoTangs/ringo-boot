@@ -18,14 +18,14 @@
 
 验证码状态的生命周期很短，但它会记录校验尝试次数。签发限流使用独立的短期 Redis 键。生产环境建议使用以下配置：
 
-| 配置 | 示例值 | 作用 |
-| --- | --- | --- |
-| `protected-mode` | `yes` | 保留 Redis 的保护模式，减少错误网络配置造成的风险。 |
-| `requirepass` | 随机密码 | 要求客户端认证；它与验证码 HMAC secret 不是同一个密钥。 |
-| `appendonly` | `yes` | 开启 AOF，Redis 重启后可恢复尚未过期的验证码状态。 |
-| `appendfsync` | `everysec` | 在性能和最多约一秒的数据风险之间取得平衡。 |
-| `maxmemory` | `256mb` | 限制实例最大内存；应根据验证码流量和 TTL 调整。 |
-| `maxmemory-policy` | `noeviction` | 内存不足时让写入显式失败，避免静默淘汰验证码或限流状态。 |
+| 配置               | 示例值       | 作用                                                         |
+|--------------------|--------------|--------------------------------------------------------------|
+| `protected-mode`   | `yes`        | 保留 Redis 的保护模式，减少错误网络配置造成的风险。           |
+| `requirepass`      | 随机密码     | 要求客户端认证；它与验证码 HMAC secret 不是同一个密钥。      |
+| `appendonly`       | `yes`        | 开启 AOF，Redis 重启后可恢复尚未过期的验证码状态。            |
+| `appendfsync`      | `everysec`   | 在性能和最多约一秒的数据风险之间取得平衡。                   |
+| `maxmemory`        | `256mb`      | 限制实例最大内存；应根据验证码流量和 TTL 调整。               |
+| `maxmemory-policy` | `noeviction` | 内存不足时让写入显式失败，避免静默淘汰验证码或限流状态。     |
 
 同时需要：
 
@@ -282,7 +282,7 @@ VerificationHmacKey verificationHmacKey(Environment environment) {
 
 应用注册 `IssueLimitRule` Bean 后，签发限流使用 Redis ZSET，key 格式为
 `{identity-service:verification:issue-limit}:v1:{ruleId}:{bucketDigest}`。
-花括号中的应用及功能级 hash tag 使同一次签发涉及的所有规则 key 位于同一个 Redis Cluster slot，从而可以通过一个
+花括号中的应用及功能级哈希标签使同一次签发涉及的所有规则 key 位于同一个 Redis Cluster slot，从而可以通过一个
 Lua 脚本原子检查和消费额度。ZSET score 是签发时间戳，member 是每次请求生成的随机标识；规则生成的手机号、
 邮箱、IP 等额度桶分段只参与 HMAC 摘要，不会以明文写入 key 或 value。
 
@@ -305,9 +305,16 @@ export VERIFICATION_HMAC_KEY="$(openssl rand -base64 32)"
 没有 OpenSSL 时，也可以使用 Java 的 `SecureRandom` 生成：
 
 ```java
-byte[] bytes = new byte[32];
-new SecureRandom().nextBytes(bytes);
-String encoded = Base64.getEncoder().encodeToString(bytes);
+final class HmacKeyGenerator {
+
+    private HmacKeyGenerator() {}
+
+    static String generate() {
+        byte[] bytes = new byte[32];
+        new java.security.SecureRandom().nextBytes(bytes);
+        return java.util.Base64.getEncoder().encodeToString(bytes);
+    }
+}
 ```
 
 Base64 只是把二进制密钥转换成便于配置的文本，不会增加随机性或安全强度。不要使用密码、手机号、UUID 或普通
