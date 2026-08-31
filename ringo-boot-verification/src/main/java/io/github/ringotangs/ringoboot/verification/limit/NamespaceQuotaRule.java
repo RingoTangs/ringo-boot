@@ -43,7 +43,7 @@ public record NamespaceQuotaRule(String namespace, VerificationChannel channel, 
 
     @Override
     public String id() {
-        return IssueLimitRuleId.namespaceQuota(namespace, channel, maxIssues, window);
+        return IssueLimitRuleId.generate("namespace-quota", namespace, null, channel, maxIssues, window);
     }
 
     @Override

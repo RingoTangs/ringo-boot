@@ -6,6 +6,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 生成并校验签发限流规则的稳定标识。
@@ -38,25 +39,6 @@ final class IssueLimitRuleId {
 
     private IssueLimitRuleId() {}
 
-    static String namespaceQuota(String namespace, VerificationChannel channel, int maxIssues, Duration window) {
-        return generate("namespace-quota", namespace, null, channel, maxIssues, window);
-    }
-
-    static String purposeQuota(
-            String namespace, String purpose, VerificationChannel channel, int maxIssues, Duration window) {
-        return generate("purpose-quota", namespace, purpose, channel, maxIssues, window);
-    }
-
-    static String subjectQuota(
-            String namespace, String purpose, VerificationChannel channel, int maxIssues, Duration window) {
-        return generate("subject-quota", namespace, purpose, channel, maxIssues, window);
-    }
-
-    static String clientIpQuota(
-            String namespace, String purpose, VerificationChannel channel, int maxIssues, Duration window) {
-        return generate("client-ip-quota", namespace, purpose, channel, maxIssues, window);
-    }
-
     static void validate(String name, String value) {
         Objects.requireNonNull(name, "name must not be null");
         Objects.requireNonNull(value, name + " must not be null");
@@ -66,10 +48,10 @@ final class IssueLimitRuleId {
         }
     }
 
-    private static String generate(
+    static String generate(
             String type,
             String namespace,
-            String purpose,
+            @Nullable String purpose,
             VerificationChannel channel,
             int maxIssues,
             Duration window) {

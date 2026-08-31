@@ -46,7 +46,7 @@ public record PurposeQuotaRule(
 
     @Override
     public String id() {
-        return IssueLimitRuleId.purposeQuota(namespace, purpose, channel, maxIssues, window);
+        return IssueLimitRuleId.generate("purpose-quota", namespace, purpose, channel, maxIssues, window);
     }
 
     @Override

@@ -54,7 +54,7 @@ public record ClientIpQuotaRule(
 
     @Override
     public String id() {
-        return IssueLimitRuleId.clientIpQuota(namespace, purpose, channel, maxIssues, window);
+        return IssueLimitRuleId.generate("client-ip-quota", namespace, purpose, channel, maxIssues, window);
     }
 
     @Override

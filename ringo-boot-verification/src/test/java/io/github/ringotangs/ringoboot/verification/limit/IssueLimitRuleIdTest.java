@@ -40,20 +40,24 @@ class IssueLimitRuleIdTest {
 
         assertNotEquals(
                 baseline,
-                IssueLimitRuleId.purposeQuota("account", "login", VerificationChannel.EMAIL, 5, Duration.ofMinutes(1)));
+                IssueLimitRuleId.generate(
+                        "purpose-quota", "account", "login", VerificationChannel.EMAIL, 5, Duration.ofMinutes(1)));
         assertNotEquals(
                 baseline,
-                IssueLimitRuleId.subjectQuota("profile", "login", VerificationChannel.EMAIL, 5, Duration.ofMinutes(1)));
+                IssueLimitRuleId.generate(
+                        "subject-quota", "profile", "login", VerificationChannel.EMAIL, 5, Duration.ofMinutes(1)));
         assertNotEquals(
                 baseline,
-                IssueLimitRuleId.subjectQuota(
-                        "account", "register", VerificationChannel.EMAIL, 5, Duration.ofMinutes(1)));
+                IssueLimitRuleId.generate(
+                        "subject-quota", "account", "register", VerificationChannel.EMAIL, 5, Duration.ofMinutes(1)));
         assertNotEquals(
                 baseline,
-                IssueLimitRuleId.subjectQuota("account", "login", VerificationChannel.SMS, 5, Duration.ofMinutes(1)));
+                IssueLimitRuleId.generate(
+                        "subject-quota", "account", "login", VerificationChannel.SMS, 5, Duration.ofMinutes(1)));
         assertNotEquals(
                 baseline,
-                IssueLimitRuleId.subjectQuota("account", "login", VerificationChannel.EMAIL, 6, Duration.ofMinutes(1)));
+                IssueLimitRuleId.generate(
+                        "subject-quota", "account", "login", VerificationChannel.EMAIL, 6, Duration.ofMinutes(1)));
         assertNotEquals(baseline, subjectId(Duration.ofMinutes(2)));
     }
 
@@ -62,6 +66,6 @@ class IssueLimitRuleIdTest {
     }
 
     private static String subjectId(Duration window) {
-        return IssueLimitRuleId.subjectQuota("account", "login", VerificationChannel.EMAIL, 5, window);
+        return IssueLimitRuleId.generate("subject-quota", "account", "login", VerificationChannel.EMAIL, 5, window);
     }
 }

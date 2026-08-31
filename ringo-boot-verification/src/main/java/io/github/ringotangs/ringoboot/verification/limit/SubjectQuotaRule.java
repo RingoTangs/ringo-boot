@@ -47,7 +47,7 @@ public record SubjectQuotaRule(
 
     @Override
     public String id() {
-        return IssueLimitRuleId.subjectQuota(namespace, purpose, channel, maxIssues, window);
+        return IssueLimitRuleId.generate("subject-quota", namespace, purpose, channel, maxIssues, window);
     }
 
     @Override
