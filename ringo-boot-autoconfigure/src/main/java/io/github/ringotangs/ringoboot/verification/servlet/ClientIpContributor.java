@@ -1,4 +1,4 @@
-package io.github.ringotangs.ringoboot.verification.autoconfigure;
+package io.github.ringotangs.ringoboot.verification.servlet;
 
 import io.github.ringotangs.ringoboot.verification.IssueContext;
 import io.github.ringotangs.ringoboot.verification.IssueContextContributor;

@@ -1,4 +1,4 @@
-package io.github.ringotangs.ringoboot.verification.autoconfigure;
+package io.github.ringotangs.ringoboot.verification.servlet;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;

@@ -1,11 +1,12 @@
 package io.github.ringotangs.ringoboot.verification.autoconfigure;
 
-import io.github.ringotangs.ringoboot.verification.autoconfigure.redis.RedisIssueLimitStore;
 import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueLimitStore;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitManager;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitRule;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitStore;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimiter;
+import io.github.ringotangs.ringoboot.verification.redis.RedisIssueLimitStore;
+import io.github.ringotangs.ringoboot.verification.redis.VerificationHmacKey;
 import java.util.List;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;

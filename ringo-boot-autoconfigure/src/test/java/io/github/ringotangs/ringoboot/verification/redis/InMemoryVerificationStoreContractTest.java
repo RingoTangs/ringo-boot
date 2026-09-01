@@ -1,4 +1,4 @@
-package io.github.ringotangs.ringoboot.verification.autoconfigure.redis;
+package io.github.ringotangs.ringoboot.verification.redis;
 
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;

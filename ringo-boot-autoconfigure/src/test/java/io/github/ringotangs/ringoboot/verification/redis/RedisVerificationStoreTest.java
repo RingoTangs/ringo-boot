@@ -1,4 +1,4 @@
-package io.github.ringotangs.ringoboot.verification.autoconfigure.redis;
+package io.github.ringotangs.ringoboot.verification.redis;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

@@ -1,4 +1,4 @@
-package io.github.ringotangs.ringoboot.verification.autoconfigure.redis;
+package io.github.ringotangs.ringoboot.verification.redis;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;

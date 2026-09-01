@@ -1,4 +1,4 @@
-package io.github.ringotangs.ringoboot.verification.autoconfigure;
+package io.github.ringotangs.ringoboot.verification.redis;
 
 import java.util.Base64;
 import java.util.Objects;

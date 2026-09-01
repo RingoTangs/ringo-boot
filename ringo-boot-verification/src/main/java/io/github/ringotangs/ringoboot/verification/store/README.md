@@ -343,7 +343,7 @@ entries.compute(key, (ignored, existing) -> {
 `ringo-boot-autoconfigure` 模块，其 Redis key、Hash value、HMAC 密钥和部署方式参见：
 
 具体部署方式参见仓库中的
-`ringo-boot-autoconfigure/src/main/java/io/github/ringotangs/ringoboot/verification/autoconfigure/redis/README.md`。
+`ringo-boot-autoconfigure/src/main/java/io/github/ringotangs/ringoboot/verification/redis/README.md`。
 
 ## 九、不要和签发限流 Store 混淆
 

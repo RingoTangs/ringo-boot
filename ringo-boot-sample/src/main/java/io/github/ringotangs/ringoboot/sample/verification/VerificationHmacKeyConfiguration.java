@@ -1,7 +1,7 @@
 package io.github.ringotangs.ringoboot.sample.verification;
 
-import io.github.ringotangs.ringoboot.verification.autoconfigure.VerificationHmacKey;
 import io.github.ringotangs.ringoboot.verification.autoconfigure.VerificationProperties;
+import io.github.ringotangs.ringoboot.verification.redis.VerificationHmacKey;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
