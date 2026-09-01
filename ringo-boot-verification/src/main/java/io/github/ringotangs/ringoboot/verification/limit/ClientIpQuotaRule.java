@@ -1,7 +1,7 @@
 package io.github.ringotangs.ringoboot.verification.limit;
 
-import io.github.ringotangs.ringoboot.verification.IssueContext;
-import io.github.ringotangs.ringoboot.verification.VerificationChannel;
+import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
+import io.github.ringotangs.ringoboot.verification.context.IssueContext;
 import io.github.ringotangs.ringoboot.verification.internal.KebabCase;
 import java.time.Duration;
 import java.util.Objects;

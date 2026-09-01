@@ -1,7 +1,7 @@
 package io.github.ringotangs.ringoboot.sample.verification;
 
-import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.autoconfigure.VerificationProperties;
+import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.limit.NamespaceQuotaRule;
 import io.github.ringotangs.ringoboot.verification.limit.PurposeQuotaRule;
 import io.github.ringotangs.ringoboot.verification.limit.SubjectQuotaRule;

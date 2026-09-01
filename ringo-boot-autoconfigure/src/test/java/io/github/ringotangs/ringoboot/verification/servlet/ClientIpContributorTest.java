@@ -9,10 +9,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import io.github.ringotangs.ringoboot.verification.IssueContext;
-import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
+import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
+import io.github.ringotangs.ringoboot.verification.context.IssueContext;
 import io.github.ringotangs.ringoboot.verification.limit.ClientIpQuotaRule;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;

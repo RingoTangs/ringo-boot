@@ -1,6 +1,6 @@
 package io.github.ringotangs.ringoboot.verification.autoconfigure;
 
-import io.github.ringotangs.ringoboot.verification.IssueContext;
+import io.github.ringotangs.ringoboot.verification.context.IssueContext;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitRule;
 import java.time.Duration;

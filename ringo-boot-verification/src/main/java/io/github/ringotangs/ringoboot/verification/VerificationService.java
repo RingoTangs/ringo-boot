@@ -1,5 +1,7 @@
 package io.github.ringotangs.ringoboot.verification;
 
+import io.github.ringotangs.ringoboot.verification.context.IssueContext;
+
 /**
  * 签发、派发并校验短期有效、成功后一次性消费的验证码。
  *

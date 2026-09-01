@@ -7,7 +7,7 @@
  * 原子检查和消费解析后的签发配额。验证码服务只依赖顶层
  * {@link io.github.ringotangs.ringoboot.verification.limit.IssueLimiter}。
  *
- * <p>验证码服务创建 {@link io.github.ringotangs.ringoboot.verification.IssueContext}，子类可通过模板钩子补充
+ * <p>验证码服务创建 {@link io.github.ringotangs.ringoboot.verification.context.IssueContext}，子类可通过模板钩子补充
  * IP、设备、账号和租户等属性，再将同一上下文传入限流器。限流包不依赖 HTTP 请求。默认内存 Store 仅适用于单实例场景；分布式应用应使用具备跨进程原子性的 Store。
  *
  * <p>默认管理器采用严格拒绝策略：规则集合为空或没有规则覆盖当前验证码键时抛出

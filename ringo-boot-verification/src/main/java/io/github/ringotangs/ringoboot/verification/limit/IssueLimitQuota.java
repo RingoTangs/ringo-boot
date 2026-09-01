@@ -1,6 +1,6 @@
 package io.github.ringotangs.ringoboot.verification.limit;
 
-import io.github.ringotangs.ringoboot.verification.IssueContext;
+import io.github.ringotangs.ringoboot.verification.context.IssueContext;
 import java.time.Duration;
 import java.util.Objects;
 

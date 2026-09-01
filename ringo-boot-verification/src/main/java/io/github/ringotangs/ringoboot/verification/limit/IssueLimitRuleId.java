@@ -1,6 +1,6 @@
 package io.github.ringotangs.ringoboot.verification.limit;
 
-import io.github.ringotangs.ringoboot.verification.VerificationChannel;
+import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
 import java.math.BigInteger;
 import java.time.Duration;
 import java.util.List;

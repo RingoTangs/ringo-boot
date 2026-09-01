@@ -4,7 +4,7 @@ import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeExcept
 import io.github.ringotangs.ringoboot.verification.IssueResult;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerifyResult;
-import io.github.ringotangs.ringoboot.verification.email.EmailVerificationService;
+import io.github.ringotangs.ringoboot.verification.channel.email.EmailVerificationService;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitExceededException;
 import java.time.Instant;
 import java.util.Locale;

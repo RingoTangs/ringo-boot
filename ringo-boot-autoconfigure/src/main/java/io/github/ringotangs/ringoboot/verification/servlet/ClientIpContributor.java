@@ -1,7 +1,7 @@
 package io.github.ringotangs.ringoboot.verification.servlet;
 
-import io.github.ringotangs.ringoboot.verification.IssueContext;
-import io.github.ringotangs.ringoboot.verification.IssueContextContributor;
+import io.github.ringotangs.ringoboot.verification.context.IssueContext;
+import io.github.ringotangs.ringoboot.verification.context.IssueContextContributor;
 import io.github.ringotangs.ringoboot.verification.limit.ClientIpQuotaRule;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Objects;

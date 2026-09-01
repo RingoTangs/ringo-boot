@@ -4,10 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.github.ringotangs.ringoboot.verification.IssueContext;
-import io.github.ringotangs.ringoboot.verification.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
+import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
+import io.github.ringotangs.ringoboot.verification.context.IssueContext;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;

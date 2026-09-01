@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.ringotangs.ringoboot.verification.VerificationChannel;
+import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
 

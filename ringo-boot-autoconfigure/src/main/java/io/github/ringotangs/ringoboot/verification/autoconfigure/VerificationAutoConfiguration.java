@@ -1,15 +1,15 @@
 package io.github.ringotangs.ringoboot.verification.autoconfigure;
 
-import io.github.ringotangs.ringoboot.verification.DefaultIssueContextManager;
-import io.github.ringotangs.ringoboot.verification.IssueContextContributor;
-import io.github.ringotangs.ringoboot.verification.IssueContextManager;
-import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
-import io.github.ringotangs.ringoboot.verification.email.StdoutEmailCodeSender;
+import io.github.ringotangs.ringoboot.verification.channel.email.EmailCodeSender;
+import io.github.ringotangs.ringoboot.verification.channel.email.StdoutEmailCodeSender;
+import io.github.ringotangs.ringoboot.verification.channel.sms.SmsCodeSender;
+import io.github.ringotangs.ringoboot.verification.channel.sms.StdoutSmsCodeSender;
+import io.github.ringotangs.ringoboot.verification.context.DefaultIssueContextManager;
+import io.github.ringotangs.ringoboot.verification.context.IssueContextContributor;
+import io.github.ringotangs.ringoboot.verification.context.IssueContextManager;
 import io.github.ringotangs.ringoboot.verification.redis.RedisVerificationStore;
 import io.github.ringotangs.ringoboot.verification.redis.VerificationHmacKey;
 import io.github.ringotangs.ringoboot.verification.servlet.ClientIpContributor;
-import io.github.ringotangs.ringoboot.verification.sms.SmsCodeSender;
-import io.github.ringotangs.ringoboot.verification.sms.StdoutSmsCodeSender;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import jakarta.servlet.http.HttpServletRequest;

@@ -6,10 +6,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import io.github.ringotangs.ringoboot.verification.CodeSendResult;
-import io.github.ringotangs.ringoboot.verification.IssueContext;
-import io.github.ringotangs.ringoboot.verification.VerificationChannel;
-import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
+import io.github.ringotangs.ringoboot.verification.channel.CodeSendResult;
+import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
+import io.github.ringotangs.ringoboot.verification.channel.email.EmailCodeSender;
+import io.github.ringotangs.ringoboot.verification.context.IssueContext;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitRule;
 import io.github.ringotangs.ringoboot.verification.limit.NamespaceQuotaRule;
 import io.github.ringotangs.ringoboot.verification.limit.PurposeQuotaRule;
