@@ -1,7 +1,7 @@
 package io.github.ringotangs.ringoboot.sample.verification;
 
-import io.github.ringotangs.ringoboot.autoconfigure.verification.VerificationProperties;
 import io.github.ringotangs.ringoboot.verification.IssueContextManager;
+import io.github.ringotangs.ringoboot.verification.autoconfigure.VerificationProperties;
 import io.github.ringotangs.ringoboot.verification.email.EmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.email.EmailVerificationService;
 import io.github.ringotangs.ringoboot.verification.generator.NumericCodeGenerator;

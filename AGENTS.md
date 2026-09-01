@@ -2,13 +2,12 @@
 
 ## Project Structure & Module Organization
 
-This is a Java 21 multi-module Maven project. The root `pom.xml` manages shared versions and builds six modules:
+This is a Java 21 multi-module Maven project. The root `pom.xml` manages shared versions and builds five modules:
 
 - `ringo-boot-core/`: framework-neutral shared foundations under `io.github.ringotangs.ringoboot.core`.
 - `ringo-boot-problem/`: framework-neutral Problem Details foundations under `io.github.ringotangs.ringoboot.problem`.
 - `ringo-boot-verification/`: framework-neutral verification code services and extension points under `io.github.ringotangs.ringoboot.verification`.
-- `ringo-boot-problem-autoconfigure/`: Spring Boot Problem Details configuration, Web exception handling, and optional localization.
-- `ringo-boot-verification-autoconfigure/`: Spring Boot verification, issue-limit, client-IP, and Redis auto-configuration.
+- `ringo-boot-autoconfigure/`: Spring Boot Problem Details, verification, issue-limit, client-IP, and Redis auto-configuration.
 - `ringo-boot-sample/`: a Spring Boot example under `src/main/java/io/github/ringotangs/ringoboot/sample`; runtime settings live in `src/main/resources/application.yaml`.
 
 Keep production code in each module's `src/main/java` tree. Add tests in the matching `src/test/java` package structure and test resources in `src/test/resources`. Do not commit generated `target/` content or IDE metadata.
@@ -24,8 +23,7 @@ Run commands from the repository root with Maven 3.9.x:
 - `mvn -pl ringo-boot-core -am test`: test the core module and required reactor dependencies.
 - `mvn -pl ringo-boot-problem -am test`: test Problem Details foundations and required reactor dependencies.
 - `mvn -pl ringo-boot-verification -am test`: test verification code services and extension points.
-- `mvn -pl ringo-boot-problem-autoconfigure -am test`: test the Problem Details auto-configuration.
-- `mvn -pl ringo-boot-verification-autoconfigure -am test`: test the verification auto-configuration.
+- `mvn -pl ringo-boot-autoconfigure -am test`: test all Spring Boot auto-configuration.
 - `mvn -pl ringo-boot-sample -am spring-boot:run`: build dependencies and start the sample application locally.
 - `mvn -pl ringo-boot-sample -am package`: produce the runnable sample JAR.
 

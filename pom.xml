@@ -16,8 +16,7 @@
         <module>ringo-boot-core</module>
         <module>ringo-boot-problem</module>
         <module>ringo-boot-verification</module>
-        <module>ringo-boot-problem-autoconfigure</module>
-        <module>ringo-boot-verification-autoconfigure</module>
+        <module>ringo-boot-autoconfigure</module>
         <module>ringo-boot-sample</module>
     </modules>
 
@@ -85,17 +84,10 @@
                 <version>${project.version}</version>
             </dependency>
 
-            <!-- ringo-boot-problem-autoconfigure -->
+            <!-- ringo-boot-autoconfigure -->
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>ringo-boot-problem-autoconfigure</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <!-- ringo-boot-verification-autoconfigure -->
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>ringo-boot-verification-autoconfigure</artifactId>
+                <artifactId>ringo-boot-autoconfigure</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

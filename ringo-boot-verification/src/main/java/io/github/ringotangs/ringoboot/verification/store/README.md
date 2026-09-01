@@ -340,10 +340,10 @@ entries.compute(key, (ignored, existing) -> {
 - 无法在多个进程之间保证一次性消费。
 
 多实例部署应使用满足 `VerificationStore` 原子契约的共享存储。项目提供的 `RedisVerificationStore` 位于
-`ringo-boot-verification-autoconfigure` 模块，其 Redis key、Hash value、HMAC 密钥和部署方式参见：
+`ringo-boot-autoconfigure` 模块，其 Redis key、Hash value、HMAC 密钥和部署方式参见：
 
 具体部署方式参见仓库中的
-`ringo-boot-verification-autoconfigure/src/main/java/io/github/ringotangs/ringoboot/autoconfigure/verification/redis/README.md`。
+`ringo-boot-autoconfigure/src/main/java/io/github/ringotangs/ringoboot/verification/autoconfigure/redis/README.md`。
 
 ## 九、不要和签发限流 Store 混淆
 
