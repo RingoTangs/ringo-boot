@@ -1,8 +1,8 @@
 package io.github.ringotangs.ringoboot.verification.limit;
 
-import io.github.ringotangs.ringoboot.core.KebabCase;
 import io.github.ringotangs.ringoboot.verification.IssueContext;
 import io.github.ringotangs.ringoboot.verification.VerificationChannel;
+import io.github.ringotangs.ringoboot.verification.internal.KebabCase;
 import java.time.Duration;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;

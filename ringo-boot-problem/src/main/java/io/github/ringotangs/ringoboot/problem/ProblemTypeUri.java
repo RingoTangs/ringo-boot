@@ -1,6 +1,6 @@
 package io.github.ringotangs.ringoboot.problem;
 
-import io.github.ringotangs.ringoboot.core.KebabCase;
+import io.github.ringotangs.ringoboot.problem.internal.KebabCase;
 import java.net.URI;
 import java.util.Objects;
 

@@ -13,7 +13,6 @@
     <name>Ringo Boot Parent</name>
 
     <modules>
-        <module>ringo-boot-core</module>
         <module>ringo-boot-problem</module>
         <module>ringo-boot-verification</module>
         <module>ringo-boot-autoconfigure</module>
@@ -63,13 +62,6 @@
             </dependency>
 
             <!-- 项目模块 -->
-            <!-- ringo-boot-core -->
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>ringo-boot-core</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
             <!-- ringo-boot-problem -->
             <dependency>
                 <groupId>${project.groupId}</groupId>

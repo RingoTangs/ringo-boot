@@ -1,6 +1,6 @@
 package io.github.ringotangs.ringoboot.verification;
 
-import io.github.ringotangs.ringoboot.core.KebabCase;
+import io.github.ringotangs.ringoboot.verification.internal.KebabCase;
 
 /**
  * 表示验证码签发和交付使用的稳定渠道。

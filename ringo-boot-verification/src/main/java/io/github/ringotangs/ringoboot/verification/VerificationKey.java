@@ -1,6 +1,6 @@
 package io.github.ringotangs.ringoboot.verification;
 
-import io.github.ringotangs.ringoboot.core.KebabCase;
+import io.github.ringotangs.ringoboot.verification.internal.KebabCase;
 import java.util.Objects;
 
 /**
