@@ -1,4 +1,4 @@
-package io.github.ringotangs.ringoboot.problem.autoconfigure;
+package io.github.ringotangs.ringoboot.problem.web;
 
 import io.github.ringotangs.ringoboot.problem.ProblemTypeUri;
 import java.net.URI;

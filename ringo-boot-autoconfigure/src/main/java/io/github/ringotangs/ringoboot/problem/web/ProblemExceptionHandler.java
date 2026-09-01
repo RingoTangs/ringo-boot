@@ -1,6 +1,7 @@
-package io.github.ringotangs.ringoboot.problem.autoconfigure;
+package io.github.ringotangs.ringoboot.problem.web;
 
 import io.github.ringotangs.ringoboot.problem.ProblemException;
+import io.github.ringotangs.ringoboot.problem.message.ProblemMessageResolver;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;

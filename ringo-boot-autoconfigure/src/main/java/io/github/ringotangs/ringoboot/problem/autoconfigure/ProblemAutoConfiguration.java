@@ -1,6 +1,12 @@
 package io.github.ringotangs.ringoboot.problem.autoconfigure;
 
 import io.github.ringotangs.ringoboot.problem.ProblemException;
+import io.github.ringotangs.ringoboot.problem.message.DefaultProblemMessageResolver;
+import io.github.ringotangs.ringoboot.problem.message.MessageSourceProblemMessageResolver;
+import io.github.ringotangs.ringoboot.problem.message.ProblemMessageResolver;
+import io.github.ringotangs.ringoboot.problem.web.FallbackExceptionHandler;
+import io.github.ringotangs.ringoboot.problem.web.ProblemExceptionHandler;
+import io.github.ringotangs.ringoboot.problem.web.SpringMvcExceptionHandler;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.*;
 import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
@@ -37,9 +43,8 @@ public class ProblemAutoConfiguration {
          */
         @Bean
         @ConditionalOnMissingBean(ResponseEntityExceptionHandler.class)
-        SpringMvcExceptionHandler springMvcExceptionHandler(
-                ApplicationContext applicationContext, ProblemProperties properties) {
-            return new SpringMvcExceptionHandler(applicationContext, properties);
+        SpringMvcExceptionHandler springMvcExceptionHandler(ApplicationContext applicationContext) {
+            return new SpringMvcExceptionHandler(applicationContext);
         }
     }
 
@@ -82,7 +87,7 @@ public class ProblemAutoConfiguration {
                 ProblemMessageResolver messageResolver,
                 ApplicationContext applicationContext,
                 ProblemProperties properties) {
-            return new FallbackExceptionHandler(messageResolver, applicationContext, properties);
+            return new FallbackExceptionHandler(messageResolver, applicationContext, properties.isI18n());
         }
     }
 

@@ -1,6 +1,8 @@
 package io.github.ringotangs.ringoboot.problem.autoconfigure;
 
 import io.github.ringotangs.ringoboot.problem.ProblemException;
+import io.github.ringotangs.ringoboot.problem.message.ProblemMessageResolver;
+import io.github.ringotangs.ringoboot.problem.verification.VerificationExceptionHandler;
 import io.github.ringotangs.ringoboot.verification.VerificationException;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;

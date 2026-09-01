@@ -1,4 +1,4 @@
-package io.github.ringotangs.ringoboot.problem.autoconfigure;
+package io.github.ringotangs.ringoboot.problem.message;
 
 import io.github.ringotangs.ringoboot.problem.ProblemException;
 import java.util.Objects;

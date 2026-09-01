@@ -1,9 +1,10 @@
-package io.github.ringotangs.ringoboot.problem.autoconfigure;
+package io.github.ringotangs.ringoboot.problem.web;
 
 import io.github.ringotangs.ringoboot.problem.ProblemException;
 import io.github.ringotangs.ringoboot.problem.ProblemType;
 import io.github.ringotangs.ringoboot.problem.ProblemTypeDefinition;
 import io.github.ringotangs.ringoboot.problem.ProblemTypeUri;
+import io.github.ringotangs.ringoboot.problem.message.ProblemMessageResolver;
 import java.util.Objects;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -40,20 +41,19 @@ public class FallbackExceptionHandler {
 
     private final ProblemDetailFactory problemDetailFactory;
     private final MessageSource messageSource;
-    private final ProblemProperties properties;
+    private final boolean i18n;
 
     /**
      * 使用消息解析器创建全局异常兜底处理器。
      *
      * @param messageResolver 问题消息解析器
      * @param messageSource   Spring 消息源
-     * @param properties      异常处理配置
+     * @param i18n            是否使用 Spring 消息源更新框架错误响应
      */
-    public FallbackExceptionHandler(
-            ProblemMessageResolver messageResolver, MessageSource messageSource, ProblemProperties properties) {
+    public FallbackExceptionHandler(ProblemMessageResolver messageResolver, MessageSource messageSource, boolean i18n) {
         this.problemDetailFactory = new ProblemDetailFactory(messageResolver);
         this.messageSource = Objects.requireNonNull(messageSource, "messageSource must not be null");
-        this.properties = Objects.requireNonNull(properties, "properties must not be null");
+        this.i18n = i18n;
     }
 
     /**
@@ -66,7 +66,7 @@ public class FallbackExceptionHandler {
     public ResponseEntity<ProblemDetail> handleException(Exception exception) {
         Objects.requireNonNull(exception, "exception must not be null");
         if (exception instanceof ErrorResponse errorResponse) {
-            ProblemDetail body = properties.isI18n()
+            ProblemDetail body = i18n
                     ? errorResponse.updateAndGetBody(messageSource, LocaleContextHolder.getLocale())
                     : errorResponse.getBody();
             return new ResponseEntity<>(body, errorResponse.getHeaders(), errorResponse.getStatusCode());

@@ -1,4 +1,4 @@
-package io.github.ringotangs.ringoboot.problem.autoconfigure;
+package io.github.ringotangs.ringoboot.problem.web;
 
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
@@ -30,12 +30,10 @@ public class SpringMvcExceptionHandler extends ResponseEntityExceptionHandler {
      * 使用消息源和异常处理配置创建 Spring MVC 异常处理器。
      *
      * @param messageSource Spring 消息源
-     * @param properties    异常处理配置
      */
-    public SpringMvcExceptionHandler(MessageSource messageSource, ProblemProperties properties) {
+    public SpringMvcExceptionHandler(MessageSource messageSource) {
         setMessageSource(Objects.requireNonNull(messageSource, "messageSource must not be null"));
         this.validationErrorExtractor = new ValidationErrorExtractor(messageSource);
-        Objects.requireNonNull(properties, "properties must not be null");
     }
 
     @Nullable

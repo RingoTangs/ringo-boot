@@ -2,6 +2,12 @@ package io.github.ringotangs.ringoboot.problem.autoconfigure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.github.ringotangs.ringoboot.problem.message.DefaultProblemMessageResolver;
+import io.github.ringotangs.ringoboot.problem.message.MessageSourceProblemMessageResolver;
+import io.github.ringotangs.ringoboot.problem.message.ProblemMessageResolver;
+import io.github.ringotangs.ringoboot.problem.web.FallbackExceptionHandler;
+import io.github.ringotangs.ringoboot.problem.web.ProblemExceptionHandler;
+import io.github.ringotangs.ringoboot.problem.web.SpringMvcExceptionHandler;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.FilteredClassLoader;

@@ -1,4 +1,4 @@
-package io.github.ringotangs.ringoboot.problem.autoconfigure;
+package io.github.ringotangs.ringoboot.problem.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -25,8 +25,7 @@ import org.springframework.web.context.request.async.AsyncRequestTimeoutExceptio
 @ExtendWith(OutputCaptureExtension.class)
 class SpringMvcExceptionHandlerTest {
 
-    private final SpringMvcExceptionHandler handler =
-            new SpringMvcExceptionHandler(new StaticMessageSource(), new ProblemProperties());
+    private final SpringMvcExceptionHandler handler = new SpringMvcExceptionHandler(new StaticMessageSource());
 
     @Test
     void returnsStableProblemAndPreservesHeadersForMethodNotAllowed(CapturedOutput output) throws Exception {
@@ -85,9 +84,7 @@ class SpringMvcExceptionHandlerTest {
         StaticMessageSource messageSource = new StaticMessageSource();
         messageSource.addMessage(exception.getTitleMessageCode(), Locale.CHINA, "Spring 本地化标题");
         messageSource.addMessage(exception.getDetailMessageCode(), Locale.CHINA, "Spring 本地化详情");
-        ProblemProperties properties = new ProblemProperties();
-        properties.setI18n(false);
-        SpringMvcExceptionHandler localizedHandler = new SpringMvcExceptionHandler(messageSource, properties);
+        SpringMvcExceptionHandler localizedHandler = new SpringMvcExceptionHandler(messageSource);
 
         org.springframework.context.i18n.LocaleContextHolder.setLocale(Locale.CHINA);
         try {

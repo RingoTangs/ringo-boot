@@ -1,10 +1,11 @@
-package io.github.ringotangs.ringoboot.problem.autoconfigure;
+package io.github.ringotangs.ringoboot.problem.verification;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
+import io.github.ringotangs.ringoboot.problem.message.ProblemMessageResolver;
 import io.github.ringotangs.ringoboot.verification.CodeDeliveryRejectedException;
 import io.github.ringotangs.ringoboot.verification.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;

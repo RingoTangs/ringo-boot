@@ -1,4 +1,4 @@
-package io.github.ringotangs.ringoboot.problem.autoconfigure;
+package io.github.ringotangs.ringoboot.problem.web;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

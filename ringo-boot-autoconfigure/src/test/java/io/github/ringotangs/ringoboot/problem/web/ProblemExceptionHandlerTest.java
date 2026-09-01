@@ -1,10 +1,12 @@
-package io.github.ringotangs.ringoboot.problem.autoconfigure;
+package io.github.ringotangs.ringoboot.problem.web;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.github.ringotangs.ringoboot.problem.ProblemException;
 import io.github.ringotangs.ringoboot.problem.ProblemType;
 import io.github.ringotangs.ringoboot.problem.ProblemTypeDefinition;
+import io.github.ringotangs.ringoboot.problem.message.DefaultProblemMessageResolver;
+import io.github.ringotangs.ringoboot.problem.message.MessageSourceProblemMessageResolver;
 import java.net.URI;
 import java.util.Locale;
 import org.junit.jupiter.api.AfterEach;

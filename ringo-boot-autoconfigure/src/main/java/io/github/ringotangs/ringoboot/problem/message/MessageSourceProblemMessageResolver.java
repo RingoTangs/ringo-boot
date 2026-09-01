@@ -1,4 +1,4 @@
-package io.github.ringotangs.ringoboot.problem.autoconfigure;
+package io.github.ringotangs.ringoboot.problem.message;
 
 import io.github.ringotangs.ringoboot.problem.ProblemException;
 import io.github.ringotangs.ringoboot.problem.ProblemTypeDefinition;
@@ -12,17 +12,21 @@ import org.springframework.context.support.ResourceBundleMessageSource;
 /**
  * 优先使用应用消息源解析文案，缺失时回退到框架内置文案。
  */
-final class MessageSourceProblemMessageResolver implements ProblemMessageResolver {
+public final class MessageSourceProblemMessageResolver implements ProblemMessageResolver {
 
-    private static final String DEFAULT_MESSAGES_BASENAME =
-            "io.github.ringotangs.ringoboot.problem.autoconfigure.messages";
+    private static final String DEFAULT_MESSAGES_BASENAME = "io.github.ringotangs.ringoboot.problem.message.messages";
     private static final String TITLE_SUFFIX = ".title";
     private static final String DETAIL_SUFFIX = ".detail";
 
     private final MessageSource messageSource;
     private final MessageSource defaultMessageSource;
 
-    MessageSourceProblemMessageResolver(MessageSource messageSource) {
+    /**
+     * 使用指定的 Spring 消息源创建解析器。
+     *
+     * @param messageSource 应用消息源
+     */
+    public MessageSourceProblemMessageResolver(MessageSource messageSource) {
         this.messageSource = Objects.requireNonNull(messageSource, "messageSource must not be null");
         ResourceBundleMessageSource defaultMessageSource = new ResourceBundleMessageSource();
         defaultMessageSource.setBasename(DEFAULT_MESSAGES_BASENAME);

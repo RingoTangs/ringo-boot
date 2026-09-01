@@ -3,6 +3,8 @@ package io.github.ringotangs.ringoboot.problem.autoconfigure;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.ringotangs.ringoboot.problem.ProblemException;
+import io.github.ringotangs.ringoboot.problem.message.ProblemMessageResolver;
+import io.github.ringotangs.ringoboot.problem.verification.VerificationExceptionHandler;
 import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitExceededException;

@@ -1,10 +1,13 @@
-package io.github.ringotangs.ringoboot.problem.autoconfigure;
+package io.github.ringotangs.ringoboot.problem.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import io.github.ringotangs.ringoboot.problem.message.DefaultProblemMessageResolver;
+import io.github.ringotangs.ringoboot.problem.message.MessageSourceProblemMessageResolver;
+import io.github.ringotangs.ringoboot.problem.message.ProblemMessageResolver;
 import java.net.URI;
 import java.util.Locale;
 import org.junit.jupiter.api.AfterEach;
@@ -25,7 +28,7 @@ import org.springframework.web.ErrorResponse;
 class FallbackExceptionHandlerTest {
 
     private final StaticMessageSource messageSource = new StaticMessageSource();
-    private final ProblemProperties properties = new ProblemProperties();
+    private boolean i18n;
 
     @AfterEach
     void resetLocale() {
@@ -68,7 +71,7 @@ class FallbackExceptionHandlerTest {
 
     @Test
     void usesBuiltInLocalizedMessagesForUnexpectedException() {
-        properties.setI18n(true);
+        i18n = true;
         LocaleContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
         FallbackExceptionHandler handler = createHandler(new MessageSourceProblemMessageResolver(messageSource));
 
@@ -82,7 +85,7 @@ class FallbackExceptionHandlerTest {
 
     @Test
     void usesBuiltInEnglishMessagesForUnexpectedException() {
-        properties.setI18n(true);
+        i18n = true;
         LocaleContextHolder.setLocale(Locale.ENGLISH);
         FallbackExceptionHandler handler = createHandler(new MessageSourceProblemMessageResolver(messageSource));
 
@@ -97,7 +100,7 @@ class FallbackExceptionHandlerTest {
     @Test
     void applicationMessagesOverrideBuiltInMessagesPerKey() {
         messageSource.addMessage("problem.internal-server-error.title", Locale.SIMPLIFIED_CHINESE, "自定义服务器错误");
-        properties.setI18n(true);
+        i18n = true;
         LocaleContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
         FallbackExceptionHandler handler = createHandler(new MessageSourceProblemMessageResolver(messageSource));
 
@@ -110,7 +113,7 @@ class FallbackExceptionHandlerTest {
     }
 
     private FallbackExceptionHandler createHandler(ProblemMessageResolver resolver) {
-        return new FallbackExceptionHandler(resolver, messageSource, properties);
+        return new FallbackExceptionHandler(resolver, messageSource, i18n);
     }
 
     private static final class FrameworkException extends RuntimeException implements ErrorResponse {
