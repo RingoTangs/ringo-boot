@@ -5,11 +5,21 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /**
  * Ringo Boot Problem Details 自动配置属性。
  *
- * <p>配置前缀为 {@value ProblemConfigurationConstants#PREFIX}。该类绑定总开关和国际化开关，二者默认关闭；
- * 各类异常处理器通过 {@value ProblemConfigurationConstants#HANDLERS_PREFIX} 下的独立配置显式开启。
+ * <p>配置前缀为 {@value #PREFIX}。该类绑定总开关和国际化开关，二者默认关闭；
+ * 各类异常处理器通过 {@value #HANDLERS_PREFIX} 下的独立配置显式开启。
  */
-@ConfigurationProperties(ProblemConfigurationConstants.PREFIX)
+@ConfigurationProperties(ProblemProperties.PREFIX)
 public class ProblemProperties {
+
+    /**
+     * Problem Details 配置属性前缀。
+     */
+    public static final String PREFIX = "ringo.boot.problem";
+
+    /**
+     * Problem Details 异常处理器配置属性前缀。
+     */
+    public static final String HANDLERS_PREFIX = PREFIX + ".handlers";
 
     /**
      * 是否启用整套异常处理自动配置；需要显式开启。

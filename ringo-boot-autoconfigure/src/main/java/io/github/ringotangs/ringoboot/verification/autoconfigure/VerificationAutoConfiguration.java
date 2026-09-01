@@ -111,7 +111,7 @@ public class VerificationAutoConfiguration {
             prefix = VerificationProperties.PREFIX + ".contributor",
             name = "client-ip",
             havingValue = "true")
-    static class ServletContextConfiguration {
+    static class ClientIpConfiguration {
 
         /**
          * 在用户未提供客户端 IP Contributor 时创建默认实现。

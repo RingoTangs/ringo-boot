@@ -26,7 +26,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @AutoConfiguration(before = WebMvcAutoConfiguration.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass({ProblemDetail.class, ProblemException.class})
-@ConditionalOnProperty(prefix = ProblemConfigurationConstants.PREFIX, name = "enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = ProblemProperties.PREFIX, name = "enabled", havingValue = "true")
 @EnableConfigurationProperties(ProblemProperties.class)
 public class ProblemAutoConfiguration {
 
@@ -35,7 +35,7 @@ public class ProblemAutoConfiguration {
      */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(ResponseEntityExceptionHandler.class)
-    @ConditionalOnProperty(prefix = ProblemConfigurationConstants.HANDLERS_PREFIX, name = "mvc", havingValue = "true")
+    @ConditionalOnProperty(prefix = ProblemProperties.HANDLERS_PREFIX, name = "mvc", havingValue = "true")
     static class SpringMvcConfiguration {
 
         /**
@@ -52,11 +52,8 @@ public class ProblemAutoConfiguration {
      * 在业务问题异常处理开关开启时装配处理器。
      */
     @Configuration(proxyBeanMethods = false)
-    @ConditionalOnProperty(
-            prefix = ProblemConfigurationConstants.HANDLERS_PREFIX,
-            name = "application",
-            havingValue = "true")
-    static class ApplicationConfiguration {
+    @ConditionalOnProperty(prefix = ProblemProperties.HANDLERS_PREFIX, name = "application", havingValue = "true")
+    static class ProblemExceptionHandlerConfiguration {
 
         /**
          * 用户提供自定义处理器时不创建默认实现。
@@ -72,10 +69,7 @@ public class ProblemAutoConfiguration {
      * 在未知异常兜底开关开启时装配处理器。
      */
     @Configuration(proxyBeanMethods = false)
-    @ConditionalOnProperty(
-            prefix = ProblemConfigurationConstants.HANDLERS_PREFIX,
-            name = "fallback",
-            havingValue = "true")
+    @ConditionalOnProperty(prefix = ProblemProperties.HANDLERS_PREFIX, name = "fallback", havingValue = "true")
     static class FallbackConfiguration {
 
         /**

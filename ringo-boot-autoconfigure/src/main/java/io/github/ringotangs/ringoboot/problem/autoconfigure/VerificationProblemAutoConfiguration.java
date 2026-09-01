@@ -19,11 +19,8 @@ import org.springframework.http.ProblemDetail;
 @AutoConfiguration(after = ProblemAutoConfiguration.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass({ProblemDetail.class, ProblemException.class, VerificationException.class})
-@ConditionalOnProperty(prefix = ProblemConfigurationConstants.PREFIX, name = "enabled", havingValue = "true")
-@ConditionalOnProperty(
-        prefix = ProblemConfigurationConstants.HANDLERS_PREFIX,
-        name = "verification",
-        havingValue = "true")
+@ConditionalOnProperty(prefix = ProblemProperties.PREFIX, name = "enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = ProblemProperties.HANDLERS_PREFIX, name = "verification", havingValue = "true")
 @ConditionalOnProperty(
         prefix = VerificationProblemAutoConfiguration.VERIFICATION_PREFIX,
         name = "enabled",
