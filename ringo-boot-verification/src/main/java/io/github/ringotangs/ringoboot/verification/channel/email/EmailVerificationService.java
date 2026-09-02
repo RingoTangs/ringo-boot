@@ -1,8 +1,9 @@
 package io.github.ringotangs.ringoboot.verification.channel.email;
 
 import io.github.ringotangs.ringoboot.verification.AbstractVerificationService;
+import io.github.ringotangs.ringoboot.verification.IssueResult;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
-import io.github.ringotangs.ringoboot.verification.channel.CodeSendResult;
+import io.github.ringotangs.ringoboot.verification.channel.CodeSendRejectedException;
 import io.github.ringotangs.ringoboot.verification.channel.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.context.IssueContext;
@@ -50,8 +51,13 @@ public class EmailVerificationService extends AbstractVerificationService {
      * @throws CodeSenderException 当邮件派发失败时
      */
     @Override
-    protected CodeSendResult dispatch(IssueContext context, String code, Instant expiresAt) throws CodeSenderException {
-        return sender.send(context, code, expiresAt);
+    protected IssueResult completeIssue(IssueContext context, String code, Instant expiresAt)
+            throws CodeSenderException {
+        return switch (sender.send(context, code, expiresAt)) {
+            case ACCEPTED -> new IssueResult.Accepted(expiresAt);
+            case UNKNOWN -> new IssueResult.Uncertain(expiresAt);
+            case REJECTED -> throw new CodeSendRejectedException(context.channel());
+        };
     }
 
     @Override

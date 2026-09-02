@@ -23,6 +23,11 @@ public record VerificationChannel(String value) {
     public static final VerificationChannel SMS = new VerificationChannel("sms");
 
     /**
+     * 图片验证码渠道。
+     */
+    public static final VerificationChannel IMAGE = new VerificationChannel("image");
+
+    /**
      * 创建并校验验证码渠道。
      *
      * @throws NullPointerException     当渠道标识为 {@code null} 时

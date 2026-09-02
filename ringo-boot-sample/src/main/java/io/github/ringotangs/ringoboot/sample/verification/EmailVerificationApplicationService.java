@@ -27,6 +27,8 @@ class EmailVerificationApplicationService {
         return switch (verificationService.issue(key(email))) {
             case IssueResult.Accepted accepted -> accepted.expiresAt();
             case IssueResult.Uncertain uncertain -> uncertain.expiresAt();
+            case IssueResult.ImageCaptcha ignored ->
+                throw new IllegalStateException("email verification cannot return an image captcha");
             case IssueResult.Throttled throttled -> throw new IssueLimitExceededException(throttled.violations());
         };
     }

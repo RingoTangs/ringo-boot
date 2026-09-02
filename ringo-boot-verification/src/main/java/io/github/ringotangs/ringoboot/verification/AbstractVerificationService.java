@@ -1,8 +1,5 @@
 package io.github.ringotangs.ringoboot.verification;
 
-import io.github.ringotangs.ringoboot.verification.channel.CodeSendRejectedException;
-import io.github.ringotangs.ringoboot.verification.channel.CodeSendResult;
-import io.github.ringotangs.ringoboot.verification.channel.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.context.IssueContext;
 import io.github.ringotangs.ringoboot.verification.context.IssueContextManager;
@@ -22,7 +19,8 @@ import java.util.Objects;
 /**
  * 统一编排验证码生成、存储、渠道派发、失败补偿和校验消费流程。
  *
- * <p><strong>API 注意事项：</strong> 子类通过 {@link #channel()} 声明渠道，实现 {@link #dispatch(IssueContext, String, Instant)} 完成派发；
+ * <p><strong>API 注意事项：</strong> 子类通过 {@link #channel()} 声明渠道，实现 {@link #completeIssue(IssueContext, String, Instant)}
+ * 完成渠道发送或同步渲染；
  * 请求级属性通过 {@link IssueContextManager} 统一提供。
  */
 public abstract class AbstractVerificationService implements VerificationService {
@@ -82,7 +80,7 @@ public abstract class AbstractVerificationService implements VerificationService
         Instant expiresAt = Objects.requireNonNull(
                 store.store(storeKey(context), code, verificationPolicy, issuedAt),
                 "verification store expiration must not be null");
-        return dispatchStoredCode(context, code, expiresAt);
+        return completeStoredIssue(context, code, expiresAt);
     }
 
     /**
@@ -97,16 +95,16 @@ public abstract class AbstractVerificationService implements VerificationService
     }
 
     /**
-     * 将已生成并存储的验证码派发到具体渠道。
+     * 完成已生成并存储验证码的渠道发送或同步渲染。
      *
      * @param context   当前签发流程的上下文
      * @param code      仅供发送期间使用的明文验证码
      * @param expiresAt 验证码过期时间
-     * @return 渠道对发送请求的受理结果
-     * @throws CodeSenderException 当渠道派发操作失败时
+     * @return 渠道对应的签发结果
+     * @throws VerificationException 当渠道发送或渲染失败时
      */
-    protected abstract CodeSendResult dispatch(IssueContext context, String code, Instant expiresAt)
-            throws CodeSenderException;
+    protected abstract IssueResult completeIssue(IssueContext context, String code, Instant expiresAt)
+            throws VerificationException;
 
     /**
      * 返回当前服务使用的验证码渠道。
@@ -115,22 +113,17 @@ public abstract class AbstractVerificationService implements VerificationService
      */
     protected abstract VerificationChannel channel();
 
-    private IssueResult dispatchStoredCode(IssueContext context, String code, Instant expiresAt) {
+    private IssueResult completeStoredIssue(IssueContext context, String code, Instant expiresAt) {
         try {
-            CodeSendResult result =
-                    Objects.requireNonNull(dispatch(context, code, expiresAt), "code sender result must not be null");
-            return switch (result) {
-                case ACCEPTED -> new IssueResult.Accepted(expiresAt);
-                case UNKNOWN -> new IssueResult.Uncertain(expiresAt);
-                case REJECTED -> throw new CodeSendRejectedException(context.channel());
-            };
-        } catch (RuntimeException dispatchFailure) {
+            return Objects.requireNonNull(
+                    completeIssue(context, code, expiresAt), "issue completion result must not be null");
+        } catch (RuntimeException completionFailure) {
             try {
                 store.invalidate(storeKey(context), code);
             } catch (RuntimeException invalidationFailure) {
-                dispatchFailure.addSuppressed(invalidationFailure);
+                completionFailure.addSuppressed(invalidationFailure);
             }
-            throw dispatchFailure;
+            throw completionFailure;
         }
     }
 

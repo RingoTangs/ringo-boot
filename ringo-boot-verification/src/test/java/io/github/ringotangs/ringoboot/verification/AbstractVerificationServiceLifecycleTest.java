@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.ringotangs.ringoboot.verification.channel.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.context.CompositeIssueContextManager;
 import io.github.ringotangs.ringoboot.verification.context.IssueContext;
@@ -192,9 +191,9 @@ class AbstractVerificationServiceLifecycleTest {
         }
 
         @Override
-        protected CodeSendResult dispatch(IssueContext context, String code, Instant expiresAt) {
+        protected IssueResult completeIssue(IssueContext context, String code, Instant expiresAt) {
             lastCode = code;
-            return CodeSendResult.ACCEPTED;
+            return new IssueResult.Accepted(expiresAt);
         }
 
         @Override

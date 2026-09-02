@@ -498,13 +498,17 @@ class AbstractVerificationServiceTest {
         }
 
         @Override
-        protected CodeSendResult dispatch(IssueContext context, String code, Instant expiresAt) {
+        protected IssueResult completeIssue(IssueContext context, String code, Instant expiresAt) {
             dispatches.incrementAndGet();
             if (failure != null) {
                 throw failure;
             }
             delivery.set(new TestDispatch(context, code, expiresAt));
-            return result;
+            return switch (result) {
+                case ACCEPTED -> new IssueResult.Accepted(expiresAt);
+                case UNKNOWN -> new IssueResult.Uncertain(expiresAt);
+                case REJECTED -> throw new CodeSendRejectedException(context.channel());
+            };
         }
 
         @Override

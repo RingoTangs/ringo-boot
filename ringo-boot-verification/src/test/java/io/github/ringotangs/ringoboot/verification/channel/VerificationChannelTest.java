@@ -11,6 +11,7 @@ class VerificationChannelTest {
     void providesBuiltInAndCustomChannels() {
         assertEquals("email", VerificationChannel.EMAIL.value());
         assertEquals("sms", VerificationChannel.SMS.value());
+        assertEquals("image", VerificationChannel.IMAGE.value());
         assertEquals(new VerificationChannel("image-code"), VerificationChannel.of("image-code"));
         assertEquals("voice", VerificationChannel.of("voice").toString());
     }

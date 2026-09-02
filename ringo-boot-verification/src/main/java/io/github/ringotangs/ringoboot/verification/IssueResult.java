@@ -1,5 +1,6 @@
 package io.github.ringotangs.ringoboot.verification;
 
+import io.github.ringotangs.ringoboot.verification.channel.image.CaptchaImage;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitViolation;
 import java.time.Duration;
 import java.time.Instant;
@@ -8,9 +9,10 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * 表示验证码签发及交付流程的安全结果，不包含明文验证码。
+ * 表示验证码签发及交付流程的安全结果，不以字符串形式暴露明文验证码。
  */
-public sealed interface IssueResult permits IssueResult.Accepted, IssueResult.Uncertain, IssueResult.Throttled {
+public sealed interface IssueResult
+        permits IssueResult.Accepted, IssueResult.Uncertain, IssueResult.ImageCaptcha, IssueResult.Throttled {
 
     /**
      * 表示验证码已成功签发，并且发送供应商明确接受了请求。
@@ -41,6 +43,23 @@ public sealed interface IssueResult permits IssueResult.Accepted, IssueResult.Un
          */
         public Uncertain {
             Objects.requireNonNull(expiresAt, "expiresAt must not be null");
+        }
+    }
+
+    /**
+     * 表示图片验证码已成功签发并渲染。
+     *
+     * @param expiresAt 验证码过期时间
+     * @param image     渲染后的验证码图片
+     */
+    record ImageCaptcha(Instant expiresAt, CaptchaImage image) implements IssueResult {
+
+        /**
+         * 创建并校验图片验证码签发结果。
+         */
+        public ImageCaptcha {
+            Objects.requireNonNull(expiresAt, "expiresAt must not be null");
+            Objects.requireNonNull(image, "image must not be null");
         }
     }
 
