@@ -32,7 +32,6 @@ flowchart LR
 | `VerificationStore`          | 定义保存、校验并消费、按验证码失效三种原子操作。                           |
 | `VerificationStoreKey`       | 使用渠道和业务键唯一标识一条验证码状态记录。                               |
 | `InMemoryVerificationStore`  | 基于 `ConcurrentHashMap` 的线程安全内存实现。                              |
-| `StoreResult`                | 返回验证码成功保存后计算出的过期时间。                                     |
 | `VerificationStoreException` | 统一表达 Redis、数据库或第三方存储的连接、超时、序列化及原子操作故障。     |
 
 `VerificationStoreException` 是运行时异常，但接口方法仍显式声明它，目的是提醒实现者和调用者：存储操作可能因
@@ -72,7 +71,7 @@ account + login    + other@example.com
 ### store：保存新验证码
 
 ```java
-StoreResult store(
+Instant store(
         VerificationStoreKey key,
         String code,
         VerificationPolicy policy,
@@ -85,7 +84,7 @@ Store 根据 `issuedAt + policy.ttl()` 计算过期时间，并保存：
 - 过期时间。
 - `policy.maxAttempts()` 提供的最大校验次数。
 
-返回的 `StoreResult.expiresAt()` 会继续传给发送渠道和 `IssueResult`，保证存储、邮件或短信内容以及接口响应使用同一个
+返回的 `Instant` 会继续传给发送渠道和 `IssueResult`，保证存储、邮件或短信内容以及接口响应使用同一个
 过期时间。
 
 ### verifyAndConsume：校验并消费验证码
@@ -134,7 +133,7 @@ sequenceDiagram
     App->>Service: issue(key)
     Service->>Service: 限流并生成明文验证码
     Service->>Store: store(storeKey, code, policy, issuedAt)
-    Store-->>Service: StoreResult(expiresAt)
+    Store-->>Service: expiresAt
     Service->>Sender: dispatch(code, expiresAt)
     alt 发送已受理
         Sender-->>Service: ACCEPTED

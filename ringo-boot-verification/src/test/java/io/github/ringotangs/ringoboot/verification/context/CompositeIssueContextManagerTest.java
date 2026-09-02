@@ -12,7 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-class DefaultIssueContextManagerTest {
+class CompositeIssueContextManagerTest {
 
     private static final VerificationKey KEY = new VerificationKey("account", "login", "subject");
     private static final IssueContext CONTEXT =
@@ -21,7 +21,7 @@ class DefaultIssueContextManagerTest {
     @Test
     void appliesContributorsInOrder() {
         List<String> calls = new ArrayList<>();
-        IssueContextManager manager = new DefaultIssueContextManager(List.of(
+        IssueContextManager manager = new CompositeIssueContextManager(List.of(
                 context -> {
                     calls.add("first");
                     return context.with("tenant-id", "tenant-1");
@@ -39,19 +39,19 @@ class DefaultIssueContextManagerTest {
 
     @Test
     void returnsOriginalContextWhenThereAreNoContributors() {
-        assertSame(CONTEXT, new DefaultIssueContextManager(List.of()).enrich(CONTEXT));
+        assertSame(CONTEXT, new CompositeIssueContextManager(List.of()).enrich(CONTEXT));
     }
 
     @Test
     void rejectsNullInputsAndResults() {
-        assertThrows(NullPointerException.class, () -> new DefaultIssueContextManager(null));
+        assertThrows(NullPointerException.class, () -> new CompositeIssueContextManager(null));
         assertThrows(
                 NullPointerException.class,
-                () -> new DefaultIssueContextManager(Arrays.asList((IssueContextContributor) null)));
-        assertThrows(NullPointerException.class, () -> new DefaultIssueContextManager(List.of()).enrich(null));
+                () -> new CompositeIssueContextManager(Arrays.asList((IssueContextContributor) null)));
+        assertThrows(NullPointerException.class, () -> new CompositeIssueContextManager(List.of()).enrich(null));
         assertThrows(
                 NullPointerException.class,
-                () -> new DefaultIssueContextManager(List.of(context -> null)).enrich(CONTEXT));
+                () -> new CompositeIssueContextManager(List.of(context -> null)).enrich(CONTEXT));
     }
 
     @Test
@@ -60,7 +60,7 @@ class DefaultIssueContextManagerTest {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new DefaultIssueContextManager(List.of(context -> new IssueContext(
+                () -> new CompositeIssueContextManager(List.of(context -> new IssueContext(
                                 new VerificationKey("account", "login", "another"),
                                 context.channel(),
                                 context.policy(),
@@ -68,12 +68,12 @@ class DefaultIssueContextManagerTest {
                         .enrich(attributed));
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new DefaultIssueContextManager(List.of(context -> new IssueContext(
+                () -> new CompositeIssueContextManager(List.of(context -> new IssueContext(
                                 context.key(), VerificationChannel.SMS, context.policy(), context.attributes())))
                         .enrich(attributed));
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new DefaultIssueContextManager(List.of(context -> new IssueContext(
+                () -> new CompositeIssueContextManager(List.of(context -> new IssueContext(
                                 context.key(),
                                 context.channel(),
                                 new VerificationPolicy(
@@ -84,12 +84,12 @@ class DefaultIssueContextManagerTest {
                         .enrich(attributed));
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new DefaultIssueContextManager(
+                () -> new CompositeIssueContextManager(
                                 List.of(context -> IssueContext.of(context.key(), context.channel(), context.policy())))
                         .enrich(attributed));
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new DefaultIssueContextManager(List.of(context -> context.with("tenant", "tenant-2")))
+                () -> new CompositeIssueContextManager(List.of(context -> context.with("tenant", "tenant-2")))
                         .enrich(attributed));
     }
 }

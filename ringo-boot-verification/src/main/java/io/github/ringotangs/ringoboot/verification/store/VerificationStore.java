@@ -24,11 +24,11 @@ public interface VerificationStore {
      * @param code 新签发的明文验证码
      * @param policy 验证码策略
      * @param issuedAt 签发时间
-     * @return 成功存储后的结果
+     * @return Store 实际使用的验证码过期时间
      * @throws NullPointerException 当任一参数为 {@code null} 时
      * @throws VerificationStoreException 当底层存储操作失败时
      */
-    StoreResult store(VerificationStoreKey key, String code, VerificationPolicy policy, Instant issuedAt)
+    Instant store(VerificationStoreKey key, String code, VerificationPolicy policy, Instant issuedAt)
             throws VerificationStoreException;
 
     /**

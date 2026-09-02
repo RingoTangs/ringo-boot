@@ -1,6 +1,6 @@
 package io.github.ringotangs.ringoboot.verification.autoconfigure;
 
-import io.github.ringotangs.ringoboot.verification.context.DefaultIssueContextManager;
+import io.github.ringotangs.ringoboot.verification.context.CompositeIssueContextManager;
 import io.github.ringotangs.ringoboot.verification.context.IssueContextContributor;
 import io.github.ringotangs.ringoboot.verification.context.IssueContextManager;
 import io.github.ringotangs.ringoboot.verification.redis.RedisVerificationStore;
@@ -40,7 +40,7 @@ public class VerificationAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(IssueContextManager.class)
     IssueContextManager issueContextManager(ObjectProvider<IssueContextContributor> contributors) {
-        return new DefaultIssueContextManager(contributors.orderedStream().toList());
+        return new CompositeIssueContextManager(contributors.orderedStream().toList());
     }
 
     /**

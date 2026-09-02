@@ -8,7 +8,6 @@ import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.VerifyResult;
 import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
-import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreKey;
 import java.time.Duration;
@@ -31,11 +30,11 @@ abstract class VerificationStoreContract {
         VerificationStoreKey key = key("account");
         Instant now = now();
 
-        StoreResult stored = store().store(key, "123456", POLICY, now);
-        StoreResult overwritten = store().store(key, "654321", POLICY, now.plusSeconds(10));
+        Instant stored = store().store(key, "123456", POLICY, now);
+        Instant overwritten = store().store(key, "654321", POLICY, now.plusSeconds(10));
 
-        assertEquals(now.plus(POLICY.ttl()), stored.expiresAt());
-        assertEquals(now.plusSeconds(10).plus(POLICY.ttl()), overwritten.expiresAt());
+        assertEquals(now.plus(POLICY.ttl()), stored);
+        assertEquals(now.plusSeconds(10).plus(POLICY.ttl()), overwritten);
         assertEquals(VerifyResult.MISMATCH, store().verifyAndConsume(key, "123456", now.plusSeconds(11)));
         assertEquals(VerifyResult.SUCCESS, store().verifyAndConsume(key, "654321", now.plusSeconds(12)));
     }

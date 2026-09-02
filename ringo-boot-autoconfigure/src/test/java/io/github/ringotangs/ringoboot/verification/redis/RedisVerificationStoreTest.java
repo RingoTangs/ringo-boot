@@ -12,7 +12,6 @@ import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.VerifyResult;
 import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
-import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreKey;
 import java.time.Duration;
@@ -38,9 +37,9 @@ class RedisVerificationStoreTest {
                 .thenReturn(NOW.plusSeconds(300).toEpochMilli(), 2L);
         RedisVerificationStore store = store(redisTemplate);
 
-        StoreResult stored = store.store(KEY, "123456", VerificationPolicy.defaults(), NOW);
+        Instant stored = store.store(KEY, "123456", VerificationPolicy.defaults(), NOW);
 
-        assertThat(stored.expiresAt()).isEqualTo(NOW.plusSeconds(300));
+        assertThat(stored).isEqualTo(NOW.plusSeconds(300));
         assertThat(store.verifyAndConsume(KEY, "123456", NOW.plusSeconds(1))).isEqualTo(VerifyResult.SUCCESS);
     }
 

@@ -2,7 +2,7 @@
  * 提供框架无关的验证码签发频率限制能力。
  *
  * <p>限流流程分为三层：应用通过 {@link io.github.ringotangs.ringoboot.verification.limit.IssueLimitRule}
- * 声明业务匹配条件和额度桶；{@link io.github.ringotangs.ringoboot.verification.limit.IssueLimitManager}
+ * 声明业务匹配条件和额度桶；{@link io.github.ringotangs.ringoboot.verification.limit.RuleBasedIssueLimiter}
  * 收集并解析所有匹配规则；{@link io.github.ringotangs.ringoboot.verification.limit.IssueLimitStore}
  * 原子检查和消费解析后的签发配额。验证码服务只依赖顶层
  * {@link io.github.ringotangs.ringoboot.verification.limit.IssueLimiter}。

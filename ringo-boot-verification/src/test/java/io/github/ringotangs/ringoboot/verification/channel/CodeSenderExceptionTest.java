@@ -45,10 +45,10 @@ class CodeSenderExceptionTest {
     void representsExplicitProviderRejectionAsSenderFailure() {
         VerificationChannel channel = VerificationChannel.of("voice");
 
-        CodeDeliveryRejectedException exception = new CodeDeliveryRejectedException(channel);
+        CodeSendRejectedException exception = new CodeSendRejectedException(channel);
 
         assertInstanceOf(CodeSenderException.class, exception);
         assertEquals(channel, exception.channel());
-        assertEquals("Verification code delivery was rejected", exception.getMessage());
+        assertEquals("Verification code send was rejected", exception.getMessage());
     }
 }

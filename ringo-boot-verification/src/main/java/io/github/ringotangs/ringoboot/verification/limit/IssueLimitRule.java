@@ -11,7 +11,7 @@ import java.time.Duration;
  * {@link IssueLimitStore} 完成。
  *
  * <p>实现必须无状态、线程安全，并且在应用运行期间保持规则 ID、最大次数和窗口不变。Spring Boot 应用可以把实现注册为 Bean，
- * 由 {@link IssueLimitManager} 统一收集和执行。
+ * 由 {@link RuleBasedIssueLimiter} 统一收集和执行。
  */
 public interface IssueLimitRule {
 
@@ -40,7 +40,7 @@ public interface IssueLimitRule {
     /**
      * 从签发上下文解析已适用规则的运行时额度桶。
      *
-     * <p>{@link IssueLimitManager} 只会在 {@link #appliesTo(IssueContext)} 返回 {@code true} 后调用该方法。
+     * <p>{@link RuleBasedIssueLimiter} 只会在 {@link #appliesTo(IssueContext)} 返回 {@code true} 后调用该方法。
      *
      * @param context 签发上下文
      * @return 非空额度桶

@@ -4,18 +4,18 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * 按固定顺序执行一组 {@link IssueContextContributor} 的默认上下文 Manager。
+ * 按固定顺序组合并执行一组 {@link IssueContextContributor} 的上下文 Manager。
  */
-public final class DefaultIssueContextManager implements IssueContextManager {
+public final class CompositeIssueContextManager implements IssueContextManager {
 
     private final List<IssueContextContributor> contributors;
 
     /**
-     * 使用指定 Contributor 创建 Manager。
+     * 使用指定 Contributor 创建组合式 Manager。
      *
      * @param contributors 按执行顺序排列的上下文贡献器
      */
-    public DefaultIssueContextManager(List<IssueContextContributor> contributors) {
+    public CompositeIssueContextManager(List<IssueContextContributor> contributors) {
         Objects.requireNonNull(contributors, "contributors must not be null");
         contributors.forEach(contributor -> Objects.requireNonNull(contributor, "contributor must not be null"));
         this.contributors = List.copyOf(contributors);

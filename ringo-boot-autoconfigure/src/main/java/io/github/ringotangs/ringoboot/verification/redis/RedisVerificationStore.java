@@ -2,7 +2,6 @@ package io.github.ringotangs.ringoboot.verification.redis;
 
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.VerifyResult;
-import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreKey;
@@ -185,11 +184,11 @@ public final class RedisVerificationStore implements VerificationStore {
      * @param code 验证码明文，仅用于计算摘要
      * @param policy 验证码策略
      * @param issuedAt 签发时间
-     * @return 存储结果
+     * @return Redis 实际使用的验证码过期时间
      * @throws VerificationStoreException 当 Redis 操作失败时
      */
     @Override
-    public StoreResult store(VerificationStoreKey key, String code, VerificationPolicy policy, Instant issuedAt)
+    public Instant store(VerificationStoreKey key, String code, VerificationPolicy policy, Instant issuedAt)
             throws VerificationStoreException {
         Objects.requireNonNull(key, "key must not be null");
         Objects.requireNonNull(code, "code must not be null");
@@ -207,7 +206,7 @@ public final class RedisVerificationStore implements VerificationStore {
         if (result == null) {
             throw new VerificationStoreException("Redis store script returned no result");
         }
-        return new StoreResult(Instant.ofEpochMilli(result));
+        return Instant.ofEpochMilli(result);
     }
 
     /**

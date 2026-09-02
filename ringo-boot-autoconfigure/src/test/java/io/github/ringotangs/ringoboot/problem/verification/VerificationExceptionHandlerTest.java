@@ -9,7 +9,7 @@ import io.github.ringotangs.ringoboot.problem.message.ProblemMessageResolver;
 import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
 import io.github.ringotangs.ringoboot.verification.VerificationException;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
-import io.github.ringotangs.ringoboot.verification.channel.CodeDeliveryRejectedException;
+import io.github.ringotangs.ringoboot.verification.channel.CodeSendRejectedException;
 import io.github.ringotangs.ringoboot.verification.channel.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
@@ -64,7 +64,7 @@ class VerificationExceptionHandlerTest {
         ProblemDetail limitProblem = handler.handleVerificationException(new IssueLimitStoreException(
                 "lua script secret diagnostics", new IllegalStateException("redis details")));
         ProblemDetail rejectedProblem =
-                handler.handleVerificationException(new CodeDeliveryRejectedException(VerificationChannel.SMS));
+                handler.handleVerificationException(new CodeSendRejectedException(VerificationChannel.SMS));
 
         assertServiceUnavailable(senderProblem);
         assertServiceUnavailable(storeProblem);
@@ -76,7 +76,7 @@ class VerificationExceptionHandlerTest {
         assertLogged(output, CodeSenderException.class);
         assertLogged(output, VerificationStoreException.class);
         assertLogged(output, IssueLimitStoreException.class);
-        assertLogged(output, CodeDeliveryRejectedException.class);
+        assertLogged(output, CodeSendRejectedException.class);
         assertThat(output).contains("channel=email", "channel=sms");
     }
 
@@ -92,8 +92,7 @@ class VerificationExceptionHandlerTest {
                 resolver,
                 new CodeSenderException(VerificationChannel.EMAIL, "internal"),
                 "handleVerificationException");
-        assertHandler(
-                resolver, new CodeDeliveryRejectedException(VerificationChannel.SMS), "handleVerificationException");
+        assertHandler(resolver, new CodeSendRejectedException(VerificationChannel.SMS), "handleVerificationException");
         assertHandler(resolver, new VerificationStoreException("internal"), "handleVerificationException");
         assertHandler(resolver, new IssueLimitStoreException("internal"), "handleVerificationException");
         assertHandler(resolver, new MissingIssueLimitRuleException(), "handleVerificationException");

@@ -7,25 +7,24 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.github.ringotangs.ringoboot.verification.channel.CodeDeliveryRejectedException;
+import io.github.ringotangs.ringoboot.verification.channel.CodeSendRejectedException;
 import io.github.ringotangs.ringoboot.verification.channel.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.channel.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
-import io.github.ringotangs.ringoboot.verification.context.DefaultIssueContextManager;
+import io.github.ringotangs.ringoboot.verification.context.CompositeIssueContextManager;
 import io.github.ringotangs.ringoboot.verification.context.IssueContext;
 import io.github.ringotangs.ringoboot.verification.context.IssueContextContributor;
 import io.github.ringotangs.ringoboot.verification.context.IssueContextManager;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueLimitStore;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
-import io.github.ringotangs.ringoboot.verification.limit.IssueLimitManager;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitRule;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimiter;
 import io.github.ringotangs.ringoboot.verification.limit.MissingIssueLimitRuleException;
+import io.github.ringotangs.ringoboot.verification.limit.RuleBasedIssueLimiter;
 import io.github.ringotangs.ringoboot.verification.limit.TestIssueLimitRule;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
-import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreKey;
@@ -116,8 +115,7 @@ class AbstractVerificationServiceTest {
         CapturingVerificationService template = template(length -> "123456", new InMemoryVerificationStore());
         template.respondWith(CodeSendResult.REJECTED);
 
-        CodeDeliveryRejectedException rejected =
-                assertThrows(CodeDeliveryRejectedException.class, () -> template.issue(LOGIN));
+        CodeSendRejectedException rejected = assertThrows(CodeSendRejectedException.class, () -> template.issue(LOGIN));
         assertEquals(VerificationChannel.EMAIL, rejected.channel());
         template.respondWith(CodeSendResult.ACCEPTED);
 
@@ -160,8 +158,7 @@ class AbstractVerificationServiceTest {
         VerificationStoreException failure = new VerificationStoreException("storage unavailable");
         VerificationStore store = new StubVerificationStore() {
             @Override
-            public StoreResult store(
-                    VerificationStoreKey key, String code, VerificationPolicy policy, Instant issuedAt) {
+            public Instant store(VerificationStoreKey key, String code, VerificationPolicy policy, Instant issuedAt) {
                 throw failure;
             }
         };
@@ -170,6 +167,22 @@ class AbstractVerificationServiceTest {
         VerificationStoreException thrown = assertThrows(VerificationStoreException.class, () -> template.issue(LOGIN));
 
         assertSame(failure, thrown);
+        assertEquals(0, template.dispatches());
+    }
+
+    @Test
+    void rejectsNullStoreExpiration() {
+        VerificationStore store = new StubVerificationStore() {
+            @Override
+            public Instant store(VerificationStoreKey key, String code, VerificationPolicy policy, Instant issuedAt) {
+                return null;
+            }
+        };
+        CapturingVerificationService template = template(length -> "123456", store);
+
+        NullPointerException thrown = assertThrows(NullPointerException.class, () -> template.issue(LOGIN));
+
+        assertEquals("verification store expiration must not be null", thrown.getMessage());
         assertEquals(0, template.dispatches());
     }
 
@@ -197,8 +210,7 @@ class AbstractVerificationServiceTest {
         AtomicReference<VerificationStoreKey> invalidated = new AtomicReference<>();
         VerificationStore store = new StubVerificationStore() {
             @Override
-            public StoreResult store(
-                    VerificationStoreKey key, String code, VerificationPolicy policy, Instant issuedAt) {
+            public Instant store(VerificationStoreKey key, String code, VerificationPolicy policy, Instant issuedAt) {
                 stored.set(key);
                 return super.store(key, code, policy, issuedAt);
             }
@@ -218,7 +230,7 @@ class AbstractVerificationServiceTest {
         CapturingVerificationService template = template(length -> "123456", store);
         template.respondWith(CodeSendResult.REJECTED);
 
-        assertThrows(CodeDeliveryRejectedException.class, () -> template.issue(LOGIN));
+        assertThrows(CodeSendRejectedException.class, () -> template.issue(LOGIN));
         template.verify(LOGIN, "123456");
 
         VerificationStoreKey expected = new VerificationStoreKey(LOGIN, VerificationChannel.EMAIL);
@@ -239,7 +251,7 @@ class AbstractVerificationServiceTest {
                 new InMemoryVerificationStore(),
                 limiter,
                 VerificationPolicy.defaults(),
-                new DefaultIssueContextManager(List.of(
+                new CompositeIssueContextManager(List.of(
                         context -> context.with("ip-address", "203.0.113.10"),
                         context -> context.with("service", "capturing"))));
         assertInstanceOf(IssueResult.Accepted.class, template.issue(LOGIN));
@@ -353,8 +365,7 @@ class AbstractVerificationServiceTest {
         AtomicInteger stores = new AtomicInteger();
         VerificationStore store = new StubVerificationStore() {
             @Override
-            public StoreResult store(
-                    VerificationStoreKey key, String code, VerificationPolicy policy, Instant issuedAt) {
+            public Instant store(VerificationStoreKey key, String code, VerificationPolicy policy, Instant issuedAt) {
                 stores.incrementAndGet();
                 return super.store(key, code, policy, issuedAt);
             }
@@ -370,7 +381,7 @@ class AbstractVerificationServiceTest {
                 store,
                 limiter,
                 VerificationPolicy.defaults(),
-                new DefaultIssueContextManager(List.of()));
+                new CompositeIssueContextManager(List.of()));
 
         assertThrows(MissingIssueLimitRuleException.class, () -> template.issue(LOGIN));
         assertEquals(0, generations.get());
@@ -397,7 +408,7 @@ class AbstractVerificationServiceTest {
                         new InMemoryVerificationStore(),
                         null,
                         VerificationPolicy.defaults(),
-                        new DefaultIssueContextManager(List.of())));
+                        new CompositeIssueContextManager(List.of())));
         assertThrows(
                 NullPointerException.class,
                 () -> new CapturingVerificationService(
@@ -440,7 +451,7 @@ class AbstractVerificationServiceTest {
                         context.key().subject()),
                 1,
                 Duration.ofSeconds(60));
-        return new IssueLimitManager(List.of(rule), new InMemoryIssueLimitStore());
+        return new RuleBasedIssueLimiter(List.of(rule), new InMemoryIssueLimitStore());
     }
 
     private CapturingVerificationService serviceWithContributors(
@@ -450,7 +461,7 @@ class AbstractVerificationServiceTest {
                 new InMemoryVerificationStore(),
                 limiter,
                 VerificationPolicy.defaults(),
-                new DefaultIssueContextManager(contributors));
+                new CompositeIssueContextManager(contributors));
     }
 
     private static final class CapturingVerificationService extends AbstractVerificationService {
@@ -474,7 +485,7 @@ class AbstractVerificationServiceTest {
                 VerificationStore store,
                 IssueLimiter issueLimiter,
                 VerificationPolicy verificationPolicy) {
-            this(generator, store, issueLimiter, verificationPolicy, new DefaultIssueContextManager(List.of()));
+            this(generator, store, issueLimiter, verificationPolicy, new CompositeIssueContextManager(List.of()));
         }
 
         private CapturingVerificationService(
@@ -523,8 +534,8 @@ class AbstractVerificationServiceTest {
     private static class StubVerificationStore implements VerificationStore {
 
         @Override
-        public StoreResult store(VerificationStoreKey key, String code, VerificationPolicy policy, Instant issuedAt) {
-            return new StoreResult(NOW.plusSeconds(60));
+        public Instant store(VerificationStoreKey key, String code, VerificationPolicy policy, Instant issuedAt) {
+            return NOW.plusSeconds(60);
         }
 
         @Override

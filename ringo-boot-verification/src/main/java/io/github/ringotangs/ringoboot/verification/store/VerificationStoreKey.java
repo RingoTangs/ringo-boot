@@ -2,7 +2,6 @@ package io.github.ringotangs.ringoboot.verification.store;
 
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
-
 import java.util.Objects;
 
 /**

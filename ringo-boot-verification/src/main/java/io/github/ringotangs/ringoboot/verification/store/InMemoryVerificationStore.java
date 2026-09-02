@@ -61,18 +61,18 @@ public final class InMemoryVerificationStore implements VerificationStore {
      * @param code 新签发的明文验证码，仅在调用期间使用
      * @param policy 验证码策略
      * @param issuedAt 签发时间
-     * @return 成功存储后的结果
+     * @return 验证码过期时间
      * @throws NullPointerException 当任一参数为 {@code null} 时
      */
     @Override
-    public StoreResult store(VerificationStoreKey key, String code, VerificationPolicy policy, Instant issuedAt) {
+    public Instant store(VerificationStoreKey key, String code, VerificationPolicy policy, Instant issuedAt) {
         Objects.requireNonNull(key, "key must not be null");
         Objects.requireNonNull(code, "code must not be null");
         Objects.requireNonNull(policy, "policy must not be null");
         Objects.requireNonNull(issuedAt, "issuedAt must not be null");
         Instant expiresAt = issuedAt.plus(policy.ttl());
         entries.put(key, new Entry(digest(key, code), expiresAt, policy.maxAttempts()));
-        return new StoreResult(expiresAt);
+        return expiresAt;
     }
 
     /**

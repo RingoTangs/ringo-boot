@@ -7,15 +7,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.ringotangs.ringoboot.verification.channel.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
-import io.github.ringotangs.ringoboot.verification.context.DefaultIssueContextManager;
+import io.github.ringotangs.ringoboot.verification.context.CompositeIssueContextManager;
 import io.github.ringotangs.ringoboot.verification.context.IssueContext;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueLimitStore;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
-import io.github.ringotangs.ringoboot.verification.limit.IssueLimitManager;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitRule;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimiter;
+import io.github.ringotangs.ringoboot.verification.limit.RuleBasedIssueLimiter;
 import io.github.ringotangs.ringoboot.verification.limit.TestIssueLimitRule;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
@@ -176,7 +176,7 @@ class AbstractVerificationServiceLifecycleTest {
                         context.key().subject()),
                 1,
                 Duration.ofSeconds(60));
-        return new IssueLimitManager(List.of(rule), new InMemoryIssueLimitStore());
+        return new RuleBasedIssueLimiter(List.of(rule), new InMemoryIssueLimitStore());
     }
 
     private static final class TestVerificationService extends AbstractVerificationService {
@@ -188,7 +188,7 @@ class AbstractVerificationServiceLifecycleTest {
                 VerificationStore store,
                 IssueLimiter issueLimiter,
                 VerificationPolicy verificationPolicy) {
-            super(generator, store, issueLimiter, verificationPolicy, new DefaultIssueContextManager(List.of()));
+            super(generator, store, issueLimiter, verificationPolicy, new CompositeIssueContextManager(List.of()));
         }
 
         @Override

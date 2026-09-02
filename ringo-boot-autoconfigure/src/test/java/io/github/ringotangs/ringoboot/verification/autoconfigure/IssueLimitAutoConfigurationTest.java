@@ -10,12 +10,12 @@ import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.context.IssueContext;
 import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueLimitStore;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
-import io.github.ringotangs.ringoboot.verification.limit.IssueLimitManager;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitRule;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitStore;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimiter;
 import io.github.ringotangs.ringoboot.verification.limit.MissingIssueLimitRuleException;
+import io.github.ringotangs.ringoboot.verification.limit.RuleBasedIssueLimiter;
 import io.github.ringotangs.ringoboot.verification.redis.RedisIssueLimitStore;
 import io.github.ringotangs.ringoboot.verification.redis.VerificationHmacKey;
 import java.time.Duration;
@@ -74,7 +74,7 @@ class IssueLimitAutoConfigurationTest {
                     assertThat(context).hasSingleBean(IssueLimitStore.class);
                     assertThat(context.getBean(IssueLimitStore.class)).isInstanceOf(InMemoryIssueLimitStore.class);
                     assertThat(context).hasSingleBean(IssueLimiter.class);
-                    assertThat(context.getBean(IssueLimiter.class)).isInstanceOf(IssueLimitManager.class);
+                    assertThat(context.getBean(IssueLimiter.class)).isInstanceOf(RuleBasedIssueLimiter.class);
                 });
     }
 
@@ -184,7 +184,7 @@ class IssueLimitAutoConfigurationTest {
                     assertThat(context).hasSingleBean(IssueLimitStore.class);
                     assertThat(context.getBean(IssueLimitStore.class)).isInstanceOf(RedisIssueLimitStore.class);
                     assertThat(context).hasSingleBean(IssueLimiter.class);
-                    assertThat(context.getBean(IssueLimiter.class)).isInstanceOf(IssueLimitManager.class);
+                    assertThat(context.getBean(IssueLimiter.class)).isInstanceOf(RuleBasedIssueLimiter.class);
                 });
     }
 

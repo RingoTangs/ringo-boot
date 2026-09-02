@@ -1,6 +1,6 @@
 package io.github.ringotangs.ringoboot.verification;
 
-import io.github.ringotangs.ringoboot.verification.channel.CodeDeliveryRejectedException;
+import io.github.ringotangs.ringoboot.verification.channel.CodeSendRejectedException;
 import io.github.ringotangs.ringoboot.verification.channel.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.channel.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
@@ -12,7 +12,6 @@ import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitViolation;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimiter;
-import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreKey;
 import java.time.Clock;
@@ -80,8 +79,10 @@ public abstract class AbstractVerificationService implements VerificationService
         if (code == null || code.isBlank() || code.length() != codeLength) {
             throw new CodeGenerationException("generated code must be non-blank and have length " + codeLength);
         }
-        StoreResult stored = store.store(storeKey(context), code, verificationPolicy, issuedAt);
-        return dispatchStoredCode(context, code, stored.expiresAt());
+        Instant expiresAt = Objects.requireNonNull(
+                store.store(storeKey(context), code, verificationPolicy, issuedAt),
+                "verification store expiration must not be null");
+        return dispatchStoredCode(context, code, expiresAt);
     }
 
     /**
@@ -121,7 +122,7 @@ public abstract class AbstractVerificationService implements VerificationService
             return switch (result) {
                 case ACCEPTED -> new IssueResult.Accepted(expiresAt);
                 case UNKNOWN -> new IssueResult.Uncertain(expiresAt);
-                case REJECTED -> throw new CodeDeliveryRejectedException(context.channel());
+                case REJECTED -> throw new CodeSendRejectedException(context.channel());
             };
         } catch (RuntimeException dispatchFailure) {
             try {

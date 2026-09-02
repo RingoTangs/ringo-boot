@@ -14,7 +14,7 @@ public final class MissingIssueLimitRuleException extends IssueLimitException {
     /**
      * 创建一个表示限流管理器没有配置任何规则的异常。
      *
-     * <p>该构造器通常由 {@link IssueLimitManager} 在创建阶段使用。
+     * <p>该构造器通常由 {@link RuleBasedIssueLimiter} 在创建阶段使用。
      */
     public MissingIssueLimitRuleException() {
         super("at least one issue rate limit rule is required");

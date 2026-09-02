@@ -11,7 +11,7 @@ import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.channel.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
-import io.github.ringotangs.ringoboot.verification.context.DefaultIssueContextManager;
+import io.github.ringotangs.ringoboot.verification.context.CompositeIssueContextManager;
 import io.github.ringotangs.ringoboot.verification.context.IssueContext;
 import io.github.ringotangs.ringoboot.verification.context.IssueContextManager;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
@@ -42,7 +42,7 @@ class EmailVerificationServiceTest {
                     return new io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult.Allowed();
                 },
                 policy,
-                new DefaultIssueContextManager(List.of()),
+                new CompositeIssueContextManager(List.of()),
                 (context, code, expiresAt) -> {
                     captured.set(context);
                     capturedCode.set(code);
@@ -70,7 +70,7 @@ class EmailVerificationServiceTest {
                         new InMemoryVerificationStore(),
                         IssueLimiter.permitAll(),
                         VerificationPolicy.defaults(),
-                        new DefaultIssueContextManager(List.of()),
+                        new CompositeIssueContextManager(List.of()),
                         null));
     }
 
@@ -100,7 +100,7 @@ class EmailVerificationServiceTest {
                     return new io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult.Allowed();
                 },
                 VerificationPolicy.defaults(),
-                new DefaultIssueContextManager(List.of(context -> context.with("tenant-id", "tenant-1"))),
+                new CompositeIssueContextManager(List.of(context -> context.with("tenant-id", "tenant-1"))),
                 (context, code, expiresAt) -> {
                     dispatched.set(context);
                     return CodeSendResult.ACCEPTED;

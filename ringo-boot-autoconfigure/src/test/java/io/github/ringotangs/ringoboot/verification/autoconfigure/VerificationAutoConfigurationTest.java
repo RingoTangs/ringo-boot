@@ -12,7 +12,7 @@ import io.github.ringotangs.ringoboot.verification.channel.email.EmailCodeSender
 import io.github.ringotangs.ringoboot.verification.channel.email.EmailVerificationService;
 import io.github.ringotangs.ringoboot.verification.channel.sms.SmsCodeSender;
 import io.github.ringotangs.ringoboot.verification.channel.sms.SmsVerificationService;
-import io.github.ringotangs.ringoboot.verification.context.DefaultIssueContextManager;
+import io.github.ringotangs.ringoboot.verification.context.CompositeIssueContextManager;
 import io.github.ringotangs.ringoboot.verification.context.IssueContext;
 import io.github.ringotangs.ringoboot.verification.context.IssueContextManager;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
@@ -22,7 +22,6 @@ import io.github.ringotangs.ringoboot.verification.redis.RedisVerificationStore;
 import io.github.ringotangs.ringoboot.verification.redis.VerificationHmacKey;
 import io.github.ringotangs.ringoboot.verification.servlet.ClientIpContributor;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
-import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreKey;
 import jakarta.servlet.http.HttpServletRequest;
@@ -205,7 +204,7 @@ class VerificationAutoConfigurationTest {
             assertThat(context).doesNotHaveBean(EmailCodeSender.class);
             assertThat(context).doesNotHaveBean(SmsCodeSender.class);
             assertThat(context).hasSingleBean(IssueContextManager.class);
-            assertThat(context.getBean(IssueContextManager.class)).isInstanceOf(DefaultIssueContextManager.class);
+            assertThat(context.getBean(IssueContextManager.class)).isInstanceOf(CompositeIssueContextManager.class);
             assertThat(context).doesNotHaveBean(ClientIpContributor.class);
             assertThat(context).doesNotHaveBean(EmailVerificationService.class);
             assertThat(context).doesNotHaveBean(SmsVerificationService.class);
@@ -222,7 +221,7 @@ class VerificationAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).hasSingleBean(IssueContextManager.class);
                     assertThat(context.getBean(IssueContextManager.class)).isSameAs(manager);
-                    assertThat(context).doesNotHaveBean(DefaultIssueContextManager.class);
+                    assertThat(context).doesNotHaveBean(CompositeIssueContextManager.class);
                 });
     }
 
@@ -447,8 +446,8 @@ class VerificationAutoConfigurationTest {
     private static final class TestVerificationStore implements VerificationStore {
 
         @Override
-        public StoreResult store(VerificationStoreKey key, String code, VerificationPolicy policy, Instant issuedAt) {
-            return new StoreResult(issuedAt.plus(policy.ttl()));
+        public Instant store(VerificationStoreKey key, String code, VerificationPolicy policy, Instant issuedAt) {
+            return issuedAt.plus(policy.ttl());
         }
 
         @Override

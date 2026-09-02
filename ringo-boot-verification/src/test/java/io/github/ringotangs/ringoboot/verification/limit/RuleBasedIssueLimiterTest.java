@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
-class IssueLimitManagerTest {
+class RuleBasedIssueLimiterTest {
 
     private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
     private static final VerificationKey KEY = new VerificationKey("account", "login", "user@example.com");
@@ -35,7 +35,7 @@ class IssueLimitManagerTest {
                 1,
                 Duration.ofMinutes(1));
         AtomicReference<List<IssueLimitQuota>> captured = new AtomicReference<>();
-        IssueLimitManager manager = new IssueLimitManager(List.of(subjectRule, skipped), (rules, time) -> {
+        RuleBasedIssueLimiter manager = new RuleBasedIssueLimiter(List.of(subjectRule, skipped), (rules, time) -> {
             captured.set(rules);
             assertEquals(NOW, time);
             return new IssueLimitResult.Allowed();
@@ -67,10 +67,11 @@ class IssueLimitManagerTest {
                 .window(Duration.ofMinutes(1))
                 .build();
         AtomicReference<List<IssueLimitQuota>> captured = new AtomicReference<>();
-        IssueLimitManager manager = new IssueLimitManager(List.of(emailRule, smsRule), (quotas, requestedAt) -> {
-            captured.set(quotas);
-            return new IssueLimitResult.Allowed();
-        });
+        RuleBasedIssueLimiter manager =
+                new RuleBasedIssueLimiter(List.of(emailRule, smsRule), (quotas, requestedAt) -> {
+                    captured.set(quotas);
+                    return new IssueLimitResult.Allowed();
+                });
 
         assertInstanceOf(IssueLimitResult.Allowed.class, manager.acquire(CONTEXT, NOW));
         assertEquals(
@@ -82,7 +83,7 @@ class IssueLimitManagerTest {
     void ruleThatIgnoresChannelSharesQuotaAcrossChannels() {
         IssueLimitRule rule = new TestIssueLimitRule(
                 "application-minute", context -> IssueLimitBucket.of("application"), 1, Duration.ofMinutes(1));
-        IssueLimitManager manager = new IssueLimitManager(List.of(rule), new InMemoryIssueLimitStore());
+        RuleBasedIssueLimiter manager = new RuleBasedIssueLimiter(List.of(rule), new InMemoryIssueLimitStore());
         IssueContext otherContext = IssueContext.of(
                 new VerificationKey("payment", "confirm", "+8613800000000"),
                 VerificationChannel.SMS,
@@ -95,7 +96,7 @@ class IssueLimitManagerTest {
     @Test
     void rejectsWhenNoRulesMatchWithoutCallingStore() {
         AtomicInteger calls = new AtomicInteger();
-        IssueLimitManager manager = new IssueLimitManager(
+        RuleBasedIssueLimiter manager = new RuleBasedIssueLimiter(
                 List.of(rule("registration-minute", context -> false, "registration")), (rules, time) -> {
                     calls.incrementAndGet();
                     return new IssueLimitResult.Throttled(
@@ -117,7 +118,7 @@ class IssueLimitManagerTest {
                 context -> IssueLimitBucket.of(context.attribute("ip-address").orElseThrow()),
                 10,
                 Duration.ofHours(1));
-        IssueLimitManager manager = new IssueLimitManager(List.of(missingIp), (rules, time) -> {
+        RuleBasedIssueLimiter manager = new RuleBasedIssueLimiter(List.of(missingIp), (rules, time) -> {
             calls.incrementAndGet();
             return new IssueLimitResult.Allowed();
         });
@@ -164,26 +165,26 @@ class IssueLimitManagerTest {
         };
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new IssueLimitManager(List.of(rule, rule), (rules, time) -> new IssueLimitResult.Allowed()));
+                () -> new RuleBasedIssueLimiter(List.of(rule, rule), (rules, time) -> new IssueLimitResult.Allowed()));
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new IssueLimitManager(
+                () -> new RuleBasedIssueLimiter(
                         List.of(builtInRule, builtInRule), (rules, time) -> new IssueLimitResult.Allowed()));
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new IssueLimitManager(List.of(invalidRule), (rules, time) -> new IssueLimitResult.Allowed()));
+                () -> new RuleBasedIssueLimiter(List.of(invalidRule), (rules, time) -> new IssueLimitResult.Allowed()));
         assertThrows(
                 NullPointerException.class,
-                () -> new IssueLimitManager(
+                () -> new RuleBasedIssueLimiter(
                         Arrays.asList(rule, null), (rules, time) -> new IssueLimitResult.Allowed()));
         assertThrows(
                 MissingIssueLimitRuleException.class,
-                () -> new IssueLimitManager(List.of(), (rules, time) -> new IssueLimitResult.Allowed()));
+                () -> new RuleBasedIssueLimiter(List.of(), (rules, time) -> new IssueLimitResult.Allowed()));
     }
 
     @Test
-    void rejectsNullStoreResult() {
-        IssueLimitManager manager = new IssueLimitManager(
+    void rejectsNullInstant() {
+        RuleBasedIssueLimiter manager = new RuleBasedIssueLimiter(
                 List.of(rule("subject-minute", context -> true, "subject")), (rules, time) -> null);
 
         assertThrows(NullPointerException.class, () -> manager.acquire(CONTEXT, NOW));
@@ -198,7 +199,7 @@ class IssueLimitManagerTest {
                 10,
                 Duration.ofHours(1));
         IssueContext expected = CONTEXT.with("ip-address", "203.0.113.10");
-        IssueLimitManager manager = new IssueLimitManager(List.of(ipRule), (quotas, requestedAt) -> {
+        RuleBasedIssueLimiter manager = new RuleBasedIssueLimiter(List.of(ipRule), (quotas, requestedAt) -> {
             captured.set(quotas.getFirst());
             return new IssueLimitResult.Allowed();
         });

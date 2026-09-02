@@ -11,14 +11,14 @@ import java.util.Set;
 /**
  * 收集、匹配和解析签发限流规则，并统一提交给限流状态存储。
  *
- * <p>管理器在构造时复制规则集合，并校验规则定义和 ID 唯一性。每次获取名额时，先执行所有规则的
+ * <p>限流器在构造时复制规则集合，并校验规则定义和 ID 唯一性。每次获取名额时，先执行所有规则的
  * {@link IssueLimitRule#appliesTo(IssueContext)}，再为适用规则解析 {@link IssueLimitBucket}。只有全部额度桶成功解析后，才会把
  * 不可变 {@link IssueLimitQuota} 集合一次性提交给 {@link IssueLimitStore}。
  *
  * <p>规则集合为空或没有规则匹配当前验证码键时使用严格拒绝策略，抛出 {@link MissingIssueLimitRuleException}，不会访问状态
  * 存储。该类本身不可变；整体线程安全性还依赖规则实现和存储满足各自的线程安全契约。
  */
-public final class IssueLimitManager implements IssueLimiter {
+public final class RuleBasedIssueLimiter implements IssueLimiter {
 
     /**
      * 启动时复制并校验完成的不可变规则快照。
@@ -31,17 +31,17 @@ public final class IssueLimitManager implements IssueLimiter {
     private final IssueLimitStore store;
 
     /**
-     * 使用规则集合和限流状态存储创建管理器。
+     * 使用规则集合和限流状态存储创建限流器。
      *
      * <p>规则的迭代顺序会被保留，便于获得稳定的匹配和诊断顺序，但所有匹配规则仍以 AND 关系原子执行，顺序不会改变限流结果。
      *
-     * @param rules 需要管理的非空签发限流规则集合
+     * @param rules 需要执行的非空签发限流规则集合
      * @param store 原子保存和消费已解析配额的限流状态存储
      * @throws NullPointerException               当规则集合、任一规则、规则定义字段或 Store 为 {@code null} 时
      * @throws IllegalArgumentException           当规则定义非法或存在重复规则 ID 时
      * @throws MissingIssueLimitRuleException 当规则集合为空时
      */
-    public IssueLimitManager(List<IssueLimitRule> rules, IssueLimitStore store) {
+    public RuleBasedIssueLimiter(List<IssueLimitRule> rules, IssueLimitStore store) {
         Objects.requireNonNull(rules, "rules must not be null");
         this.store = Objects.requireNonNull(store, "store must not be null");
         this.rules = List.copyOf(rules);

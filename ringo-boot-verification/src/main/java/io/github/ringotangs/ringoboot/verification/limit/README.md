@@ -8,7 +8,7 @@
 ```text
 IssueContext
     ↓
-IssueLimiter / IssueLimitManager
+IssueLimiter / RuleBasedIssueLimiter
     ↓ 匹配全部适用规则并解析 bucket
 List<IssueLimitQuota>
     ↓ 原子检查并消费
@@ -45,7 +45,7 @@ ringo:
       enabled: true
 ```
 
-启用后，Spring Boot 会收集容器中的所有 `IssueLimitRule` Bean，并在存在规则时自动创建 `IssueLimitManager`。
+启用后，Spring Boot 会收集容器中的所有 `IssueLimitRule` Bean，并在存在规则时自动创建 `RuleBasedIssueLimiter`。
 
 ```java
 @Configuration(proxyBeanMethods = false)
@@ -86,7 +86,7 @@ namespace、purpose、channel、maxIssues 或 window 会生成新的 ID，也会
 ## 匹配与默认行为
 
 - 应用没有注册规则或自定义 `IssueLimiter` 时，自动配置使用 `IssueLimiter.permitAll()`，不会创建限流 Store。
-- 注册任意规则后，`IssueLimitManager` 会严格要求每个签发请求至少匹配一条规则。
+- 注册任意规则后，`RuleBasedIssueLimiter` 会严格要求每个签发请求至少匹配一条规则。
 - 没有规则覆盖当前 namespace、purpose 和 channel 时抛出 `MissingIssueLimitRuleException`。
 - 规则 ID 必须唯一；重复定义会在创建 Manager 时失败。
 - 规则顺序只影响稳定的解析和诊断顺序，不影响 AND 限流语义。
