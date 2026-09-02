@@ -11,8 +11,10 @@ import static org.mockito.Mockito.when;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.VerifyResult;
+import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
+import io.github.ringotangs.ringoboot.verification.store.VerificationStoreKey;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -24,7 +26,8 @@ import org.springframework.data.redis.core.script.RedisScript;
 
 class RedisVerificationStoreTest {
 
-    private static final VerificationKey KEY = new VerificationKey("account", "email-verification", "user@example.com");
+    private static final VerificationStoreKey KEY = new VerificationStoreKey(
+            new VerificationKey("account", "email-verification", "user@example.com"), VerificationChannel.EMAIL);
     private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
 
     @Test
@@ -53,7 +56,7 @@ class RedisVerificationStoreTest {
                 .isInstanceOf(VerificationStoreException.class)
                 .hasMessage("Redis verification operation failed")
                 .message()
-                .doesNotContain(KEY.subject(), "123456");
+                .doesNotContain(KEY.key().subject(), "123456");
     }
 
     @Test
@@ -85,10 +88,11 @@ class RedisVerificationStoreTest {
         ArgumentCaptor<Object[]> arguments = ArgumentCaptor.forClass(Object[].class);
         verify(redisTemplate).execute(any(RedisScript.class), keys.capture(), arguments.capture());
         assertThat(keys.getValue().getFirst())
-                .startsWith("test-application:verification:v1:account:email-verification:")
-                .doesNotContain(KEY.subject());
+                .startsWith("test-application:verification:v1:email:account:email-verification:")
+                .doesNotContain(KEY.key().subject());
         assertThat(arguments.getValue())
-                .allSatisfy(argument -> assertThat(argument.toString()).doesNotContain(KEY.subject(), "123456"));
+                .allSatisfy(argument ->
+                        assertThat(argument.toString()).doesNotContain(KEY.key().subject(), "123456"));
     }
 
     @Test

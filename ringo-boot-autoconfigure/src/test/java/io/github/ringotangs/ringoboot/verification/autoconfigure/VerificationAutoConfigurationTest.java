@@ -10,10 +10,8 @@ import io.github.ringotangs.ringoboot.verification.VerifyResult;
 import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.channel.email.EmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.channel.email.EmailVerificationService;
-import io.github.ringotangs.ringoboot.verification.channel.email.StdoutEmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.channel.sms.SmsCodeSender;
 import io.github.ringotangs.ringoboot.verification.channel.sms.SmsVerificationService;
-import io.github.ringotangs.ringoboot.verification.channel.sms.StdoutSmsCodeSender;
 import io.github.ringotangs.ringoboot.verification.context.DefaultIssueContextManager;
 import io.github.ringotangs.ringoboot.verification.context.IssueContext;
 import io.github.ringotangs.ringoboot.verification.context.IssueContextManager;
@@ -26,6 +24,7 @@ import io.github.ringotangs.ringoboot.verification.servlet.ClientIpContributor;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
+import io.github.ringotangs.ringoboot.verification.store.VerificationStoreKey;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.Duration;
 import java.time.Instant;
@@ -188,8 +187,8 @@ class VerificationAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).doesNotHaveBean(CodeGenerator.class);
                     assertThat(context).hasSingleBean(VerificationStore.class);
-                    assertThat(context).hasSingleBean(EmailCodeSender.class);
-                    assertThat(context).hasSingleBean(SmsCodeSender.class);
+                    assertThat(context).doesNotHaveBean(EmailCodeSender.class);
+                    assertThat(context).doesNotHaveBean(SmsCodeSender.class);
                     assertThat(context).doesNotHaveBean(IssueLimiter.class);
                     assertThat(context).doesNotHaveBean(EmailVerificationService.class);
                     assertThat(context).doesNotHaveBean(SmsVerificationService.class);
@@ -203,8 +202,8 @@ class VerificationAutoConfigurationTest {
             assertThat(context).doesNotHaveBean(CodeGenerator.class);
             assertThat(context).hasSingleBean(VerificationStore.class);
             assertThat(context.getBean(VerificationStore.class)).isInstanceOf(InMemoryVerificationStore.class);
-            assertThat(context.getBean(EmailCodeSender.class)).isInstanceOf(StdoutEmailCodeSender.class);
-            assertThat(context.getBean(SmsCodeSender.class)).isInstanceOf(StdoutSmsCodeSender.class);
+            assertThat(context).doesNotHaveBean(EmailCodeSender.class);
+            assertThat(context).doesNotHaveBean(SmsCodeSender.class);
             assertThat(context).hasSingleBean(IssueContextManager.class);
             assertThat(context.getBean(IssueContextManager.class)).isInstanceOf(DefaultIssueContextManager.class);
             assertThat(context).doesNotHaveBean(ClientIpContributor.class);
@@ -448,17 +447,17 @@ class VerificationAutoConfigurationTest {
     private static final class TestVerificationStore implements VerificationStore {
 
         @Override
-        public StoreResult store(VerificationKey key, String code, VerificationPolicy policy, Instant issuedAt) {
+        public StoreResult store(VerificationStoreKey key, String code, VerificationPolicy policy, Instant issuedAt) {
             return new StoreResult(issuedAt.plus(policy.ttl()));
         }
 
         @Override
-        public VerifyResult verifyAndConsume(VerificationKey key, String code, Instant verifiedAt) {
+        public VerifyResult verifyAndConsume(VerificationStoreKey key, String code, Instant verifiedAt) {
             return VerifyResult.NOT_FOUND;
         }
 
         @Override
-        public boolean invalidate(VerificationKey key, String code) {
+        public boolean invalidate(VerificationStoreKey key, String code) {
             return false;
         }
     }

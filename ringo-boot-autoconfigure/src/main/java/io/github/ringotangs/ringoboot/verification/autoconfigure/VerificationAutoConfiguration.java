@@ -1,9 +1,5 @@
 package io.github.ringotangs.ringoboot.verification.autoconfigure;
 
-import io.github.ringotangs.ringoboot.verification.channel.email.EmailCodeSender;
-import io.github.ringotangs.ringoboot.verification.channel.email.StdoutEmailCodeSender;
-import io.github.ringotangs.ringoboot.verification.channel.sms.SmsCodeSender;
-import io.github.ringotangs.ringoboot.verification.channel.sms.StdoutSmsCodeSender;
 import io.github.ringotangs.ringoboot.verification.context.DefaultIssueContextManager;
 import io.github.ringotangs.ringoboot.verification.context.IssueContextContributor;
 import io.github.ringotangs.ringoboot.verification.context.IssueContextManager;
@@ -25,7 +21,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 /**
- * 自动配置验证码状态存储、默认渠道发送器和可选的 Servlet 请求上下文贡献器。
+ * 自动配置验证码状态存储和可选的 Servlet 请求上下文贡献器。
  *
  * <p>仅在显式启用验证码功能时生效。验证服务和验证码生成器由应用显式组装；每个默认基础设施组件都会在应用提供同类型 Bean 时回退。</p>
  */
@@ -77,28 +73,6 @@ public class VerificationAutoConfiguration {
     VerificationStore unavailableRedisVerificationStore() {
         throw new IllegalStateException(
                 "Redis verification storage requires Spring Data Redis and a StringRedisTemplate");
-    }
-
-    /**
-     * 在用户未提供邮件发送器时创建标准输出实现。
-     *
-     * @return 仅供本地开发使用的标准输出邮件发送器
-     */
-    @Bean
-    @ConditionalOnMissingBean(EmailCodeSender.class)
-    EmailCodeSender stdoutEmailCodeSender() {
-        return new StdoutEmailCodeSender();
-    }
-
-    /**
-     * 在用户未提供短信发送器时创建标准输出实现。
-     *
-     * @return 仅供本地开发使用的标准输出短信发送器
-     */
-    @Bean
-    @ConditionalOnMissingBean(SmsCodeSender.class)
-    SmsCodeSender stdoutSmsCodeSender() {
-        return new StdoutSmsCodeSender();
     }
 
     /**

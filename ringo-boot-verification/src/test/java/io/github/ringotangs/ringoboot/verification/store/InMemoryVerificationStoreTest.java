@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.VerifyResult;
+import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
 import java.time.Duration;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
@@ -13,7 +14,8 @@ class InMemoryVerificationStoreTest {
 
     @Test
     void expiresAndRemovesCodeAtExpirationBoundary() {
-        VerificationKey key = new VerificationKey("account", "login", "user@example.com");
+        VerificationStoreKey key = new VerificationStoreKey(
+                new VerificationKey("account", "login", "user@example.com"), VerificationChannel.EMAIL);
         VerificationPolicy policy = new VerificationPolicy(6, Duration.ofMinutes(5), 5);
         Instant issuedAt = Instant.parse("2026-01-01T00:00:00Z");
         InMemoryVerificationStore store = new InMemoryVerificationStore();

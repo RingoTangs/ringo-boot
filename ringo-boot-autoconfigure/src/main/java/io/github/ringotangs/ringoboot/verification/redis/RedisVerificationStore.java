@@ -1,11 +1,11 @@
 package io.github.ringotangs.ringoboot.verification.redis;
 
-import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.VerifyResult;
 import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
+import io.github.ringotangs.ringoboot.verification.store.VerificationStoreKey;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -181,7 +181,7 @@ public final class RedisVerificationStore implements VerificationStore {
     /**
      * 保存验证码摘要、过期时间和最大校验次数。
      *
-     * @param key 验证码键
+     * @param key 渠道隔离的验证码存储键
      * @param code 验证码明文，仅用于计算摘要
      * @param policy 验证码策略
      * @param issuedAt 签发时间
@@ -189,7 +189,7 @@ public final class RedisVerificationStore implements VerificationStore {
      * @throws VerificationStoreException 当 Redis 操作失败时
      */
     @Override
-    public StoreResult store(VerificationKey key, String code, VerificationPolicy policy, Instant issuedAt)
+    public StoreResult store(VerificationStoreKey key, String code, VerificationPolicy policy, Instant issuedAt)
             throws VerificationStoreException {
         Objects.requireNonNull(key, "key must not be null");
         Objects.requireNonNull(code, "code must not be null");
@@ -213,14 +213,14 @@ public final class RedisVerificationStore implements VerificationStore {
     /**
      * 原子校验并消费验证码。
      *
-     * @param key 验证码键
+     * @param key 渠道隔离的验证码存储键
      * @param code 待校验的验证码
      * @param verifiedAt 校验时间
      * @return 验证结果
      * @throws VerificationStoreException 当 Redis 操作失败时
      */
     @Override
-    public VerifyResult verifyAndConsume(VerificationKey key, String code, Instant verifiedAt)
+    public VerifyResult verifyAndConsume(VerificationStoreKey key, String code, Instant verifiedAt)
             throws VerificationStoreException {
         Objects.requireNonNull(key, "key must not be null");
         Objects.requireNonNull(code, "code must not be null");
@@ -244,13 +244,13 @@ public final class RedisVerificationStore implements VerificationStore {
     /**
      * 当验证码键和验证码同时匹配时删除记录。
      *
-     * @param key 验证码键
+     * @param key 渠道隔离的验证码存储键
      * @param code 待失效的验证码
      * @return 是否删除了记录
      * @throws VerificationStoreException 当 Redis 操作失败时
      */
     @Override
-    public boolean invalidate(VerificationKey key, String code) throws VerificationStoreException {
+    public boolean invalidate(VerificationStoreKey key, String code) throws VerificationStoreException {
         Objects.requireNonNull(key, "key must not be null");
         Objects.requireNonNull(code, "code must not be null");
         Long result = execute(INVALIDATE_SCRIPT, redisKey(key), codeDigest(key, code));
@@ -263,12 +263,19 @@ public final class RedisVerificationStore implements VerificationStore {
     /**
      * 创建验证码状态对应的 Redis key。
      *
-     * @param key 包含业务域、用途和验证主体的验证码键
+     * @param key 包含渠道、业务域、用途和验证主体的验证码存储键
      * @return 包含业务前缀和验证主体摘要的 Redis key
      */
-    private String redisKey(VerificationKey key) {
+    private String redisKey(VerificationStoreKey key) {
         String prefix = applicationName + ":verification:" + STORAGE_VERSION + ':';
-        return prefix + key.namespace() + ':' + key.purpose() + ':' + digest(KEY_DIGEST_DOMAIN, key, null);
+        return prefix
+                + key.channel().value()
+                + ':'
+                + key.key().namespace()
+                + ':'
+                + key.key().purpose()
+                + ':'
+                + digest(KEY_DIGEST_DOMAIN, key, null);
     }
 
     /**
@@ -280,7 +287,7 @@ public final class RedisVerificationStore implements VerificationStore {
      * @param code 验证码明文，仅在当前进程中用于计算摘要
      * @return 无填充 Base64URL 编码的 HMAC-SHA256 摘要
      */
-    private String codeDigest(VerificationKey key, String code) {
+    private String codeDigest(VerificationStoreKey key, String code) {
         return digest(CODE_DIGEST_DOMAIN, key, code);
     }
 
@@ -297,15 +304,16 @@ public final class RedisVerificationStore implements VerificationStore {
      * @return 无填充 Base64URL 编码摘要
      * @throws VerificationStoreException 当运行环境不支持 HmacSHA256 时
      */
-    private String digest(String domain, VerificationKey key, @Nullable String code) {
+    private String digest(String domain, VerificationStoreKey key, @Nullable String code) {
         try {
             Mac mac = Mac.getInstance(HMAC_ALGORITHM);
             mac.init(new SecretKeySpec(secret, HMAC_ALGORITHM));
             update(mac, domain);
             update(mac, applicationName);
-            update(mac, key.namespace());
-            update(mac, key.purpose());
-            update(mac, key.subject());
+            update(mac, key.channel().value());
+            update(mac, key.key().namespace());
+            update(mac, key.key().purpose());
+            update(mac, key.key().subject());
             if (code != null) {
                 update(mac, code);
             }

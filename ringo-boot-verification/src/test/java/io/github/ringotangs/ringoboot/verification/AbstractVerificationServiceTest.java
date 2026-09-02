@@ -28,6 +28,7 @@ import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationSto
 import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
+import io.github.ringotangs.ringoboot.verification.store.VerificationStoreKey;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -138,7 +139,7 @@ class AbstractVerificationServiceTest {
         VerificationStoreException invalidationFailure = new VerificationStoreException("cleanup unavailable");
         VerificationStore store = new StubVerificationStore() {
             @Override
-            public boolean invalidate(VerificationKey key, String code) {
+            public boolean invalidate(VerificationStoreKey key, String code) {
                 throw invalidationFailure;
             }
         };
@@ -159,7 +160,8 @@ class AbstractVerificationServiceTest {
         VerificationStoreException failure = new VerificationStoreException("storage unavailable");
         VerificationStore store = new StubVerificationStore() {
             @Override
-            public StoreResult store(VerificationKey key, String code, VerificationPolicy policy, Instant issuedAt) {
+            public StoreResult store(
+                    VerificationStoreKey key, String code, VerificationPolicy policy, Instant issuedAt) {
                 throw failure;
             }
         };
@@ -176,7 +178,7 @@ class AbstractVerificationServiceTest {
         VerificationStoreException failure = new VerificationStoreException("storage unavailable");
         VerificationStore store = new StubVerificationStore() {
             @Override
-            public VerifyResult verifyAndConsume(VerificationKey key, String code, Instant verifiedAt) {
+            public VerifyResult verifyAndConsume(VerificationStoreKey key, String code, Instant verifiedAt) {
                 throw failure;
             }
         };
@@ -186,6 +188,43 @@ class AbstractVerificationServiceTest {
                 assertThrows(VerificationStoreException.class, () -> template.verify(LOGIN, "123456"));
 
         assertSame(failure, thrown);
+    }
+
+    @Test
+    void scopesAllStoreOperationsToServiceChannel() {
+        AtomicReference<VerificationStoreKey> stored = new AtomicReference<>();
+        AtomicReference<VerificationStoreKey> verified = new AtomicReference<>();
+        AtomicReference<VerificationStoreKey> invalidated = new AtomicReference<>();
+        VerificationStore store = new StubVerificationStore() {
+            @Override
+            public StoreResult store(
+                    VerificationStoreKey key, String code, VerificationPolicy policy, Instant issuedAt) {
+                stored.set(key);
+                return super.store(key, code, policy, issuedAt);
+            }
+
+            @Override
+            public VerifyResult verifyAndConsume(VerificationStoreKey key, String code, Instant verifiedAt) {
+                verified.set(key);
+                return VerifyResult.NOT_FOUND;
+            }
+
+            @Override
+            public boolean invalidate(VerificationStoreKey key, String code) {
+                invalidated.set(key);
+                return true;
+            }
+        };
+        CapturingVerificationService template = template(length -> "123456", store);
+        template.respondWith(CodeSendResult.REJECTED);
+
+        assertThrows(CodeDeliveryRejectedException.class, () -> template.issue(LOGIN));
+        template.verify(LOGIN, "123456");
+
+        VerificationStoreKey expected = new VerificationStoreKey(LOGIN, VerificationChannel.EMAIL);
+        assertEquals(expected, stored.get());
+        assertEquals(expected, invalidated.get());
+        assertEquals(expected, verified.get());
     }
 
     @Test
@@ -314,7 +353,8 @@ class AbstractVerificationServiceTest {
         AtomicInteger stores = new AtomicInteger();
         VerificationStore store = new StubVerificationStore() {
             @Override
-            public StoreResult store(VerificationKey key, String code, VerificationPolicy policy, Instant issuedAt) {
+            public StoreResult store(
+                    VerificationStoreKey key, String code, VerificationPolicy policy, Instant issuedAt) {
                 stores.incrementAndGet();
                 return super.store(key, code, policy, issuedAt);
             }
@@ -483,17 +523,17 @@ class AbstractVerificationServiceTest {
     private static class StubVerificationStore implements VerificationStore {
 
         @Override
-        public StoreResult store(VerificationKey key, String code, VerificationPolicy policy, Instant issuedAt) {
+        public StoreResult store(VerificationStoreKey key, String code, VerificationPolicy policy, Instant issuedAt) {
             return new StoreResult(NOW.plusSeconds(60));
         }
 
         @Override
-        public VerifyResult verifyAndConsume(VerificationKey key, String code, Instant verifiedAt) {
+        public VerifyResult verifyAndConsume(VerificationStoreKey key, String code, Instant verifiedAt) {
             return VerifyResult.NOT_FOUND;
         }
 
         @Override
-        public boolean invalidate(VerificationKey key, String code) {
+        public boolean invalidate(VerificationStoreKey key, String code) {
             return true;
         }
     }

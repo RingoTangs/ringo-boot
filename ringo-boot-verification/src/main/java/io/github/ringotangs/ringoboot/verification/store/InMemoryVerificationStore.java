@@ -1,6 +1,5 @@
 package io.github.ringotangs.ringoboot.verification.store;
 
-import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.VerifyResult;
 import java.nio.ByteBuffer;
@@ -30,7 +29,7 @@ public final class InMemoryVerificationStore implements VerificationStore {
     private static final String HMAC_ALGORITHM = "HmacSHA256";
     private static final int SECRET_BYTES = 32;
 
-    private final ConcurrentMap<VerificationKey, Entry> entries = new ConcurrentHashMap<>();
+    private final ConcurrentMap<VerificationStoreKey, Entry> entries = new ConcurrentHashMap<>();
     private final byte[] secret;
 
     /**
@@ -58,7 +57,7 @@ public final class InMemoryVerificationStore implements VerificationStore {
      * 原子地保存验证码摘要，并覆盖同一验证码键的旧状态。
      *
      *
-     * @param key 验证码键
+     * @param key 渠道隔离的验证码存储键
      * @param code 新签发的明文验证码，仅在调用期间使用
      * @param policy 验证码策略
      * @param issuedAt 签发时间
@@ -66,7 +65,7 @@ public final class InMemoryVerificationStore implements VerificationStore {
      * @throws NullPointerException 当任一参数为 {@code null} 时
      */
     @Override
-    public StoreResult store(VerificationKey key, String code, VerificationPolicy policy, Instant issuedAt) {
+    public StoreResult store(VerificationStoreKey key, String code, VerificationPolicy policy, Instant issuedAt) {
         Objects.requireNonNull(key, "key must not be null");
         Objects.requireNonNull(code, "code must not be null");
         Objects.requireNonNull(policy, "policy must not be null");
@@ -80,14 +79,14 @@ public final class InMemoryVerificationStore implements VerificationStore {
      * 原子地比对验证码摘要，处理过期、尝试次数扣减及成功后消费。
      *
      *
-     * @param key 验证码键
+     * @param key 渠道隔离的验证码存储键
      * @param code 待校验的明文验证码，仅在调用期间使用
      * @param verifiedAt 校验时间
      * @return 校验结果
      * @throws NullPointerException 当任一参数为 {@code null} 时
      */
     @Override
-    public VerifyResult verifyAndConsume(VerificationKey key, String code, Instant verifiedAt) {
+    public VerifyResult verifyAndConsume(VerificationStoreKey key, String code, Instant verifiedAt) {
         Objects.requireNonNull(key, "key must not be null");
         Objects.requireNonNull(code, "code must not be null");
         Objects.requireNonNull(verifiedAt, "verifiedAt must not be null");
@@ -120,12 +119,12 @@ public final class InMemoryVerificationStore implements VerificationStore {
      * 通过摘要匹配原子地删除指定验证码，避免删除同一键下后来签发的新验证码。
      *
      *
-     * @param key 验证码键
+     * @param key 渠道隔离的验证码存储键
      * @param code 待失效的明文验证码
      * @return 是否删除了匹配记录
      */
     @Override
-    public boolean invalidate(VerificationKey key, String code) {
+    public boolean invalidate(VerificationStoreKey key, String code) {
         Objects.requireNonNull(key, "key must not be null");
         Objects.requireNonNull(code, "code must not be null");
         byte[] candidateDigest = digest(key, code);
@@ -140,13 +139,14 @@ public final class InMemoryVerificationStore implements VerificationStore {
         return invalidated.get();
     }
 
-    private byte[] digest(VerificationKey key, String code) {
+    private byte[] digest(VerificationStoreKey key, String code) {
         try {
             Mac mac = Mac.getInstance(HMAC_ALGORITHM);
             mac.init(new SecretKeySpec(secret, HMAC_ALGORITHM));
-            update(mac, key.namespace());
-            update(mac, key.purpose());
-            update(mac, key.subject());
+            update(mac, key.channel().value());
+            update(mac, key.key().namespace());
+            update(mac, key.key().purpose());
+            update(mac, key.key().subject());
             update(mac, code);
             return mac.doFinal();
         } catch (GeneralSecurityException exception) {

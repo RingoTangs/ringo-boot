@@ -29,6 +29,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -189,6 +190,7 @@ class EmailVerificationControllerTest {
     static class SenderTestConfiguration {
 
         @Bean
+        @Primary
         CapturingEmailCodeSender capturingEmailCodeSender() {
             return new CapturingEmailCodeSender();
         }

@@ -30,6 +30,7 @@ flowchart LR
 | 类型                         | 职责                                                                       |
 |------------------------------|----------------------------------------------------------------------------|
 | `VerificationStore`          | 定义保存、校验并消费、按验证码失效三种原子操作。                           |
+| `VerificationStoreKey`       | 使用渠道和业务键唯一标识一条验证码状态记录。                               |
 | `InMemoryVerificationStore`  | 基于 `ConcurrentHashMap` 的线程安全内存实现。                              |
 | `StoreResult`                | 返回验证码成功保存后计算出的过期时间。                                     |
 | `VerificationStoreException` | 统一表达 Redis、数据库或第三方存储的连接、超时、序列化及原子操作故障。     |
@@ -39,16 +40,15 @@ flowchart LR
 
 ## 三、验证码记录由什么确定
 
-一条验证码记录由 `VerificationKey` 唯一确定：
+一条验证码记录由 `VerificationStoreKey` 唯一确定：
 
 ```java
-VerificationKey key = new VerificationKey(
-        "account",
-        "login",
-        "user@example.com");
+VerificationStoreKey key = new VerificationStoreKey(
+        new VerificationKey("account", "login", "user@example.com"),
+        VerificationChannel.EMAIL);
 ```
 
-三个分段分别表示：
+其中 `VerificationChannel` 隔离邮件、短信等渠道，`VerificationKey` 的三个分段分别表示：
 
 | 分段        | 示例               | 含义                                           |
 |-------------|--------------------|------------------------------------------------|
@@ -65,7 +65,7 @@ payment + login    + user@example.com
 account + login    + other@example.com
 ```
 
-对同一个 `VerificationKey` 再次执行 `store` 会覆盖旧记录。重发新验证码后，旧验证码立即失效。
+对同一个 `VerificationStoreKey` 再次执行 `store` 会覆盖旧记录。相同业务键在不同渠道下是独立记录。
 
 ## 四、VerificationStore 的三个操作
 
@@ -73,7 +73,7 @@ account + login    + other@example.com
 
 ```java
 StoreResult store(
-        VerificationKey key,
+        VerificationStoreKey key,
         String code,
         VerificationPolicy policy,
         Instant issuedAt);
@@ -92,7 +92,7 @@ Store 根据 `issuedAt + policy.ttl()` 计算过期时间，并保存：
 
 ```java
 VerifyResult verifyAndConsume(
-        VerificationKey key,
+        VerificationStoreKey key,
         String code,
         Instant verifiedAt);
 ```
@@ -113,7 +113,7 @@ VerifyResult verifyAndConsume(
 ### invalidate：按 Key 和验证码失效
 
 ```java
-boolean invalidate(VerificationKey key, String code);
+boolean invalidate(VerificationStoreKey key, String code);
 ```
 
 只有 Key 和验证码都匹配当前记录时才会删除并返回 `true`。同时匹配验证码非常重要，它避免下面的竞态条件：
@@ -133,7 +133,7 @@ sequenceDiagram
 
     App->>Service: issue(key)
     Service->>Service: 限流并生成明文验证码
-    Service->>Store: store(key, code, policy, issuedAt)
+    Service->>Store: store(storeKey, code, policy, issuedAt)
     Store-->>Service: StoreResult(expiresAt)
     Service->>Sender: dispatch(code, expiresAt)
     alt 发送已受理
@@ -144,12 +144,12 @@ sequenceDiagram
         Service-->>App: IssueResult.Uncertain
     else 发送拒绝或抛出异常
         Sender-->>Service: REJECTED / exception
-        Service->>Store: invalidate(key, code)
+        Service->>Store: invalidate(storeKey, code)
         Service-->>App: 抛出发送异常
     end
 
     App->>Service: verify(key, code)
-    Service->>Store: verifyAndConsume(key, code, verifiedAt)
+    Service->>Store: verifyAndConsume(storeKey, code, verifiedAt)
     Store-->>Service: VerifyResult
     Service-->>App: VerifyResult
 ```
@@ -167,7 +167,7 @@ sequenceDiagram
 内存实现的核心结构是：
 
 ```text
-ConcurrentHashMap<VerificationKey, Entry>
+ConcurrentHashMap<VerificationStoreKey, Entry>
 
 Entry:
   digest            验证码的 HMAC-SHA256 摘要
@@ -179,7 +179,7 @@ Entry:
 
 ```text
 key:
-  VerificationKey("account", "login", "user@example.com")
+  VerificationStoreKey(VerificationKey("account", "login", "user@example.com"), EMAIL)
 
 value:
   Entry(
@@ -189,7 +189,7 @@ value:
   )
 ```
 
-内存实现不会把明文验证码放入 `Entry`，但 Map 的 Key 本身仍是 `VerificationKey`，因此邮箱或手机号等 subject 会存在于
+内存实现不会把明文验证码放入 `Entry`，但 Map 的 Key 中包含 `VerificationKey`，因此邮箱或手机号等 subject 会存在于
 当前 JVM 内存中。Redis 实现会进一步对 Redis key 中的敏感分段进行摘要处理。
 
 ### 验证码摘要如何生成
@@ -197,12 +197,13 @@ value:
 每个 `InMemoryVerificationStore` 实例创建时生成一个 32 字节随机密钥。摘要输入依次为：
 
 ```text
-namespace + purpose + subject + code
+channel + namespace + purpose + subject + code
 ```
 
 实际计算不是直接拼接字符串，而是为每个 UTF-8 字节序列添加四字节长度前缀：
 
 ```text
+length(channel)   | channel
 length(namespace) | namespace
 length(purpose)   | purpose
 length(subject)   | subject
@@ -243,12 +244,12 @@ sequenceDiagram
     participant Map as ConcurrentHashMap
     participant B as 请求 B
 
-    A->>Store: verifyAndConsume(key, code)
+    A->>Store: verifyAndConsume(storeKey, code)
     Store->>Map: compute(key)
     Note over Store,Map: 找到记录，设置结果为 SUCCESS<br/>回调返回 null，删除记录
     Map-->>Store: compute 完成
     Store-->>A: SUCCESS
-    B->>Store: verifyAndConsume(key, code)
+    B->>Store: verifyAndConsume(storeKey, code)
     Store->>Map: compute(key)
     Note over Store,Map: 记录已经不存在<br/>结果保持 NOT_FOUND
     Map-->>Store: compute 完成

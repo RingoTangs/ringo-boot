@@ -3,10 +3,12 @@ package io.github.ringotangs.ringoboot.sample.verification;
 import io.github.ringotangs.ringoboot.verification.autoconfigure.VerificationProperties;
 import io.github.ringotangs.ringoboot.verification.channel.email.EmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.channel.email.EmailVerificationService;
+import io.github.ringotangs.ringoboot.verification.channel.email.StdoutEmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.context.IssueContextManager;
 import io.github.ringotangs.ringoboot.verification.generator.NumericCodeGenerator;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimiter;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,6 +19,12 @@ import org.springframework.context.annotation.Configuration;
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "enabled", havingValue = "true")
 class VerificationServiceConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean(EmailCodeSender.class)
+    EmailCodeSender emailCodeSender() {
+        return new StdoutEmailCodeSender();
+    }
 
     @Bean
     EmailVerificationService emailVerificationService(

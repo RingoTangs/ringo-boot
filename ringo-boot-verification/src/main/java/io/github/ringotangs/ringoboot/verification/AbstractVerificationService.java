@@ -14,6 +14,7 @@ import io.github.ringotangs.ringoboot.verification.limit.IssueLimitViolation;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimiter;
 import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
+import io.github.ringotangs.ringoboot.verification.store.VerificationStoreKey;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -79,7 +80,7 @@ public abstract class AbstractVerificationService implements VerificationService
         if (code == null || code.isBlank() || code.length() != codeLength) {
             throw new CodeGenerationException("generated code must be non-blank and have length " + codeLength);
         }
-        StoreResult stored = store.store(context.key(), code, verificationPolicy, issuedAt);
+        StoreResult stored = store.store(storeKey(context), code, verificationPolicy, issuedAt);
         return dispatchStoredCode(context, code, stored.expiresAt());
     }
 
@@ -90,7 +91,8 @@ public abstract class AbstractVerificationService implements VerificationService
     public final VerifyResult verify(VerificationKey key, String code) throws VerificationException {
         Objects.requireNonNull(key, "key must not be null");
         Objects.requireNonNull(code, "code must not be null");
-        return store.verifyAndConsume(key, code, clock.instant());
+        VerificationChannel channel = Objects.requireNonNull(channel(), "verification channel must not be null");
+        return store.verifyAndConsume(new VerificationStoreKey(key, channel), code, clock.instant());
     }
 
     /**
@@ -123,11 +125,15 @@ public abstract class AbstractVerificationService implements VerificationService
             };
         } catch (RuntimeException dispatchFailure) {
             try {
-                store.invalidate(context.key(), code);
+                store.invalidate(storeKey(context), code);
             } catch (RuntimeException invalidationFailure) {
                 dispatchFailure.addSuppressed(invalidationFailure);
             }
             throw dispatchFailure;
         }
+    }
+
+    private VerificationStoreKey storeKey(IssueContext context) {
+        return new VerificationStoreKey(context.key(), context.channel());
     }
 }

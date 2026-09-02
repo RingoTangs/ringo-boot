@@ -7,8 +7,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.VerifyResult;
+import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.store.StoreResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
+import io.github.ringotangs.ringoboot.verification.store.VerificationStoreKey;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -26,7 +28,7 @@ abstract class VerificationStoreContract {
 
     @Test
     void storesAndOverwritesReissue() {
-        VerificationKey key = key("account");
+        VerificationStoreKey key = key("account");
         Instant now = now();
 
         StoreResult stored = store().store(key, "123456", POLICY, now);
@@ -40,7 +42,7 @@ abstract class VerificationStoreContract {
 
     @Test
     void decrementsAttemptsAndConsumesExhaustedCode() {
-        VerificationKey key = key("account");
+        VerificationStoreKey key = key("account");
         Instant now = now();
         store().store(key, "123456", POLICY, now);
 
@@ -51,7 +53,7 @@ abstract class VerificationStoreContract {
 
     @Test
     void reportsExpiredThenConsumesRecord() {
-        VerificationKey key = key("account");
+        VerificationStoreKey key = key("account");
         Instant now = now();
         store().store(key, "123456", POLICY, now);
 
@@ -63,7 +65,7 @@ abstract class VerificationStoreContract {
 
     @Test
     void invalidatesOnlyMatchingCode() {
-        VerificationKey key = key("account");
+        VerificationStoreKey key = key("account");
         Instant now = now();
         store().store(key, "123456", POLICY, now);
 
@@ -75,8 +77,10 @@ abstract class VerificationStoreContract {
     @Test
     void isolatesBusinessNamespaces() {
         String subject = UUID.randomUUID() + "@example.com";
-        VerificationKey account = new VerificationKey("account", "login", subject);
-        VerificationKey payment = new VerificationKey("payment", "login", subject);
+        VerificationStoreKey account =
+                new VerificationStoreKey(new VerificationKey("account", "login", subject), VerificationChannel.EMAIL);
+        VerificationStoreKey payment =
+                new VerificationStoreKey(new VerificationKey("payment", "login", subject), VerificationChannel.EMAIL);
         Instant now = now();
         store().store(account, "123456", POLICY, now);
         store().store(payment, "654321", POLICY, now);
@@ -86,8 +90,22 @@ abstract class VerificationStoreContract {
     }
 
     @Test
+    void isolatesVerificationChannels() {
+        VerificationKey businessKey = new VerificationKey("account", "login", UUID.randomUUID() + "@example.com");
+        VerificationStoreKey email = new VerificationStoreKey(businessKey, VerificationChannel.EMAIL);
+        VerificationStoreKey sms = new VerificationStoreKey(businessKey, VerificationChannel.SMS);
+        Instant now = now();
+        store().store(email, "123456", POLICY, now);
+        store().store(sms, "654321", POLICY, now);
+
+        assertEquals(VerifyResult.MISMATCH, store().verifyAndConsume(email, "654321", now.plusSeconds(1)));
+        assertEquals(VerifyResult.SUCCESS, store().verifyAndConsume(email, "123456", now.plusSeconds(2)));
+        assertEquals(VerifyResult.SUCCESS, store().verifyAndConsume(sms, "654321", now.plusSeconds(2)));
+    }
+
+    @Test
     void permitsOnlyOneConcurrentSuccessfulConsumption() throws Exception {
-        VerificationKey key = key("account");
+        VerificationStoreKey key = key("account");
         Instant now = now();
         store().store(key, "123456", POLICY, now);
         int threads = 16;
@@ -113,8 +131,9 @@ abstract class VerificationStoreContract {
         }
     }
 
-    private VerificationKey key(String namespace) {
-        return new VerificationKey(namespace, "login", UUID.randomUUID() + "@example.com");
+    private VerificationStoreKey key(String namespace) {
+        return new VerificationStoreKey(
+                new VerificationKey(namespace, "login", UUID.randomUUID() + "@example.com"), VerificationChannel.EMAIL);
     }
 
     private Instant now() {
