@@ -23,10 +23,10 @@ public final class ProblemTypeUri {
      * {@code urn:problem:mvc:invalid-parameter}；{@code of("business", "user", "not-found")} 返回
      * {@code urn:problem:business:user:not-found}。
      *
-     * @param domain 问题所属领域
+     * @param domain   问题所属领域
      * @param segments 一个或多个问题类型分段
      * @return 问题类型 URI
-     * @throws NullPointerException 当领域、分段数组或任一分段为 {@code null} 时
+     * @throws NullPointerException     当领域、分段数组或任一分段为 {@code null} 时
      * @throws IllegalArgumentException 当没有提供问题分段，或者领域或任一分段不符合小写 kebab-case 规则时
      */
     public static URI of(String domain, String... segments) {

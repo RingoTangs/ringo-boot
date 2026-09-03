@@ -44,7 +44,7 @@ public final class ProblemException extends RuntimeException {
      * 使用问题类型的默认详情和非空原始异常创建问题异常。
      *
      * @param descriptor 问题描述
-     * @param cause 非空原始异常
+     * @param cause      非空原始异常
      * @return 问题异常
      * @throws NullPointerException 当问题描述或原始异常为 {@code null} 时
      */
@@ -57,7 +57,7 @@ public final class ProblemException extends RuntimeException {
      *
      * <p>详情参数会被复制为不可变列表，并使用 {@link MessageFormat} 和 {@link Locale#ROOT} 格式化默认详情。</p>
      *
-     * @param descriptor 问题描述
+     * @param descriptor      问题描述
      * @param detailArguments 非空且不包含 {@code null} 元素的详情消息参数
      * @return 问题异常
      * @throws NullPointerException 当问题描述、参数数组或任一参数元素为 {@code null} 时
@@ -71,8 +71,8 @@ public final class ProblemException extends RuntimeException {
      *
      * <p>详情参数会被复制为不可变列表，并使用 {@link MessageFormat} 和 {@link Locale#ROOT} 格式化默认详情。</p>
      *
-     * @param descriptor 问题描述
-     * @param cause 非空原始异常
+     * @param descriptor      问题描述
+     * @param cause           非空原始异常
      * @param detailArguments 非空且不包含 {@code null} 元素的详情消息参数
      * @return 问题异常
      * @throws NullPointerException 当问题描述、原始异常、参数数组或任一参数元素为 {@code null} 时

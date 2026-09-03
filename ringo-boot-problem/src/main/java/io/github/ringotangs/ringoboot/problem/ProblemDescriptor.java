@@ -6,11 +6,11 @@ import java.util.Objects;
 /**
  * 保存 RFC 9457 Problem Details 问题类型的不可变元数据。
  *
- * @param type 问题类型 URI
+ * @param type        问题类型 URI
  * @param messageCode 国际化消息基础键
- * @param title 问题标题
- * @param detail 问题详情，可以包含 {@link java.text.MessageFormat} 占位符
- * @param status HTTP 错误状态码
+ * @param title       问题标题
+ * @param detail      问题详情，可以包含 {@link java.text.MessageFormat} 占位符
+ * @param status      HTTP 错误状态码
  */
 public record ProblemDescriptor(URI type, String messageCode, String title, String detail, int status) {
 
@@ -20,7 +20,7 @@ public record ProblemDescriptor(URI type, String messageCode, String title, Stri
     /**
      * 创建问题描述并校验必填字段和 HTTP 错误状态码。
      *
-     * @throws NullPointerException 当问题类型 URI、国际化消息基础键、标题或详情为 {@code null} 时
+     * @throws NullPointerException     当问题类型 URI、国际化消息基础键、标题或详情为 {@code null} 时
      * @throws IllegalArgumentException 当国际化消息基础键为空白，或者 HTTP 状态码不在 {@code 400–599} 范围内时
      */
     public ProblemDescriptor {
@@ -40,11 +40,11 @@ public record ProblemDescriptor(URI type, String messageCode, String title, Stri
     /**
      * 使用 URI 创建问题描述。
      *
-     * @param type 问题类型 URI
+     * @param type        问题类型 URI
      * @param messageCode 国际化消息基础键
-     * @param title 问题标题
-     * @param detail 问题详情
-     * @param status HTTP 错误状态码
+     * @param title       问题标题
+     * @param detail      问题详情
+     * @param status      HTTP 错误状态码
      * @return 问题描述
      */
     public static ProblemDescriptor of(URI type, String messageCode, String title, String detail, int status) {
