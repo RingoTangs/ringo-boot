@@ -1,7 +1,7 @@
 package io.github.ringotangs.ringoboot.verification.web;
 
 import io.github.ringotangs.ringoboot.problem.ProblemDescriptor;
-import io.github.ringotangs.ringoboot.problem.web.ProblemDetailFactory;
+import io.github.ringotangs.ringoboot.problem.web.ProblemDetails;
 import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
 import io.github.ringotangs.ringoboot.verification.VerificationException;
 import io.github.ringotangs.ringoboot.verification.channel.CodeSenderException;
@@ -47,7 +47,7 @@ public class VerificationExceptionHandler {
                     case MissingIssueLimitRuleException ignored -> VerificationProblems.CONFIGURATION_ERROR;
                     default -> VerificationProblems.SERVICE_UNAVAILABLE;
                 };
-        return ProblemDetailFactory.create(descriptor, descriptor.detail());
+        return ProblemDetails.create(descriptor, descriptor.detail());
     }
 
     /**
@@ -62,7 +62,7 @@ public class VerificationExceptionHandler {
             logger.debug("Verification code issuance throttled: violations=" + exception.violations());
         }
         long seconds = retryAfterSeconds(exception.retryAfter());
-        ProblemDetail problem = ProblemDetailFactory.create(VerificationProblems.THROTTLED, retryAfterDetail(seconds));
+        ProblemDetail problem = ProblemDetails.create(VerificationProblems.THROTTLED, retryAfterDetail(seconds));
         return ResponseEntity.status(problem.getStatus())
                 .header(HttpHeaders.RETRY_AFTER, Long.toString(seconds))
                 .body(problem);
@@ -76,8 +76,7 @@ public class VerificationExceptionHandler {
      */
     @ExceptionHandler(InvalidVerificationCodeException.class)
     public ProblemDetail handleInvalidVerificationCode(InvalidVerificationCodeException exception) {
-        return ProblemDetailFactory.create(
-                VerificationProblems.INVALID_CODE, VerificationProblems.INVALID_CODE.detail());
+        return ProblemDetails.create(VerificationProblems.INVALID_CODE, VerificationProblems.INVALID_CODE.detail());
     }
 
     private long retryAfterSeconds(java.time.Duration retryAfter) {

@@ -8,15 +8,15 @@ import org.springframework.http.ProblemDetail;
 /**
  * 根据 {@link ProblemDescriptor} 创建 Problem Details。
  */
-public final class ProblemDetailFactory {
+public final class ProblemDetails {
 
-    private ProblemDetailFactory() {}
+    private ProblemDetails() {}
 
     /**
-     * 根据问题类型和详情创建 Problem Details。
+     * 根据问题描述和详情创建 Problem Details。
      *
      * @param descriptor 问题描述
-     * @param detail      问题详情
+     * @param detail 问题详情
      * @return 包含类型、状态、标题和详情的 Problem Details
      * @throws NullPointerException 当问题描述或详情为 {@code null} 时
      */
