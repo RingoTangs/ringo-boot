@@ -12,10 +12,10 @@ public class HelloController {
     @GetMapping("/user")
     public User user(@RequestParam(name = "id", defaultValue = "1") long id) {
         if (id <= 0) {
-            throw new ProblemException(UserProblemType.INVALID_USER_ID);
+            throw new ProblemException(UserProblems.INVALID_USER_ID);
         }
         if (id != 1) {
-            throw ProblemException.withArguments(UserProblemType.USER_NOT_FOUND, id);
+            throw ProblemException.withDetailArguments(UserProblems.USER_NOT_FOUND, id);
         }
 
         return User.builder().name("zs").age(18).build();

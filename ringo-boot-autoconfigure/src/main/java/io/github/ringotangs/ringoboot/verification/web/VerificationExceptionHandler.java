@@ -1,6 +1,6 @@
 package io.github.ringotangs.ringoboot.verification.web;
 
-import io.github.ringotangs.ringoboot.problem.ProblemType;
+import io.github.ringotangs.ringoboot.problem.ProblemDescriptor;
 import io.github.ringotangs.ringoboot.problem.web.ProblemDetailFactory;
 import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
 import io.github.ringotangs.ringoboot.verification.VerificationException;
@@ -41,13 +41,13 @@ public class VerificationExceptionHandler {
         } else {
             logger.error("Verification operation failed", exception);
         }
-        ProblemType problemType =
+        ProblemDescriptor descriptor =
                 switch (exception) {
-                    case CodeGenerationException ignored -> VerificationProblemType.GENERATION_FAILED;
-                    case MissingIssueLimitRuleException ignored -> VerificationProblemType.CONFIGURATION_ERROR;
-                    default -> VerificationProblemType.SERVICE_UNAVAILABLE;
+                    case CodeGenerationException ignored -> VerificationProblems.GENERATION_FAILED;
+                    case MissingIssueLimitRuleException ignored -> VerificationProblems.CONFIGURATION_ERROR;
+                    default -> VerificationProblems.SERVICE_UNAVAILABLE;
                 };
-        return ProblemDetailFactory.create(problemType, problemType.getDefaultDetail());
+        return ProblemDetailFactory.create(descriptor, descriptor.defaultDetail());
     }
 
     /**
@@ -62,8 +62,7 @@ public class VerificationExceptionHandler {
             logger.debug("Verification code issuance throttled: violations=" + exception.violations());
         }
         long seconds = retryAfterSeconds(exception.retryAfter());
-        ProblemDetail problem =
-                ProblemDetailFactory.create(VerificationProblemType.THROTTLED, retryAfterDetail(seconds));
+        ProblemDetail problem = ProblemDetailFactory.create(VerificationProblems.THROTTLED, retryAfterDetail(seconds));
         return ResponseEntity.status(problem.getStatus())
                 .header(HttpHeaders.RETRY_AFTER, Long.toString(seconds))
                 .body(problem);
@@ -78,7 +77,7 @@ public class VerificationExceptionHandler {
     @ExceptionHandler(InvalidVerificationCodeException.class)
     public ProblemDetail handleInvalidVerificationCode(InvalidVerificationCodeException exception) {
         return ProblemDetailFactory.create(
-                VerificationProblemType.INVALID_CODE, VerificationProblemType.INVALID_CODE.getDefaultDetail());
+                VerificationProblems.INVALID_CODE, VerificationProblems.INVALID_CODE.defaultDetail());
     }
 
     private long retryAfterSeconds(java.time.Duration retryAfter) {

@@ -10,10 +10,10 @@ import org.junit.jupiter.api.Test;
 
 class ProblemExceptionTest {
 
-    private static final ProblemType PROBLEM_TYPE =
-            () -> ProblemTypeDefinition.of("urn:problem:test", "problem.test", "Test problem", "Default detail", 400);
+    private static final ProblemDescriptor DESCRIPTOR =
+            ProblemDescriptor.of("urn:problem:test", "problem.test", "Test problem", "Default detail", 400);
 
-    private static final ProblemType PARAMETERIZED_PROBLEM_TYPE = () -> ProblemTypeDefinition.of(
+    private static final ProblemDescriptor PARAMETERIZED_DESCRIPTOR = ProblemDescriptor.of(
             "urn:problem:test:parameterized",
             "problem.test.parameterized",
             "Parameterized problem",
@@ -22,17 +22,17 @@ class ProblemExceptionTest {
 
     @Test
     void usesDefaultDetail() {
-        ProblemException exception = new ProblemException(PROBLEM_TYPE);
+        ProblemException exception = new ProblemException(DESCRIPTOR);
 
         assertEquals("Default detail", exception.getMessage());
-        assertSame(PROBLEM_TYPE, exception.getProblemType());
+        assertSame(DESCRIPTOR, exception.getDescriptor());
         assertNull(exception.getCause());
     }
 
     @Test
     void preservesCause() {
         RuntimeException cause = new RuntimeException("cause");
-        ProblemException exception = ProblemException.withCause(PROBLEM_TYPE, cause);
+        ProblemException exception = ProblemException.withCause(DESCRIPTOR, cause);
 
         assertEquals("Default detail", exception.getMessage());
         assertSame(cause, exception.getCause());
@@ -41,22 +41,22 @@ class ProblemExceptionTest {
     @Test
     void rejectsNullCauseInFactory() {
         NullPointerException exception =
-                assertThrows(NullPointerException.class, () -> ProblemException.withCause(PROBLEM_TYPE, null));
+                assertThrows(NullPointerException.class, () -> ProblemException.withCause(DESCRIPTOR, null));
 
         assertEquals("cause must not be null", exception.getMessage());
     }
 
     @Test
-    void rejectsNullProblemType() {
+    void rejectsNullDescriptor() {
         NullPointerException exception = assertThrows(NullPointerException.class, () -> new ProblemException(null));
 
-        assertEquals("problemType must not be null", exception.getMessage());
+        assertEquals("descriptor must not be null", exception.getMessage());
     }
 
     @Test
     void formatsAndPreservesDetailArguments() {
         Object[] arguments = {42};
-        ProblemException exception = ProblemException.withArguments(PARAMETERIZED_PROBLEM_TYPE, arguments);
+        ProblemException exception = ProblemException.withDetailArguments(PARAMETERIZED_DESCRIPTOR, arguments);
         arguments[0] = 99;
 
         assertEquals("User 42 does not exist", exception.getMessage());
@@ -69,7 +69,7 @@ class ProblemExceptionTest {
     @Test
     void preservesCauseWithDetailArguments() {
         RuntimeException cause = new RuntimeException("cause");
-        ProblemException exception = ProblemException.withArgumentsAndCause(PARAMETERIZED_PROBLEM_TYPE, cause, 42);
+        ProblemException exception = ProblemException.withDetailArguments(PARAMETERIZED_DESCRIPTOR, cause, 42);
 
         assertSame(cause, exception.getCause());
         assertEquals("User 42 does not exist", exception.getMessage());
@@ -77,9 +77,10 @@ class ProblemExceptionTest {
 
     @Test
     void rejectsNullDetailArguments() {
-        assertThrows(NullPointerException.class, () -> ProblemException.withArguments(PROBLEM_TYPE, (Object[]) null));
-        assertThrows(NullPointerException.class, () -> ProblemException.withArguments(PROBLEM_TYPE, (Object) null));
-        assertTrue(ProblemException.withArguments(PROBLEM_TYPE)
+        assertThrows(
+                NullPointerException.class, () -> ProblemException.withDetailArguments(DESCRIPTOR, (Object[]) null));
+        assertThrows(NullPointerException.class, () -> ProblemException.withDetailArguments(DESCRIPTOR, (Object) null));
+        assertTrue(ProblemException.withDetailArguments(DESCRIPTOR)
                 .getDetailArguments()
                 .isEmpty());
     }

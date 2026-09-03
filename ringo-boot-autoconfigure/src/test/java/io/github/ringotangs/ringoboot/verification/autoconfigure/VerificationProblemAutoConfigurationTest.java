@@ -2,7 +2,7 @@ package io.github.ringotangs.ringoboot.verification.autoconfigure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.github.ringotangs.ringoboot.problem.ProblemType;
+import io.github.ringotangs.ringoboot.problem.ProblemDescriptor;
 import io.github.ringotangs.ringoboot.problem.autoconfigure.ProblemAutoConfiguration;
 import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
@@ -69,7 +69,7 @@ class VerificationProblemAutoConfigurationTest {
     @Test
     void doesNotConfigureWhenProblemClassesAreAbsent() {
         contextRunner
-                .withClassLoader(new FilteredClassLoader(ProblemType.class))
+                .withClassLoader(new FilteredClassLoader(ProblemDescriptor.class))
                 .withPropertyValues(
                         "ringo.boot.problem.enabled=true",
                         "ringo.boot.problem.handlers.verification=true",

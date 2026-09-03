@@ -1,7 +1,6 @@
 package io.github.ringotangs.ringoboot.problem.web;
 
-import io.github.ringotangs.ringoboot.problem.ProblemType;
-import io.github.ringotangs.ringoboot.problem.ProblemTypeDefinition;
+import io.github.ringotangs.ringoboot.problem.ProblemDescriptor;
 import io.github.ringotangs.ringoboot.problem.ProblemTypeUri;
 import java.util.Objects;
 import org.apache.commons.logging.Log;
@@ -26,14 +25,12 @@ public class FallbackExceptionHandler {
 
     private static final Log logger = LogFactory.getLog(FallbackExceptionHandler.class);
 
-    private static final ProblemTypeDefinition INTERNAL_SERVER_ERROR_DEFINITION = ProblemTypeDefinition.of(
+    private static final ProblemDescriptor INTERNAL_SERVER_ERROR = ProblemDescriptor.of(
             ProblemTypeUri.of("fallback", "internal-server-error"),
             "problem.internal-server-error",
             "Internal server error",
             "An unexpected error occurred",
             HttpStatus.INTERNAL_SERVER_ERROR.value());
-
-    private static final ProblemType INTERNAL_SERVER_ERROR = () -> INTERNAL_SERVER_ERROR_DEFINITION;
 
     /**
      * 保留 Spring 框架错误响应，并安全处理其他未知异常。
@@ -50,8 +47,7 @@ public class FallbackExceptionHandler {
         }
 
         logger.error("Unhandled exception", exception);
-        ProblemDetail body =
-                ProblemDetailFactory.create(INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR_DEFINITION.defaultDetail());
+        ProblemDetail body = ProblemDetailFactory.create(INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR.defaultDetail());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 }

@@ -21,6 +21,6 @@ public class ProblemExceptionHandler {
      */
     @ExceptionHandler(ProblemException.class)
     public ProblemDetail handleProblemException(ProblemException exception) {
-        return ProblemDetailFactory.create(exception.getProblemType(), exception.getMessage());
+        return ProblemDetailFactory.create(exception.getDescriptor(), exception.getMessage());
     }
 }
