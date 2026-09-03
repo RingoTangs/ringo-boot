@@ -1,8 +1,6 @@
-package io.github.ringotangs.ringoboot.problem.verification;
+package io.github.ringotangs.ringoboot.verification.web;
 
-import io.github.ringotangs.ringoboot.problem.ProblemException;
 import io.github.ringotangs.ringoboot.problem.ProblemType;
-import io.github.ringotangs.ringoboot.problem.message.ProblemMessageResolver;
 import io.github.ringotangs.ringoboot.problem.web.ProblemDetailFactory;
 import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
 import io.github.ringotangs.ringoboot.verification.VerificationException;
@@ -30,17 +28,6 @@ public class VerificationExceptionHandler {
 
     private static final Log logger = LogFactory.getLog(VerificationExceptionHandler.class);
 
-    private final ProblemDetailFactory problemDetailFactory;
-
-    /**
-     * 使用问题消息解析器创建验证码异常处理器。
-     *
-     * @param messageResolver 问题消息解析器
-     */
-    public VerificationExceptionHandler(ProblemMessageResolver messageResolver) {
-        this.problemDetailFactory = new ProblemDetailFactory(messageResolver);
-    }
-
     /**
      * 记录未由专用方法处理的验证码异常，并构建不包含内部诊断信息的响应。
      *
@@ -60,7 +47,7 @@ public class VerificationExceptionHandler {
                     case MissingIssueLimitRuleException ignored -> VerificationProblemType.CONFIGURATION_ERROR;
                     default -> VerificationProblemType.SERVICE_UNAVAILABLE;
                 };
-        return problemDetailFactory.create(ProblemException.withCause(problemType, exception));
+        return ProblemDetailFactory.create(problemType, problemType.getDefaultDetail());
     }
 
     /**
@@ -75,13 +62,8 @@ public class VerificationExceptionHandler {
             logger.debug("Verification code issuance throttled: violations=" + exception.violations());
         }
         long seconds = retryAfterSeconds(exception.retryAfter());
-        ProblemDetail problem = problemDetailFactory.create(ProblemException.withArguments(
-                VerificationProblemType.THROTTLED,
-                seconds,
-                Long.toString(seconds),
-                Long.toString(ceilDiv(seconds, 60L)),
-                Long.toString(ceilDiv(seconds, 3_600L)),
-                Long.toString(ceilDiv(seconds, 86_400L))));
+        ProblemDetail problem =
+                ProblemDetailFactory.create(VerificationProblemType.THROTTLED, retryAfterDetail(seconds));
         return ResponseEntity.status(problem.getStatus())
                 .header(HttpHeaders.RETRY_AFTER, Long.toString(seconds))
                 .body(problem);
@@ -95,12 +77,32 @@ public class VerificationExceptionHandler {
      */
     @ExceptionHandler(InvalidVerificationCodeException.class)
     public ProblemDetail handleInvalidVerificationCode(InvalidVerificationCodeException exception) {
-        return problemDetailFactory.create(new ProblemException(VerificationProblemType.INVALID_CODE));
+        return ProblemDetailFactory.create(
+                VerificationProblemType.INVALID_CODE, VerificationProblemType.INVALID_CODE.getDefaultDetail());
     }
 
     private long retryAfterSeconds(java.time.Duration retryAfter) {
         long seconds = retryAfter.toSeconds();
         return retryAfter.minusSeconds(seconds).isZero() || seconds == Long.MAX_VALUE ? seconds : seconds + 1L;
+    }
+
+    private String retryAfterDetail(long seconds) {
+        if (seconds == 0L) {
+            return "Please retry shortly";
+        }
+        if (seconds == 1L) {
+            return "Please retry after 1 second";
+        }
+        if (seconds < 90L) {
+            return "Please retry after approximately " + seconds + " seconds";
+        }
+        if (seconds < 5_400L) {
+            return "Please retry after approximately " + ceilDiv(seconds, 60L) + " minutes";
+        }
+        if (seconds < 129_600L) {
+            return "Please retry after approximately " + ceilDiv(seconds, 3_600L) + " hours";
+        }
+        return "Please retry after approximately " + ceilDiv(seconds, 86_400L) + " days";
     }
 
     private long ceilDiv(long value, long divisor) {

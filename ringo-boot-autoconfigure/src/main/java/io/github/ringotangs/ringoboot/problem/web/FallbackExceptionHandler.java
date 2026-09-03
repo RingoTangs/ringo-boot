@@ -1,15 +1,11 @@
 package io.github.ringotangs.ringoboot.problem.web;
 
-import io.github.ringotangs.ringoboot.problem.ProblemException;
 import io.github.ringotangs.ringoboot.problem.ProblemType;
 import io.github.ringotangs.ringoboot.problem.ProblemTypeDefinition;
 import io.github.ringotangs.ringoboot.problem.ProblemTypeUri;
-import io.github.ringotangs.ringoboot.problem.message.ProblemMessageResolver;
 import java.util.Objects;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -39,23 +35,6 @@ public class FallbackExceptionHandler {
 
     private static final ProblemType INTERNAL_SERVER_ERROR = () -> INTERNAL_SERVER_ERROR_DEFINITION;
 
-    private final ProblemDetailFactory problemDetailFactory;
-    private final MessageSource messageSource;
-    private final boolean i18n;
-
-    /**
-     * 使用消息解析器创建全局异常兜底处理器。
-     *
-     * @param messageResolver 问题消息解析器
-     * @param messageSource   Spring 消息源
-     * @param i18n            是否使用 Spring 消息源更新框架错误响应
-     */
-    public FallbackExceptionHandler(ProblemMessageResolver messageResolver, MessageSource messageSource, boolean i18n) {
-        this.problemDetailFactory = new ProblemDetailFactory(messageResolver);
-        this.messageSource = Objects.requireNonNull(messageSource, "messageSource must not be null");
-        this.i18n = i18n;
-    }
-
     /**
      * 保留 Spring 框架错误响应，并安全处理其他未知异常。
      *
@@ -66,14 +45,13 @@ public class FallbackExceptionHandler {
     public ResponseEntity<ProblemDetail> handleException(Exception exception) {
         Objects.requireNonNull(exception, "exception must not be null");
         if (exception instanceof ErrorResponse errorResponse) {
-            ProblemDetail body = i18n
-                    ? errorResponse.updateAndGetBody(messageSource, LocaleContextHolder.getLocale())
-                    : errorResponse.getBody();
-            return new ResponseEntity<>(body, errorResponse.getHeaders(), errorResponse.getStatusCode());
+            return new ResponseEntity<>(
+                    errorResponse.getBody(), errorResponse.getHeaders(), errorResponse.getStatusCode());
         }
 
         logger.error("Unhandled exception", exception);
-        ProblemDetail body = problemDetailFactory.create(ProblemException.withCause(INTERNAL_SERVER_ERROR, exception));
+        ProblemDetail body =
+                ProblemDetailFactory.create(INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR_DEFINITION.defaultDetail());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 }

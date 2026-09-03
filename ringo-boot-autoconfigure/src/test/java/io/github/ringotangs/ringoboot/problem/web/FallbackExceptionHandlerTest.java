@@ -5,18 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import io.github.ringotangs.ringoboot.problem.message.DefaultProblemMessageResolver;
-import io.github.ringotangs.ringoboot.problem.message.MessageSourceProblemMessageResolver;
-import io.github.ringotangs.ringoboot.problem.message.ProblemMessageResolver;
 import java.net.URI;
-import java.util.Locale;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
-import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.context.support.StaticMessageSource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -27,17 +20,9 @@ import org.springframework.web.ErrorResponse;
 @ExtendWith(OutputCaptureExtension.class)
 class FallbackExceptionHandlerTest {
 
-    private final StaticMessageSource messageSource = new StaticMessageSource();
-    private boolean i18n;
-
-    @AfterEach
-    void resetLocale() {
-        LocaleContextHolder.resetLocaleContext();
-    }
-
     @Test
     void returnsSafeInternalServerErrorForUnexpectedException(CapturedOutput output) {
-        FallbackExceptionHandler handler = createHandler(new DefaultProblemMessageResolver());
+        FallbackExceptionHandler handler = new FallbackExceptionHandler();
 
         ResponseEntity<ProblemDetail> response =
                 handler.handleException(new IllegalStateException("password=secret; SQL select * from users"));
@@ -58,7 +43,7 @@ class FallbackExceptionHandlerTest {
 
     @Test
     void preservesFrameworkErrorResponseStatusHeadersAndBody(CapturedOutput output) {
-        FallbackExceptionHandler handler = createHandler(new DefaultProblemMessageResolver());
+        FallbackExceptionHandler handler = new FallbackExceptionHandler();
         FrameworkException exception = new FrameworkException();
 
         ResponseEntity<ProblemDetail> response = handler.handleException(exception);
@@ -67,53 +52,6 @@ class FallbackExceptionHandlerTest {
         assertEquals("120", response.getHeaders().getFirst("Retry-After"));
         assertEquals(exception.getBody(), response.getBody());
         assertThat(output).doesNotContain("Unhandled exception");
-    }
-
-    @Test
-    void usesBuiltInLocalizedMessagesForUnexpectedException() {
-        i18n = true;
-        LocaleContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
-        FallbackExceptionHandler handler = createHandler(new MessageSourceProblemMessageResolver(messageSource));
-
-        ProblemDetail body =
-                handler.handleException(new IllegalStateException("internal")).getBody();
-        assertNotNull(body);
-
-        assertEquals("服务器内部错误", body.getTitle());
-        assertEquals("发生了意外错误", body.getDetail());
-    }
-
-    @Test
-    void usesBuiltInEnglishMessagesForUnexpectedException() {
-        i18n = true;
-        LocaleContextHolder.setLocale(Locale.ENGLISH);
-        FallbackExceptionHandler handler = createHandler(new MessageSourceProblemMessageResolver(messageSource));
-
-        ProblemDetail body =
-                handler.handleException(new IllegalStateException("internal")).getBody();
-        assertNotNull(body);
-
-        assertEquals("Internal server error", body.getTitle());
-        assertEquals("An unexpected error occurred", body.getDetail());
-    }
-
-    @Test
-    void applicationMessagesOverrideBuiltInMessagesPerKey() {
-        messageSource.addMessage("problem.internal-server-error.title", Locale.SIMPLIFIED_CHINESE, "自定义服务器错误");
-        i18n = true;
-        LocaleContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
-        FallbackExceptionHandler handler = createHandler(new MessageSourceProblemMessageResolver(messageSource));
-
-        ProblemDetail body =
-                handler.handleException(new IllegalStateException("internal")).getBody();
-        assertNotNull(body);
-
-        assertEquals("自定义服务器错误", body.getTitle());
-        assertEquals("发生了意外错误", body.getDetail());
-    }
-
-    private FallbackExceptionHandler createHandler(ProblemMessageResolver resolver) {
-        return new FallbackExceptionHandler(resolver, messageSource, i18n);
     }
 
     private static final class FrameworkException extends RuntimeException implements ErrorResponse {

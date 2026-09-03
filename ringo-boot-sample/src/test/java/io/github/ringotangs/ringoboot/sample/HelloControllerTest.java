@@ -180,18 +180,6 @@ class HelloControllerTest {
     }
 
     @Test
-    void returnsLocalizedProblemForChineseRequest() throws Exception {
-        mockMvc.perform(get("/user").param("id", "2").header(HttpHeaders.ACCEPT_LANGUAGE, "zh-CN"))
-                .andExpect(status().isNotFound())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andExpect(jsonPath("$.type").value("urn:problem:business:user:not-found"))
-                .andExpect(jsonPath("$.title").value("未找到用户"))
-                .andExpect(jsonPath("$.status").value(404))
-                .andExpect(jsonPath("$.detail").value("用户 2 不存在"))
-                .andExpect(jsonPath("$.instance").value("/user"));
-    }
-
-    @Test
     void returnsSafeProblemForUnexpectedException() throws Exception {
         mockMvc.perform(get("/test/failure"))
                 .andExpect(status().isInternalServerError())

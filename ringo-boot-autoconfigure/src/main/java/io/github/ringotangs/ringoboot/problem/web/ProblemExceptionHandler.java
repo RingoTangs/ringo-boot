@@ -1,7 +1,6 @@
 package io.github.ringotangs.ringoboot.problem.web;
 
 import io.github.ringotangs.ringoboot.problem.ProblemException;
-import io.github.ringotangs.ringoboot.problem.message.ProblemMessageResolver;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -14,17 +13,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @Order(0)
 public class ProblemExceptionHandler {
 
-    private final ProblemDetailFactory problemDetailFactory;
-
-    /**
-     * 使用问题消息解析器创建异常处理器。
-     *
-     * @param messageResolver 问题消息解析器
-     */
-    public ProblemExceptionHandler(ProblemMessageResolver messageResolver) {
-        this.problemDetailFactory = new ProblemDetailFactory(messageResolver);
-    }
-
     /**
      * 构建 Problem Details 响应。
      *
@@ -33,6 +21,6 @@ public class ProblemExceptionHandler {
      */
     @ExceptionHandler(ProblemException.class)
     public ProblemDetail handleProblemException(ProblemException exception) {
-        return problemDetailFactory.create(exception);
+        return ProblemDetailFactory.create(exception.getProblemType(), exception.getMessage());
     }
 }

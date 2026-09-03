@@ -121,18 +121,6 @@ class EmailVerificationControllerTest {
     }
 
     @Test
-    void localizesInvalidCodeForChineseRequest() throws Exception {
-        mockMvc.perform(post("/verification/email/verify")
-                        .header(HttpHeaders.ACCEPT_LANGUAGE, "zh-CN")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(verifyRequest(uniqueEmail(), "123456")))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.type").value(INVALID_CODE_TYPE))
-                .andExpect(jsonPath("$.title").value("验证码无效"))
-                .andExpect(jsonPath("$.detail").value("验证码无效"));
-    }
-
-    @Test
     void validatesIssueRequestEmail() throws Exception {
         mockMvc.perform(post("/verification/email/code")
                         .contentType(MediaType.APPLICATION_JSON)

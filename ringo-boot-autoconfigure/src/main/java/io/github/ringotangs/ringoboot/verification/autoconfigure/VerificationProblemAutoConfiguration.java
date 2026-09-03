@@ -1,11 +1,11 @@
-package io.github.ringotangs.ringoboot.problem.autoconfigure;
+package io.github.ringotangs.ringoboot.verification.autoconfigure;
 
-import io.github.ringotangs.ringoboot.problem.ProblemException;
-import io.github.ringotangs.ringoboot.problem.message.ProblemMessageResolver;
-import io.github.ringotangs.ringoboot.problem.verification.VerificationExceptionHandler;
+import io.github.ringotangs.ringoboot.problem.ProblemType;
+import io.github.ringotangs.ringoboot.problem.autoconfigure.ProblemAutoConfiguration;
+import io.github.ringotangs.ringoboot.problem.autoconfigure.ProblemProperties;
 import io.github.ringotangs.ringoboot.verification.VerificationException;
+import io.github.ringotangs.ringoboot.verification.web.VerificationExceptionHandler;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -18,27 +18,20 @@ import org.springframework.http.ProblemDetail;
  */
 @AutoConfiguration(after = ProblemAutoConfiguration.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-@ConditionalOnClass({ProblemDetail.class, ProblemException.class, VerificationException.class})
+@ConditionalOnClass({ProblemDetail.class, ProblemType.class, VerificationException.class})
 @ConditionalOnProperty(prefix = ProblemProperties.PREFIX, name = "enabled", havingValue = "true")
 @ConditionalOnProperty(prefix = ProblemProperties.HANDLERS_PREFIX, name = "verification", havingValue = "true")
-@ConditionalOnProperty(
-        prefix = VerificationProblemAutoConfiguration.VERIFICATION_PREFIX,
-        name = "enabled",
-        havingValue = "true")
+@ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "enabled", havingValue = "true")
 public class VerificationProblemAutoConfiguration {
 
-    static final String VERIFICATION_PREFIX = "ringo.boot.verification";
-
     /**
-     * 在共享消息解析器可用且用户未提供自定义实现时创建验证码异常处理器。
+     * 在用户未提供自定义实现时创建验证码异常处理器。
      *
-     * @param messageResolver 问题消息解析器
      * @return 验证码异常处理器
      */
     @Bean
-    @ConditionalOnBean(ProblemMessageResolver.class)
     @ConditionalOnMissingBean
-    VerificationExceptionHandler verificationExceptionHandler(ProblemMessageResolver messageResolver) {
-        return new VerificationExceptionHandler(messageResolver);
+    VerificationExceptionHandler verificationExceptionHandler() {
+        return new VerificationExceptionHandler();
     }
 }

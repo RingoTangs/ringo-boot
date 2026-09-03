@@ -1,4 +1,4 @@
-package io.github.ringotangs.ringoboot.problem.verification;
+package io.github.ringotangs.ringoboot.verification.web;
 
 import io.github.ringotangs.ringoboot.problem.ProblemType;
 import io.github.ringotangs.ringoboot.problem.ProblemTypeDefinition;
@@ -13,7 +13,7 @@ enum VerificationProblemType implements ProblemType {
             ProblemTypeUri.of("business", "verification", "throttled"),
             "throttled",
             "Too many verification code requests",
-            "{0,choice,0#Please retry shortly|1#Please retry after 1 second|2#Please retry after approximately {1} seconds|90#Please retry after approximately {2} minutes|5400#Please retry after approximately {3} hours|129600#Please retry after approximately {4} days}",
+            "Please retry later",
             HttpStatus.TOO_MANY_REQUESTS),
     INVALID_CODE(
             ProblemTypeUri.of("business", "verification", "invalid-code"),

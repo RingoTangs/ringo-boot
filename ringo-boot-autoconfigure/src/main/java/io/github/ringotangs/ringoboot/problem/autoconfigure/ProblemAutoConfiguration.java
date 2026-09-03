@@ -1,9 +1,6 @@
 package io.github.ringotangs.ringoboot.problem.autoconfigure;
 
 import io.github.ringotangs.ringoboot.problem.ProblemException;
-import io.github.ringotangs.ringoboot.problem.message.DefaultProblemMessageResolver;
-import io.github.ringotangs.ringoboot.problem.message.MessageSourceProblemMessageResolver;
-import io.github.ringotangs.ringoboot.problem.message.ProblemMessageResolver;
 import io.github.ringotangs.ringoboot.problem.web.FallbackExceptionHandler;
 import io.github.ringotangs.ringoboot.problem.web.ProblemExceptionHandler;
 import io.github.ringotangs.ringoboot.problem.web.SpringMvcExceptionHandler;
@@ -20,8 +17,8 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 /**
  * 自动配置 Ringo Boot Problem Details 异常处理体系。
  *
- * <p>{@code enabled} 是总开关。业务问题、Spring MVC、验证码和未知异常处理均默认关闭，
- * 需要通过 {@code handlers} 分组分别开启。{@code i18n} 决定是否通过 Spring {@code MessageSource} 解析错误文案。</p>
+ * <p>{@code enabled} 是总开关。业务问题、Spring MVC 和未知异常处理均默认关闭，
+ * 需要通过 {@code handlers} 分组分别开启。</p>
  */
 @AutoConfiguration(before = WebMvcAutoConfiguration.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
@@ -60,8 +57,8 @@ public class ProblemAutoConfiguration {
          */
         @Bean
         @ConditionalOnMissingBean
-        ProblemExceptionHandler problemExceptionHandler(ProblemMessageResolver messageResolver) {
-            return new ProblemExceptionHandler(messageResolver);
+        ProblemExceptionHandler problemExceptionHandler() {
+            return new ProblemExceptionHandler();
         }
     }
 
@@ -77,30 +74,8 @@ public class ProblemAutoConfiguration {
          */
         @Bean
         @ConditionalOnMissingBean
-        FallbackExceptionHandler fallbackExceptionHandler(
-                ProblemMessageResolver messageResolver,
-                ApplicationContext applicationContext,
-                ProblemProperties properties) {
-            return new FallbackExceptionHandler(messageResolver, applicationContext, properties.isI18n());
-        }
-    }
-
-    /**
-     * 装配应用、验证码和兜底异常处理器共享的消息解析器。
-     */
-    @Configuration(proxyBeanMethods = false)
-    static class ProblemMessageResolverConfiguration {
-
-        /**
-         * 根据国际化开关选择消息解析器，用户可以提供自定义 Bean。
-         */
-        @Bean
-        @ConditionalOnMissingBean
-        ProblemMessageResolver problemMessageResolver(
-                ApplicationContext applicationContext, ProblemProperties properties) {
-            return properties.isI18n()
-                    ? new MessageSourceProblemMessageResolver(applicationContext)
-                    : new DefaultProblemMessageResolver();
+        FallbackExceptionHandler fallbackExceptionHandler() {
+            return new FallbackExceptionHandler();
         }
     }
 }

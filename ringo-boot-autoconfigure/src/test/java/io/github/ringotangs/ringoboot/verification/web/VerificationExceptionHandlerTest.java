@@ -1,11 +1,10 @@
-package io.github.ringotangs.ringoboot.problem.verification;
+package io.github.ringotangs.ringoboot.verification.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
-import io.github.ringotangs.ringoboot.problem.message.ProblemMessageResolver;
 import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
 import io.github.ringotangs.ringoboot.verification.VerificationException;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
@@ -215,11 +214,7 @@ class VerificationExceptionHandlerTest {
     }
 
     private VerificationExceptionHandler createDefaultHandler() {
-        ProblemMessageResolver resolver = exception -> {
-            var definition = exception.getProblemType().getDefinition();
-            return new ProblemMessageResolver.ProblemMessages(definition.title(), exception.getMessage());
-        };
-        return new VerificationExceptionHandler(resolver);
+        return new VerificationExceptionHandler();
     }
 
     private IssueLimitExceededException exceeded(Duration retryAfter) {

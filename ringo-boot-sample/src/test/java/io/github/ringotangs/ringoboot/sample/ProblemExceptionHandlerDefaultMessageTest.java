@@ -11,9 +11,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(properties = {"ringo.boot.problem.i18n=false", "ringo.boot.verification.store=memory"})
+@SpringBootTest(properties = "ringo.boot.verification.store=memory")
 @AutoConfigureMockMvc
-class ProblemExceptionHandlerI18nDisabledTest {
+class ProblemExceptionHandlerDefaultMessageTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -27,7 +27,7 @@ class ProblemExceptionHandlerI18nDisabledTest {
     }
 
     @Test
-    void springMvcStillUsesItsNativeMessagesWhenLibraryI18nIsDisabled() throws Exception {
+    void springMvcUsesItsNativeMessages() throws Exception {
         mockMvc.perform(get("/user").param("id", "invalid").header(HttpHeaders.ACCEPT_LANGUAGE, "zh-CN"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.type").value("urn:problem:mvc:invalid-parameter"))

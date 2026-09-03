@@ -1,44 +1,34 @@
 package io.github.ringotangs.ringoboot.problem.web;
 
-import io.github.ringotangs.ringoboot.problem.ProblemException;
+import io.github.ringotangs.ringoboot.problem.ProblemType;
 import io.github.ringotangs.ringoboot.problem.ProblemTypeDefinition;
-import io.github.ringotangs.ringoboot.problem.message.ProblemMessageResolver;
 import java.util.Objects;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 
 /**
- * 根据 {@link ProblemException} 创建 Problem Details。
+ * 根据 {@link ProblemType} 创建 Problem Details。
  */
 public final class ProblemDetailFactory {
 
-    private final ProblemMessageResolver messageResolver;
+    private ProblemDetailFactory() {}
 
     /**
-     * 使用指定消息解析器创建 Problem Details 工厂。
+     * 根据问题类型和详情创建 Problem Details。
      *
-     * @param messageResolver 问题消息解析器
-     * @throws NullPointerException 当消息解析器为 {@code null} 时
-     */
-    public ProblemDetailFactory(ProblemMessageResolver messageResolver) {
-        this.messageResolver = Objects.requireNonNull(messageResolver, "messageResolver must not be null");
-    }
-
-    /**
-     * 根据问题异常创建 Problem Details。
-     *
-     * @param exception 问题异常
+     * @param problemType 问题类型
+     * @param detail      问题详情
      * @return 包含类型、状态、标题和详情的 Problem Details
-     * @throws NullPointerException 当问题异常为 {@code null} 时
+     * @throws NullPointerException 当问题类型或详情为 {@code null} 时
      */
-    public ProblemDetail create(ProblemException exception) {
-        Objects.requireNonNull(exception, "exception must not be null");
-        ProblemTypeDefinition definition = exception.getProblemType().getDefinition();
-        ProblemMessageResolver.ProblemMessages messages = messageResolver.resolve(exception);
+    public static ProblemDetail create(ProblemType problemType, String detail) {
+        Objects.requireNonNull(problemType, "problemType must not be null");
+        Objects.requireNonNull(detail, "detail must not be null");
+        ProblemTypeDefinition definition = problemType.getDefinition();
         ProblemDetail problem =
-                ProblemDetail.forStatusAndDetail(HttpStatusCode.valueOf(definition.httpStatus()), messages.detail());
+                ProblemDetail.forStatusAndDetail(HttpStatusCode.valueOf(definition.httpStatus()), detail);
         problem.setType(definition.type());
-        problem.setTitle(messages.title());
+        problem.setTitle(definition.title());
         return problem;
     }
 }
