@@ -11,7 +11,11 @@ import org.springframework.http.ProblemDetail;
 class ProblemExceptionHandlerTest {
 
     private static final ProblemDescriptor DESCRIPTOR = ProblemDescriptor.of(
-            "urn:problem:test:not-found", "problem.test.not-found", "User not found", "User {0} does not exist", 404);
+            URI.create("urn:problem:test:not-found"),
+            "problem.test.not-found",
+            "User not found",
+            "User {0} does not exist",
+            404);
 
     private final ProblemExceptionHandler handler = new ProblemExceptionHandler();
 

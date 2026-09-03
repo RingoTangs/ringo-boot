@@ -6,15 +6,16 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.net.URI;
 import org.junit.jupiter.api.Test;
 
 class ProblemExceptionTest {
 
     private static final ProblemDescriptor DESCRIPTOR =
-            ProblemDescriptor.of("urn:problem:test", "problem.test", "Test problem", "Default detail", 400);
+            ProblemDescriptor.of(URI.create("urn:problem:test"), "problem.test", "Test problem", "Default detail", 400);
 
     private static final ProblemDescriptor PARAMETERIZED_DESCRIPTOR = ProblemDescriptor.of(
-            "urn:problem:test:parameterized",
+            URI.create("urn:problem:test:parameterized"),
             "problem.test.parameterized",
             "Parameterized problem",
             "User {0} does not exist",
