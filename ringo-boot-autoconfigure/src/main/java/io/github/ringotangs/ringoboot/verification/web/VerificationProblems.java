@@ -48,7 +48,7 @@ final class VerificationProblems {
     private VerificationProblems() {}
 
     private static ProblemDescriptor descriptor(
-            URI type, String category, String title, String defaultDetail, HttpStatus status) {
-        return ProblemDescriptor.of(type, "problem.verification." + category, title, defaultDetail, status.value());
+            URI type, String category, String title, String detail, HttpStatus status) {
+        return ProblemDescriptor.of(type, "problem.verification." + category, title, detail, status.value());
     }
 }

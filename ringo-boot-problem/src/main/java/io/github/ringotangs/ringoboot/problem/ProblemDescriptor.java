@@ -9,10 +9,10 @@ import java.util.Objects;
  * @param type 问题类型 URI
  * @param messageCode 国际化消息基础键
  * @param title 问题标题
- * @param defaultDetail 默认问题详情
+ * @param detail 问题详情，可以包含 {@link java.text.MessageFormat} 占位符
  * @param status HTTP 错误状态码
  */
-public record ProblemDescriptor(URI type, String messageCode, String title, String defaultDetail, int status) {
+public record ProblemDescriptor(URI type, String messageCode, String title, String detail, int status) {
 
     private static final int MIN_ERROR_STATUS = 400;
     private static final int MAX_ERROR_STATUS = 599;
@@ -30,7 +30,7 @@ public record ProblemDescriptor(URI type, String messageCode, String title, Stri
             throw new IllegalArgumentException("messageCode must not be blank");
         }
         Objects.requireNonNull(title, "title must not be null");
-        Objects.requireNonNull(defaultDetail, "defaultDetail must not be null");
+        Objects.requireNonNull(detail, "detail must not be null");
         if (!isErrorStatus(status)) {
             throw new IllegalArgumentException(
                     "status must be between " + MIN_ERROR_STATUS + " and " + MAX_ERROR_STATUS + ": " + status);
@@ -43,18 +43,13 @@ public record ProblemDescriptor(URI type, String messageCode, String title, Stri
      * @param type 问题类型 URI 字符串
      * @param messageCode 国际化消息基础键
      * @param title 问题标题
-     * @param defaultDetail 默认问题详情
+     * @param detail 问题详情
      * @param status HTTP 错误状态码
      * @return 问题描述
      */
-    public static ProblemDescriptor of(
-            String type, String messageCode, String title, String defaultDetail, int status) {
+    public static ProblemDescriptor of(String type, String messageCode, String title, String detail, int status) {
         return of(
-                URI.create(Objects.requireNonNull(type, "type must not be null")),
-                messageCode,
-                title,
-                defaultDetail,
-                status);
+                URI.create(Objects.requireNonNull(type, "type must not be null")), messageCode, title, detail, status);
     }
 
     /**
@@ -63,12 +58,12 @@ public record ProblemDescriptor(URI type, String messageCode, String title, Stri
      * @param type 问题类型 URI
      * @param messageCode 国际化消息基础键
      * @param title 问题标题
-     * @param defaultDetail 默认问题详情
+     * @param detail 问题详情
      * @param status HTTP 错误状态码
      * @return 问题描述
      */
-    public static ProblemDescriptor of(URI type, String messageCode, String title, String defaultDetail, int status) {
-        return new ProblemDescriptor(type, messageCode, title, defaultDetail, status);
+    public static ProblemDescriptor of(URI type, String messageCode, String title, String detail, int status) {
+        return new ProblemDescriptor(type, messageCode, title, detail, status);
     }
 
     private static boolean isErrorStatus(int status) {

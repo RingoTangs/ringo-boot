@@ -47,7 +47,7 @@ public class VerificationExceptionHandler {
                     case MissingIssueLimitRuleException ignored -> VerificationProblems.CONFIGURATION_ERROR;
                     default -> VerificationProblems.SERVICE_UNAVAILABLE;
                 };
-        return ProblemDetailFactory.create(descriptor, descriptor.defaultDetail());
+        return ProblemDetailFactory.create(descriptor, descriptor.detail());
     }
 
     /**
@@ -77,7 +77,7 @@ public class VerificationExceptionHandler {
     @ExceptionHandler(InvalidVerificationCodeException.class)
     public ProblemDetail handleInvalidVerificationCode(InvalidVerificationCodeException exception) {
         return ProblemDetailFactory.create(
-                VerificationProblems.INVALID_CODE, VerificationProblems.INVALID_CODE.defaultDetail());
+                VerificationProblems.INVALID_CODE, VerificationProblems.INVALID_CODE.detail());
     }
 
     private long retryAfterSeconds(java.time.Duration retryAfter) {

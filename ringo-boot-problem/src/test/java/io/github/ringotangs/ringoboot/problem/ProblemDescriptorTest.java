@@ -16,7 +16,7 @@ class ProblemDescriptorTest {
         assertEquals(URI.create("urn:problem:test"), descriptor.type());
         assertEquals("problem.test", descriptor.messageCode());
         assertEquals("Test problem", descriptor.title());
-        assertEquals("Default detail", descriptor.defaultDetail());
+        assertEquals("Default detail", descriptor.detail());
         assertEquals(400, descriptor.status());
     }
 

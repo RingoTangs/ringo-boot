@@ -35,7 +35,7 @@ public final class ProblemException extends RuntimeException {
     }
 
     private ProblemException(ProblemDescriptor descriptor, @Nullable Throwable cause, List<Object> detailArguments) {
-        super(formatDefaultDetail(descriptor, detailArguments), cause);
+        super(formatDetail(descriptor, detailArguments), cause);
         this.descriptor = descriptor;
         this.detailArguments = List.copyOf(detailArguments);
     }
@@ -104,12 +104,12 @@ public final class ProblemException extends RuntimeException {
     /**
      * 校验问题类型，并使用固定区域设置和消息参数格式化默认详情。
      */
-    private static String formatDefaultDetail(ProblemDescriptor descriptor, List<Object> detailArguments) {
+    private static String formatDetail(ProblemDescriptor descriptor, List<Object> detailArguments) {
         ProblemDescriptor requiredDescriptor = Objects.requireNonNull(descriptor, "descriptor must not be null");
-        String defaultDetail = requiredDescriptor.defaultDetail();
+        String detail = requiredDescriptor.detail();
         return detailArguments.isEmpty()
-                ? defaultDetail
-                : new MessageFormat(defaultDetail, Locale.ROOT).format(detailArguments.toArray());
+                ? detail
+                : new MessageFormat(detail, Locale.ROOT).format(detailArguments.toArray());
     }
 
     private static List<Object> copyArguments(Object[] detailArguments) {

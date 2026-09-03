@@ -14,13 +14,12 @@ public final class UserProblems {
 
     private UserProblems() {}
 
-    private static ProblemDescriptor descriptor(
-            String category, String title, String defaultDetail, HttpStatus status) {
+    private static ProblemDescriptor descriptor(String category, String title, String detail, HttpStatus status) {
         return ProblemDescriptor.of(
                 ProblemTypeUri.of("business", "user", category),
                 "problem.user." + category,
                 title,
-                defaultDetail,
+                detail,
                 status.value());
     }
 }
