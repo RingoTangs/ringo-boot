@@ -7,6 +7,7 @@ import io.github.ringotangs.ringoboot.problem.web.ProblemExceptionHandler;
 import io.github.ringotangs.ringoboot.problem.web.SpringMvcExceptionHandler;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
@@ -20,10 +21,14 @@ class ProblemAutoConfigurationTest {
     private final ApplicationContextRunner nonWebContextRunner =
             new ApplicationContextRunner().withConfiguration(AutoConfigurations.of(ProblemAutoConfiguration.class));
 
+    private final WebApplicationContextRunner springMvcContextRunner = new WebApplicationContextRunner()
+            .withConfiguration(AutoConfigurations.of(ProblemAutoConfiguration.class, WebMvcAutoConfiguration.class));
+
     @Test
     void doesNotConfigureHandlersInNonWebApplication() {
         nonWebContextRunner
-                .withPropertyValues("ringo.boot.problem.enabled=true", "ringo.boot.problem.handlers.fallback=true")
+                .withPropertyValues(
+                        "spring.mvc.problemdetails.enabled=true", "ringo.boot.problem.handlers.fallback=true")
                 .run(context -> {
                     assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);
                     assertThat(context).doesNotHaveBean(FallbackExceptionHandler.class);
@@ -35,7 +40,8 @@ class ProblemAutoConfigurationTest {
     void doesNotConfigureHandlersWhenSpringWebIsAbsent() {
         nonWebContextRunner
                 .withClassLoader(new FilteredClassLoader("org.springframework.web"))
-                .withPropertyValues("ringo.boot.problem.enabled=true", "ringo.boot.problem.handlers.fallback=true")
+                .withPropertyValues(
+                        "spring.mvc.problemdetails.enabled=true", "ringo.boot.problem.handlers.fallback=true")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);
@@ -49,7 +55,7 @@ class ProblemAutoConfigurationTest {
         contextRunner
                 .withClassLoader(new FilteredClassLoader("io.github.ringotangs.ringoboot.verification"))
                 .withPropertyValues(
-                        "ringo.boot.problem.enabled=true",
+                        "spring.mvc.problemdetails.enabled=true",
                         "ringo.boot.problem.handlers.application=true",
                         "ringo.boot.verification.enabled=true")
                 .run(context -> {
@@ -72,7 +78,7 @@ class ProblemAutoConfigurationTest {
     @Test
     void configuresSpringMvcHandlingIndependently() {
         contextRunner
-                .withPropertyValues("ringo.boot.problem.enabled=true", "ringo.boot.problem.handlers.mvc=true")
+                .withPropertyValues("spring.mvc.problemdetails.enabled=true", "ringo.boot.problem.handlers.mvc=true")
                 .run(context -> {
                     assertThat(context).hasSingleBean(SpringMvcExceptionHandler.class);
                     assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);
@@ -81,17 +87,37 @@ class ProblemAutoConfigurationTest {
     }
 
     @Test
+    void leavesSpringBootProblemDetailsHandlerInPlaceByDefault() {
+        springMvcContextRunner
+                .withPropertyValues("spring.mvc.problemdetails.enabled=true")
+                .run(context -> {
+                    assertThat(context).hasBean("problemDetailsExceptionHandler");
+                    assertThat(context).doesNotHaveBean(SpringMvcExceptionHandler.class);
+                });
+    }
+
+    @Test
+    void replacesSpringBootProblemDetailsHandlerWhenMvcHandlingIsEnabled() {
+        springMvcContextRunner
+                .withPropertyValues("spring.mvc.problemdetails.enabled=true", "ringo.boot.problem.handlers.mvc=true")
+                .run(context -> {
+                    assertThat(context).hasSingleBean(SpringMvcExceptionHandler.class);
+                    assertThat(context).doesNotHaveBean("problemDetailsExceptionHandler");
+                });
+    }
+
+    @Test
     void doesNotConfigureSpringMvcHandlerWhenSpringMvcIsAbsent() {
         contextRunner
                 .withClassLoader(new FilteredClassLoader(ResponseEntityExceptionHandler.class))
-                .withPropertyValues("ringo.boot.problem.enabled=true", "ringo.boot.problem.handlers.mvc=true")
+                .withPropertyValues("spring.mvc.problemdetails.enabled=true", "ringo.boot.problem.handlers.mvc=true")
                 .run(context -> assertThat(context).doesNotHaveBean(SpringMvcExceptionHandler.class));
     }
 
     @Test
     void backsOffForCustomSpringMvcExceptionHandler() {
         contextRunner
-                .withPropertyValues("ringo.boot.problem.enabled=true", "ringo.boot.problem.handlers.mvc=true")
+                .withPropertyValues("spring.mvc.problemdetails.enabled=true", "ringo.boot.problem.handlers.mvc=true")
                 .withBean(ResponseEntityExceptionHandler.class, CustomSpringMvcExceptionHandler::new)
                 .run(context -> {
                     assertThat(context).doesNotHaveBean(SpringMvcExceptionHandler.class);
@@ -100,20 +126,22 @@ class ProblemAutoConfigurationTest {
     }
 
     @Test
-    void masterSwitchLeavesAllHandlersDisabledByDefault() {
-        contextRunner.withPropertyValues("ringo.boot.problem.enabled=true").run(context -> {
-            assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);
-            assertThat(context).doesNotHaveBean(SpringMvcExceptionHandler.class);
-            assertThat(context).doesNotHaveBean(FallbackExceptionHandler.class);
-            ProblemProperties properties = context.getBean(ProblemProperties.class);
-            assertThat(properties.isEnabled()).isTrue();
-        });
+    void standardSwitchLeavesCustomHandlersDisabledByDefault() {
+        contextRunner
+                .withPropertyValues("spring.mvc.problemdetails.enabled=true")
+                .run(context -> {
+                    assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);
+                    assertThat(context).doesNotHaveBean(SpringMvcExceptionHandler.class);
+                    assertThat(context).doesNotHaveBean(FallbackExceptionHandler.class);
+                    assertThat(context).doesNotHaveBean(ProblemProperties.class);
+                });
     }
 
     @Test
     void configuresProblemHandlingWhenExplicitlyEnabled() {
         contextRunner
-                .withPropertyValues("ringo.boot.problem.enabled=true", "ringo.boot.problem.handlers.application=true")
+                .withPropertyValues(
+                        "spring.mvc.problemdetails.enabled=true", "ringo.boot.problem.handlers.application=true")
                 .run(context -> {
                     assertThat(context).hasSingleBean(ProblemExceptionHandler.class);
                     assertThat(context).doesNotHaveBean(FallbackExceptionHandler.class);
@@ -123,7 +151,8 @@ class ProblemAutoConfigurationTest {
     @Test
     void configuresFallbackHandlingIndependently() {
         contextRunner
-                .withPropertyValues("ringo.boot.problem.enabled=true", "ringo.boot.problem.handlers.fallback=true")
+                .withPropertyValues(
+                        "spring.mvc.problemdetails.enabled=true", "ringo.boot.problem.handlers.fallback=true")
                 .run(context -> {
                     assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);
                     assertThat(context).doesNotHaveBean(SpringMvcExceptionHandler.class);
@@ -152,9 +181,11 @@ class ProblemAutoConfigurationTest {
 
     @Test
     void doesNotConfigureExceptionHandlingWhenExplicitlyDisabled() {
-        contextRunner.withPropertyValues("ringo.boot.problem.enabled=false").run(context -> {
-            assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);
-        });
+        contextRunner
+                .withPropertyValues("spring.mvc.problemdetails.enabled=false")
+                .run(context -> {
+                    assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);
+                });
     }
 
     private static final class CustomSpringMvcExceptionHandler extends ResponseEntityExceptionHandler {}

@@ -7,7 +7,6 @@ import io.github.ringotangs.ringoboot.problem.web.SpringMvcExceptionHandler;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.*;
 import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,14 +16,13 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 /**
  * 自动配置 Ringo Boot Problem Details 异常处理体系。
  *
- * <p>{@code enabled} 是总开关。业务问题、Spring MVC 和未知异常处理均默认关闭，
+ * <p>{@value ProblemProperties#ENABLED_PROPERTY} 是总开关。业务问题、Spring MVC 和未知异常处理均默认关闭，
  * 需要通过 {@code handlers} 分组分别开启。</p>
  */
 @AutoConfiguration(before = WebMvcAutoConfiguration.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass({ProblemDetail.class, ProblemException.class})
-@ConditionalOnProperty(prefix = ProblemProperties.PREFIX, name = "enabled", havingValue = "true")
-@EnableConfigurationProperties(ProblemProperties.class)
+@ConditionalOnBooleanProperty(ProblemProperties.ENABLED_PROPERTY)
 public class ProblemAutoConfiguration {
 
     /**

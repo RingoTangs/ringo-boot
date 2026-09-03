@@ -19,7 +19,6 @@ logging:
 ringo:
   boot:
     problem:
-      enabled: true
       handlers:
         application: true
         mvc: true
