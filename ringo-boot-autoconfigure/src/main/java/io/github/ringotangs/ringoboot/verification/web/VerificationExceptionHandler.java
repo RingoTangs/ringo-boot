@@ -8,6 +8,8 @@ import io.github.ringotangs.ringoboot.verification.channel.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitExceededException;
 import io.github.ringotangs.ringoboot.verification.limit.MissingIssueLimitRuleException;
+import java.text.MessageFormat;
+import java.util.Locale;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.core.annotation.Order;
@@ -63,7 +65,7 @@ public class VerificationExceptionHandler {
         }
         long seconds = retryAfterSeconds(exception.retryAfter());
         ProblemDetail problem =
-                ProblemDetails.create(VerificationProblems.THROTTLED, ignored -> retryAfterDetail(seconds));
+                ProblemDetails.create(VerificationProblems.THROTTLED, template -> formatRetryAfter(template, seconds));
         return ResponseEntity.status(problem.getStatus())
                 .header(HttpHeaders.RETRY_AFTER, Long.toString(seconds))
                 .body(problem);
@@ -85,23 +87,9 @@ public class VerificationExceptionHandler {
         return retryAfter.minusSeconds(seconds).isZero() || seconds == Long.MAX_VALUE ? seconds : seconds + 1L;
     }
 
-    private String retryAfterDetail(long seconds) {
-        if (seconds == 0L) {
-            return "Please retry shortly";
-        }
-        if (seconds == 1L) {
-            return "Please retry after 1 second";
-        }
-        if (seconds < 90L) {
-            return "Please retry after approximately " + seconds + " seconds";
-        }
-        if (seconds < 5_400L) {
-            return "Please retry after approximately " + ceilDiv(seconds, 60L) + " minutes";
-        }
-        if (seconds < 129_600L) {
-            return "Please retry after approximately " + ceilDiv(seconds, 3_600L) + " hours";
-        }
-        return "Please retry after approximately " + ceilDiv(seconds, 86_400L) + " days";
+    private String formatRetryAfter(String template, long seconds) {
+        Object[] arguments = {seconds, ceilDiv(seconds, 60L), ceilDiv(seconds, 3_600L), ceilDiv(seconds, 86_400L)};
+        return new MessageFormat(template, Locale.ROOT).format(arguments);
     }
 
     private long ceilDiv(long value, long divisor) {

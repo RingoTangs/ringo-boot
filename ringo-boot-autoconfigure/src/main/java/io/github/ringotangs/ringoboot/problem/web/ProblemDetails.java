@@ -14,7 +14,9 @@ public final class ProblemDetails {
 
     private ProblemDetails() {}
 
-    /** 根据问题描述的默认详情创建 Problem Details。 */
+    /**
+     * 根据问题描述的默认详情创建 Problem Details。
+     */
     public static ProblemDetail create(ProblemDescriptor descriptor) {
         return create(descriptor, null);
     }
@@ -22,7 +24,7 @@ public final class ProblemDetails {
     /**
      * 根据问题描述和可选的详情格式化函数创建 Problem Details。
      *
-     * @param descriptor 问题描述
+     * @param descriptor      问题描述
      * @param detailFormatter 接收默认详情模板并返回最终详情的函数；为 {@code null} 时不格式化
      * @return 包含类型、状态、标题和详情的 Problem Details
      * @throws NullPointerException 当问题描述或格式化结果为 {@code null} 时

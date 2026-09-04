@@ -14,7 +14,10 @@ final class VerificationProblems {
             ProblemTypeUri.of("business", "verification", "throttled"),
             "throttled",
             "Too many verification code requests",
-            "Please retry later",
+            "Please retry {0,choice,0#shortly|1#after 1 second|1<after approximately "
+                    + "{0,number,0} seconds|90#after approximately {1,number,0} minutes|"
+                    + "5400#after approximately {2,number,0} hours|"
+                    + "129600#after approximately {3,number,0} days}",
             HttpStatus.TOO_MANY_REQUESTS);
 
     static final ProblemDescriptor INVALID_CODE = descriptor(
