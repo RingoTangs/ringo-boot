@@ -5,9 +5,9 @@ import io.github.ringotangs.ringoboot.verification.context.IssueContextContribut
 import io.github.ringotangs.ringoboot.verification.context.IssueContextManager;
 import io.github.ringotangs.ringoboot.verification.redis.RedisVerificationStore;
 import io.github.ringotangs.ringoboot.verification.redis.VerificationHmacKey;
-import io.github.ringotangs.ringoboot.verification.servlet.ClientIpContributor;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
+import io.github.ringotangs.ringoboot.verification.web.ClientIpContributor;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.Duration;
 import org.springframework.beans.factory.ObjectProvider;

@@ -1,5 +1,5 @@
 /**
- * 提供验证码异常到 Problem Details 的 Web 适配。
+ * 提供验证码的 Servlet 请求上下文和 Problem Details 异常响应适配。
  */
 @NullMarked
 package io.github.ringotangs.ringoboot.verification.web;

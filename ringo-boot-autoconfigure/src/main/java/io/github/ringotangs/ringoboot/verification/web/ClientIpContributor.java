@@ -1,4 +1,4 @@
-package io.github.ringotangs.ringoboot.verification.servlet;
+package io.github.ringotangs.ringoboot.verification.web;
 
 import io.github.ringotangs.ringoboot.verification.context.IssueContext;
 import io.github.ringotangs.ringoboot.verification.context.IssueContextContributor;
