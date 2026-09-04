@@ -207,7 +207,7 @@ class AbstractVerificationServiceTest {
     }
 
     @Test
-    void mapsInvalidStoreResultsToInvalidVerificationCode() {
+    void preservesRejectedStoreResultInException() {
         for (VerifyResult result : VerifyResult.values()) {
             if (result == VerifyResult.SUCCESS) {
                 continue;
@@ -220,8 +220,17 @@ class AbstractVerificationServiceTest {
             };
             CapturingVerificationService template = template(length -> "123456", store);
 
-            assertThrows(InvalidVerificationCodeException.class, () -> template.verify(LOGIN, "123456"));
+            VerificationRejectedException thrown =
+                    assertThrows(VerificationRejectedException.class, () -> template.verify(LOGIN, "123456"));
+
+            assertSame(result, thrown.result());
         }
+    }
+
+    @Test
+    void rejectsInvalidVerificationRejectedExceptionResults() {
+        assertThrows(NullPointerException.class, () -> new VerificationRejectedException(null));
+        assertThrows(IllegalArgumentException.class, () -> new VerificationRejectedException(VerifyResult.SUCCESS));
     }
 
     @Test
@@ -267,7 +276,7 @@ class AbstractVerificationServiceTest {
         template.respondWith(CodeSendResult.REJECTED);
 
         assertThrows(CodeSendRejectedException.class, () -> template.issue(LOGIN));
-        assertThrows(InvalidVerificationCodeException.class, () -> template.verify(LOGIN, "123456"));
+        assertThrows(VerificationRejectedException.class, () -> template.verify(LOGIN, "123456"));
 
         VerificationStoreKey expected = new VerificationStoreKey(LOGIN, VerificationChannel.EMAIL);
         assertEquals(expected, stored.get());

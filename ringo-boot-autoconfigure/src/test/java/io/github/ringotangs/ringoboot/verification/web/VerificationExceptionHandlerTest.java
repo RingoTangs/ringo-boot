@@ -5,9 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
-import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
 import io.github.ringotangs.ringoboot.verification.VerificationException;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
+import io.github.ringotangs.ringoboot.verification.VerificationRejectedException;
 import io.github.ringotangs.ringoboot.verification.channel.CodeSendRejectedException;
 import io.github.ringotangs.ringoboot.verification.channel.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
@@ -17,6 +17,7 @@ import io.github.ringotangs.ringoboot.verification.limit.IssueLimitStoreExceptio
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitViolation;
 import io.github.ringotangs.ringoboot.verification.limit.MissingIssueLimitRuleException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
+import io.github.ringotangs.ringoboot.verification.store.VerifyResult;
 import java.net.URI;
 import java.time.Duration;
 import java.util.List;
@@ -84,7 +85,7 @@ class VerificationExceptionHandlerTest {
         ExceptionHandlerMethodResolver resolver =
                 new ExceptionHandlerMethodResolver(VerificationExceptionHandler.class);
 
-        assertHandler(resolver, new InvalidVerificationCodeException(), "handleInvalidVerificationCode");
+        assertHandler(resolver, new VerificationRejectedException(VerifyResult.MISMATCH), "handleVerificationRejected");
         assertHandler(resolver, exceeded(Duration.ofSeconds(1)), "handleIssueLimitExceeded");
         assertHandler(resolver, new CodeGenerationException("internal"), "handleVerificationException");
         assertHandler(
@@ -134,8 +135,6 @@ class VerificationExceptionHandlerTest {
         ResponseEntity<ProblemDetail> throttledResponse =
                 handler.handleIssueLimitExceeded(exceeded(Duration.ofMillis(1201)));
         ProblemDetail throttled = throttledResponse.getBody();
-        ProblemDetail invalid = handler.handleInvalidVerificationCode(new InvalidVerificationCodeException());
-
         assertThat(throttled).isNotNull();
         assertProblem(
                 throttled,
@@ -146,12 +145,16 @@ class VerificationExceptionHandlerTest {
         assertThat(throttledResponse.getHeaders().getFirst(HttpHeaders.RETRY_AFTER))
                 .isEqualTo("2");
         assertThat(throttled.getProperties()).isNullOrEmpty();
-        assertProblem(
-                invalid,
-                400,
-                "urn:problem:business:verification:invalid-code",
-                "Invalid verification code",
-                "The verification code is invalid");
+        for (VerifyResult result : VerifyResult.values()) {
+            if (result != VerifyResult.SUCCESS) {
+                assertProblem(
+                        handler.handleVerificationRejected(new VerificationRejectedException(result)),
+                        400,
+                        "urn:problem:business:verification:invalid-code",
+                        "Invalid verification code",
+                        "The verification code is invalid");
+            }
+        }
         assertThat(output).doesNotContain("Verification operation failed");
     }
 

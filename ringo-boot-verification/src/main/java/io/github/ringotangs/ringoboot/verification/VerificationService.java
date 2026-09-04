@@ -32,7 +32,7 @@ public interface VerificationService<R> {
      *
      * @param key 验证码键
      * @param code 待校验的验证码
-     * @throws InvalidVerificationCodeException 当验证码无效时
+     * @throws VerificationRejectedException 当验证码校验未通过时
      * @throws NullPointerException 当验证码键或验证码为 {@code null} 时
      * @throws VerificationException 当验证码校验或存储操作失败时
      */

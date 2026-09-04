@@ -153,7 +153,7 @@ sequenceDiagram
     alt SUCCESS
         Service-->>App: 正常返回
     else 其他校验结果
-        Service-->>App: 抛出 InvalidVerificationCodeException
+        Service-->>App: 抛出 VerificationRejectedException(result)
     end
 ```
 
@@ -166,7 +166,7 @@ sequenceDiagram
 如果发送异常且撤销操作也失败，原始发送异常仍然是主异常，撤销异常会作为 suppressed exception 附加，便于服务端诊断。
 
 `VerifyResult` 是 Store 层的精细状态协议。业务级 `VerificationService.verify` 不返回这些状态：校验成功时正常返回，其他状态统一
-抛出 `InvalidVerificationCodeException`，避免调用方泄露验证码是否存在、过期或次数耗尽。
+抛出携带 `VerifyResult` 的 `VerificationRejectedException`，保留内部诊断信息，同时避免调用方泄露验证码是否存在、过期或次数耗尽。
 
 ## 六、InMemoryVerificationStore 如何存储
 

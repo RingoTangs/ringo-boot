@@ -3,12 +3,13 @@ package io.github.ringotangs.ringoboot.verification.autoconfigure;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.ringotangs.ringoboot.problem.ProblemDescriptor;
-import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
+import io.github.ringotangs.ringoboot.verification.VerificationRejectedException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitExceededException;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitViolation;
 import io.github.ringotangs.ringoboot.verification.limit.MissingIssueLimitRuleException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
+import io.github.ringotangs.ringoboot.verification.store.VerifyResult;
 import io.github.ringotangs.ringoboot.verification.web.VerificationExceptionHandler;
 import java.time.Duration;
 import java.util.List;
@@ -125,7 +126,8 @@ class VerificationProblemAutoConfigurationTest {
                             .containsExactly(
                                     "Too many verification code requests",
                                     "Please retry after approximately 2 seconds");
-                    assertThat(handler.handleInvalidVerificationCode(new InvalidVerificationCodeException()))
+                    assertThat(handler.handleVerificationRejected(
+                                    new VerificationRejectedException(VerifyResult.MISMATCH)))
                             .extracting(ProblemDetail::getTitle, ProblemDetail::getDetail)
                             .containsExactly("Invalid verification code", "The verification code is invalid");
                     assertThat(handler.handleVerificationException(new CodeGenerationException("internal")))
