@@ -47,7 +47,7 @@ public class VerificationExceptionHandler {
                     case MissingIssueLimitRuleException ignored -> VerificationProblems.CONFIGURATION_ERROR;
                     default -> VerificationProblems.SERVICE_UNAVAILABLE;
                 };
-        return ProblemDetails.create(descriptor, descriptor.detail());
+        return ProblemDetails.create(descriptor);
     }
 
     /**
@@ -62,7 +62,8 @@ public class VerificationExceptionHandler {
             logger.debug("Verification code issuance throttled: violations=" + exception.violations());
         }
         long seconds = retryAfterSeconds(exception.retryAfter());
-        ProblemDetail problem = ProblemDetails.create(VerificationProblems.THROTTLED, retryAfterDetail(seconds));
+        ProblemDetail problem =
+                ProblemDetails.create(VerificationProblems.THROTTLED, ignored -> retryAfterDetail(seconds));
         return ResponseEntity.status(problem.getStatus())
                 .header(HttpHeaders.RETRY_AFTER, Long.toString(seconds))
                 .body(problem);
@@ -76,7 +77,7 @@ public class VerificationExceptionHandler {
      */
     @ExceptionHandler(InvalidVerificationCodeException.class)
     public ProblemDetail handleInvalidVerificationCode(InvalidVerificationCodeException exception) {
-        return ProblemDetails.create(VerificationProblems.INVALID_CODE, VerificationProblems.INVALID_CODE.detail());
+        return ProblemDetails.create(VerificationProblems.INVALID_CODE);
     }
 
     private long retryAfterSeconds(java.time.Duration retryAfter) {

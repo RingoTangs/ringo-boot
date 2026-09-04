@@ -47,7 +47,7 @@ public class FallbackExceptionHandler {
         }
 
         logger.error("Unhandled exception", exception);
-        ProblemDetail body = ProblemDetails.create(INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR.detail());
+        ProblemDetail body = ProblemDetails.create(INTERNAL_SERVER_ERROR);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 }
