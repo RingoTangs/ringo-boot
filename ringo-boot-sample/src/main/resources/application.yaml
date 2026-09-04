@@ -22,10 +22,10 @@ ringo:
       handlers:
         application: true
         mvc: true
-        verification: true
         fallback: true
     verification:
       enabled: true
+      exception-handler: true
       store: redis
       length: 6
       ttl: 5m

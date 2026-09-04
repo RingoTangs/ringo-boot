@@ -32,7 +32,7 @@ class VerificationProblemAutoConfigurationTest {
         contextRunner
                 .withPropertyValues(
                         "spring.mvc.problemdetails.enabled=true",
-                        "ringo.boot.problem.handlers.verification=true",
+                        "ringo.boot.verification.exception-handler=true",
                         "ringo.boot.verification.enabled=true")
                 .run(context -> {
                     assertThat(context).hasSingleBean(VerificationExceptionHandler.class);
@@ -44,7 +44,7 @@ class VerificationProblemAutoConfigurationTest {
         nonWebContextRunner
                 .withPropertyValues(
                         "spring.mvc.problemdetails.enabled=true",
-                        "ringo.boot.problem.handlers.verification=true",
+                        "ringo.boot.verification.exception-handler=true",
                         "ringo.boot.verification.enabled=true")
                 .run(context -> assertThat(context).doesNotHaveBean(VerificationExceptionHandler.class));
     }
@@ -55,7 +55,7 @@ class VerificationProblemAutoConfigurationTest {
                 .withClassLoader(new FilteredClassLoader("io.github.ringotangs.ringoboot.verification"))
                 .withPropertyValues(
                         "spring.mvc.problemdetails.enabled=true",
-                        "ringo.boot.problem.handlers.verification=true",
+                        "ringo.boot.verification.exception-handler=true",
                         "ringo.boot.verification.enabled=true")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
@@ -69,7 +69,7 @@ class VerificationProblemAutoConfigurationTest {
                 .withClassLoader(new FilteredClassLoader(ProblemDescriptor.class))
                 .withPropertyValues(
                         "spring.mvc.problemdetails.enabled=true",
-                        "ringo.boot.problem.handlers.verification=true",
+                        "ringo.boot.verification.exception-handler=true",
                         "ringo.boot.verification.enabled=true")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
@@ -78,17 +78,19 @@ class VerificationProblemAutoConfigurationTest {
     }
 
     @Test
-    void requiresBothFeatureSwitchesAndHandlerSwitch() {
-        contextRunner
-                .withPropertyValues("spring.mvc.problemdetails.enabled=true")
-                .run(context -> assertThat(context).doesNotHaveBean(VerificationExceptionHandler.class));
-
-        contextRunner
-                .withPropertyValues("ringo.boot.verification.enabled=true")
-                .run(context -> assertThat(context).doesNotHaveBean(VerificationExceptionHandler.class));
-
+    void requiresProblemDetailsVerificationAndHandlerSwitches() {
         contextRunner
                 .withPropertyValues("spring.mvc.problemdetails.enabled=true", "ringo.boot.verification.enabled=true")
+                .run(context -> assertThat(context).doesNotHaveBean(VerificationExceptionHandler.class));
+
+        contextRunner
+                .withPropertyValues(
+                        "spring.mvc.problemdetails.enabled=true", "ringo.boot.verification.exception-handler=true")
+                .run(context -> assertThat(context).doesNotHaveBean(VerificationExceptionHandler.class));
+
+        contextRunner
+                .withPropertyValues(
+                        "ringo.boot.verification.enabled=true", "ringo.boot.verification.exception-handler=true")
                 .run(context -> assertThat(context).doesNotHaveBean(VerificationExceptionHandler.class));
     }
 
@@ -99,7 +101,7 @@ class VerificationProblemAutoConfigurationTest {
         contextRunner
                 .withPropertyValues(
                         "spring.mvc.problemdetails.enabled=true",
-                        "ringo.boot.problem.handlers.verification=true",
+                        "ringo.boot.verification.exception-handler=true",
                         "ringo.boot.verification.enabled=true")
                 .withBean(VerificationExceptionHandler.class, () -> customHandler)
                 .run(context -> assertThat(context.getBean(VerificationExceptionHandler.class))
@@ -111,7 +113,7 @@ class VerificationProblemAutoConfigurationTest {
         contextRunner
                 .withPropertyValues(
                         "spring.mvc.problemdetails.enabled=true",
-                        "ringo.boot.problem.handlers.verification=true",
+                        "ringo.boot.verification.exception-handler=true",
                         "ringo.boot.verification.enabled=true")
                 .run(context -> {
                     VerificationExceptionHandler handler = context.getBean(VerificationExceptionHandler.class);
