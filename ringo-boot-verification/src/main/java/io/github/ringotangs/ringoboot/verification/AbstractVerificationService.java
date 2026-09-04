@@ -12,6 +12,7 @@ import io.github.ringotangs.ringoboot.verification.limit.IssueLimitViolation;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimiter;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreKey;
+import io.github.ringotangs.ringoboot.verification.store.VerifyResult;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -90,11 +91,16 @@ public abstract class AbstractVerificationService<R> implements VerificationServ
      * {@inheritDoc}
      */
     @Override
-    public final VerifyResult verify(VerificationKey key, String code) throws VerificationException {
+    public final void verify(VerificationKey key, String code) throws VerificationException {
         Objects.requireNonNull(key, "key must not be null");
         Objects.requireNonNull(code, "code must not be null");
         VerificationChannel channel = Objects.requireNonNull(channel(), "verification channel must not be null");
-        return store.verifyAndConsume(new VerificationStoreKey(key, channel), code, clock.instant());
+        VerifyResult result = Objects.requireNonNull(
+                store.verifyAndConsume(new VerificationStoreKey(key, channel), code, clock.instant()),
+                "verification store result must not be null");
+        if (result != VerifyResult.SUCCESS) {
+            throw new InvalidVerificationCodeException();
+        }
     }
 
     /**

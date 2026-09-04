@@ -8,7 +8,9 @@ package io.github.ringotangs.ringoboot.verification;
  */
 public final class InvalidVerificationCodeException extends VerificationException {
 
-    /** 创建验证码无效异常。 */
+    /**
+     * 创建验证码无效异常。
+     */
     public InvalidVerificationCodeException() {
         super("The verification code is invalid");
     }

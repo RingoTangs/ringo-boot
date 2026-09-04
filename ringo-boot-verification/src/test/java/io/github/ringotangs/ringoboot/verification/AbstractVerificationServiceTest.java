@@ -30,6 +30,7 @@ import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationSto
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreKey;
+import io.github.ringotangs.ringoboot.verification.store.VerifyResult;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -53,7 +54,7 @@ class AbstractVerificationServiceTest {
         assertEquals(LOGIN, template.delivery().context().key());
         assertEquals("123456", template.delivery().code());
         assertFalse(issued.toString().contains("123456"));
-        assertEquals(VerifyResult.SUCCESS, template.verify(LOGIN, "123456"));
+        template.verify(LOGIN, "123456");
     }
 
     @Test
@@ -131,7 +132,7 @@ class AbstractVerificationServiceTest {
 
         assertInstanceOf(DeliveryResult.Uncertain.class, template.issue(LOGIN));
         assertThrows(IssueLimitExceededException.class, () -> template.issue(LOGIN));
-        assertEquals(VerifyResult.SUCCESS, template.verify(LOGIN, "123456"));
+        template.verify(LOGIN, "123456");
     }
 
     @Test
@@ -206,6 +207,39 @@ class AbstractVerificationServiceTest {
     }
 
     @Test
+    void mapsInvalidStoreResultsToInvalidVerificationCode() {
+        for (VerifyResult result : VerifyResult.values()) {
+            if (result == VerifyResult.SUCCESS) {
+                continue;
+            }
+            VerificationStore store = new StubVerificationStore() {
+                @Override
+                public VerifyResult verifyAndConsume(VerificationStoreKey key, String code, Instant verifiedAt) {
+                    return result;
+                }
+            };
+            CapturingVerificationService template = template(length -> "123456", store);
+
+            assertThrows(InvalidVerificationCodeException.class, () -> template.verify(LOGIN, "123456"));
+        }
+    }
+
+    @Test
+    void rejectsNullStoreVerificationResult() {
+        VerificationStore store = new StubVerificationStore() {
+            @Override
+            public VerifyResult verifyAndConsume(VerificationStoreKey key, String code, Instant verifiedAt) {
+                return null;
+            }
+        };
+        CapturingVerificationService template = template(length -> "123456", store);
+
+        NullPointerException thrown = assertThrows(NullPointerException.class, () -> template.verify(LOGIN, "123456"));
+
+        assertEquals("verification store result must not be null", thrown.getMessage());
+    }
+
+    @Test
     void scopesAllStoreOperationsToServiceChannel() {
         AtomicReference<VerificationStoreKey> stored = new AtomicReference<>();
         AtomicReference<VerificationStoreKey> verified = new AtomicReference<>();
@@ -233,7 +267,7 @@ class AbstractVerificationServiceTest {
         template.respondWith(CodeSendResult.REJECTED);
 
         assertThrows(CodeSendRejectedException.class, () -> template.issue(LOGIN));
-        template.verify(LOGIN, "123456");
+        assertThrows(InvalidVerificationCodeException.class, () -> template.verify(LOGIN, "123456"));
 
         VerificationStoreKey expected = new VerificationStoreKey(LOGIN, VerificationChannel.EMAIL);
         assertEquals(expected, stored.get());

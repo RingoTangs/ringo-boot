@@ -4,9 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
-import io.github.ringotangs.ringoboot.verification.VerifyResult;
 import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.context.CompositeIssueContextManager;
 import io.github.ringotangs.ringoboot.verification.context.IssueContext;
@@ -48,8 +48,8 @@ class ImageCaptchaServiceTest {
         assertEquals(VerificationChannel.IMAGE, renderedContext.get().channel());
         assertEquals(POLICY, renderedContext.get().policy());
         org.junit.jupiter.api.Assertions.assertFalse(result.expiresAt().isBefore(earliestExpiration));
-        assertEquals(VerifyResult.SUCCESS, service.verify(KEY, "1234"));
-        assertEquals(VerifyResult.NOT_FOUND, service.verify(KEY, "1234"));
+        service.verify(KEY, "1234");
+        assertThrows(InvalidVerificationCodeException.class, () -> service.verify(KEY, "1234"));
     }
 
     @Test
@@ -76,7 +76,7 @@ class ImageCaptchaServiceTest {
         });
 
         assertSame(failure, assertThrows(CaptchaRenderingException.class, () -> service.issue(KEY)));
-        assertEquals(VerifyResult.NOT_FOUND, service.verify(KEY, "1234"));
+        assertThrows(InvalidVerificationCodeException.class, () -> service.verify(KEY, "1234"));
     }
 
     @Test

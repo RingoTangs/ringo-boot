@@ -68,9 +68,9 @@ class AbstractVerificationServiceLifecycleTest {
         VerificationService<DeliveryResult> service = service(length -> "123456", policy);
         service.issue(LOGIN);
 
-        assertEquals(VerifyResult.MISMATCH, service.verify(LOGIN, ""));
-        assertEquals(VerifyResult.ATTEMPTS_EXHAUSTED, service.verify(LOGIN, "000000"));
-        assertEquals(VerifyResult.NOT_FOUND, service.verify(LOGIN, "123456"));
+        assertThrows(InvalidVerificationCodeException.class, () -> service.verify(LOGIN, ""));
+        assertThrows(InvalidVerificationCodeException.class, () -> service.verify(LOGIN, "000000"));
+        assertThrows(InvalidVerificationCodeException.class, () -> service.verify(LOGIN, "123456"));
     }
 
     @Test
@@ -84,10 +84,10 @@ class AbstractVerificationServiceLifecycleTest {
         service.issue(registration);
         service.issue(otherUser);
 
-        assertEquals(VerifyResult.SUCCESS, service.verify(LOGIN, "123456"));
-        assertEquals(VerifyResult.SUCCESS, service.verify(paymentLogin, "123456"));
-        assertEquals(VerifyResult.SUCCESS, service.verify(registration, "123456"));
-        assertEquals(VerifyResult.SUCCESS, service.verify(otherUser, "123456"));
+        service.verify(LOGIN, "123456");
+        service.verify(paymentLogin, "123456");
+        service.verify(registration, "123456");
+        service.verify(otherUser, "123456");
     }
 
     @Test
@@ -98,18 +98,23 @@ class AbstractVerificationServiceLifecycleTest {
         CountDownLatch start = new CountDownLatch(1);
         try (var executor = Executors.newFixedThreadPool(threads)) {
             @SuppressWarnings("unchecked")
-            Future<VerifyResult>[] futures = new Future[threads];
+            Future<Boolean>[] futures = new Future[threads];
             for (int index = 0; index < threads; index++) {
                 futures[index] = executor.submit(() -> {
                     start.await();
-                    return service.verify(LOGIN, "123456");
+                    try {
+                        service.verify(LOGIN, "123456");
+                        return true;
+                    } catch (InvalidVerificationCodeException ignored) {
+                        return false;
+                    }
                 });
             }
             start.countDown();
 
             int successes = 0;
-            for (Future<VerifyResult> future : futures) {
-                if (future.get() == VerifyResult.SUCCESS) {
+            for (Future<Boolean> future : futures) {
+                if (future.get()) {
                     successes++;
                 }
             }

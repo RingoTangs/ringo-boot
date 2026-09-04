@@ -150,7 +150,11 @@ sequenceDiagram
     App->>Service: verify(key, code)
     Service->>Store: verifyAndConsume(storeKey, code, verifiedAt)
     Store-->>Service: VerifyResult
-    Service-->>App: VerifyResult
+    alt SUCCESS
+        Service-->>App: 正常返回
+    else 其他校验结果
+        Service-->>App: 抛出 InvalidVerificationCodeException
+    end
 ```
 
 验证码必须先存储再发送。否则发送渠道很快完成投递时，用户可能在验证码尚未保存的短暂窗口内提交校验并得到
@@ -160,6 +164,9 @@ sequenceDiagram
 可能已经完成投递；调用方得到 `DeliveryResult.Uncertain` 后可以提示用户稍后重试或重新获取。
 
 如果发送异常且撤销操作也失败，原始发送异常仍然是主异常，撤销异常会作为 suppressed exception 附加，便于服务端诊断。
+
+`VerifyResult` 是 Store 层的精细状态协议。业务级 `VerificationService.verify` 不返回这些状态：校验成功时正常返回，其他状态统一
+抛出 `InvalidVerificationCodeException`，避免调用方泄露验证码是否存在、过期或次数耗尽。
 
 ## 六、InMemoryVerificationStore 如何存储
 

@@ -1,8 +1,6 @@
 package io.github.ringotangs.ringoboot.sample.verification;
 
-import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
-import io.github.ringotangs.ringoboot.verification.VerifyResult;
 import io.github.ringotangs.ringoboot.verification.channel.DeliveryResult;
 import io.github.ringotangs.ringoboot.verification.channel.email.EmailVerificationService;
 import java.time.Instant;
@@ -30,10 +28,7 @@ class EmailVerificationApplicationService {
     }
 
     void verify(String email, String code) {
-        VerifyResult result = verificationService.verify(key(email), code);
-        if (result != VerifyResult.SUCCESS) {
-            throw new InvalidVerificationCodeException();
-        }
+        verificationService.verify(key(email), code);
     }
 
     private VerificationKey key(String email) {
