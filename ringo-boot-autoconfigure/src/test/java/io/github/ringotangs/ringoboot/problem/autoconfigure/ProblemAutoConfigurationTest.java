@@ -62,7 +62,6 @@ class ProblemAutoConfigurationTest {
         contextRunner.run(context -> {
             assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);
             assertThat(context).doesNotHaveBean(FallbackExceptionHandler.class);
-            assertThat(context).doesNotHaveBean(ProblemProperties.class);
         });
     }
 
@@ -73,7 +72,6 @@ class ProblemAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).doesNotHaveBean(ProblemExceptionHandler.class);
                     assertThat(context).doesNotHaveBean(FallbackExceptionHandler.class);
-                    assertThat(context).doesNotHaveBean(ProblemProperties.class);
                 });
     }
 

@@ -21,7 +21,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass({ProblemDetail.class, ProblemTypeUri.class, ResponseEntityExceptionHandler.class})
 @ConditionalOnBooleanProperty("spring.mvc.problemdetails.enabled")
-@ConditionalOnProperty(prefix = ProblemProperties.HANDLERS_PREFIX, name = "mvc", havingValue = "true")
+@ConditionalOnProperty(prefix = ProblemPropertyNames.HANDLERS_PREFIX, name = "mvc", havingValue = "true")
 public class SpringMvcProblemAutoConfiguration {
 
     /**

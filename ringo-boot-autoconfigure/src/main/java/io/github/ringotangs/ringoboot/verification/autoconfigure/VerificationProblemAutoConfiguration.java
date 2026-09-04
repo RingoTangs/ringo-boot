@@ -1,6 +1,7 @@
 package io.github.ringotangs.ringoboot.verification.autoconfigure;
 
 import io.github.ringotangs.ringoboot.problem.ProblemDescriptor;
+import io.github.ringotangs.ringoboot.problem.autoconfigure.ProblemPropertyNames;
 import io.github.ringotangs.ringoboot.verification.VerificationException;
 import io.github.ringotangs.ringoboot.verification.web.VerificationExceptionHandler;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -19,7 +20,7 @@ import org.springframework.http.ProblemDetail;
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass({ProblemDetail.class, ProblemDescriptor.class, VerificationException.class})
 @ConditionalOnBooleanProperty("spring.mvc.problemdetails.enabled")
-@ConditionalOnProperty(prefix = "ringo.boot.problem.handlers", name = "verification", havingValue = "true")
+@ConditionalOnProperty(prefix = ProblemPropertyNames.HANDLERS_PREFIX, name = "verification", havingValue = "true")
 @ConditionalOnProperty(prefix = VerificationProperties.PREFIX, name = "enabled", havingValue = "true")
 public class VerificationProblemAutoConfiguration {
 

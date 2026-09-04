@@ -25,7 +25,7 @@ public class ProblemAutoConfiguration {
      * 在业务问题异常处理开关开启时装配处理器。
      */
     @Configuration(proxyBeanMethods = false)
-    @ConditionalOnProperty(prefix = ProblemProperties.HANDLERS_PREFIX, name = "application", havingValue = "true")
+    @ConditionalOnProperty(prefix = ProblemPropertyNames.HANDLERS_PREFIX, name = "application", havingValue = "true")
     static class ProblemExceptionHandlerConfiguration {
 
         /**
@@ -42,7 +42,7 @@ public class ProblemAutoConfiguration {
      * 在未知异常兜底开关开启时装配处理器。
      */
     @Configuration(proxyBeanMethods = false)
-    @ConditionalOnProperty(prefix = ProblemProperties.HANDLERS_PREFIX, name = "fallback", havingValue = "true")
+    @ConditionalOnProperty(prefix = ProblemPropertyNames.HANDLERS_PREFIX, name = "fallback", havingValue = "true")
     static class FallbackConfiguration {
 
         /**
