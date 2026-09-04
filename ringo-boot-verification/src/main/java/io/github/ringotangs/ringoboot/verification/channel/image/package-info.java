@@ -1,5 +1,6 @@
 /**
- * 图片验证码签发、渲染和校验能力。
+ * 图片验证码签发、渲染和校验能力。成功签发返回 {@link
+ * io.github.ringotangs.ringoboot.verification.channel.image.ImageCaptchaResult}。
  *
  * <p>应用应使用不可预测且唯一的 challenge ID 作为 {@link
  * io.github.ringotangs.ringoboot.verification.VerificationKey#subject()}。由于每次签发都会更换 subject，{@code

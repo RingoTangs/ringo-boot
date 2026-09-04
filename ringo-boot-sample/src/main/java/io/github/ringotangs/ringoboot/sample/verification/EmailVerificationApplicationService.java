@@ -1,11 +1,10 @@
 package io.github.ringotangs.ringoboot.sample.verification;
 
 import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
-import io.github.ringotangs.ringoboot.verification.IssueResult;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerifyResult;
+import io.github.ringotangs.ringoboot.verification.channel.DeliveryResult;
 import io.github.ringotangs.ringoboot.verification.channel.email.EmailVerificationService;
-import io.github.ringotangs.ringoboot.verification.limit.IssueLimitExceededException;
 import java.time.Instant;
 import java.util.Locale;
 import java.util.Objects;
@@ -25,11 +24,8 @@ class EmailVerificationApplicationService {
 
     Instant issue(String email) {
         return switch (verificationService.issue(key(email))) {
-            case IssueResult.Accepted accepted -> accepted.expiresAt();
-            case IssueResult.Uncertain uncertain -> uncertain.expiresAt();
-            case IssueResult.ImageCaptcha ignored ->
-                throw new IllegalStateException("email verification cannot return an image captcha");
-            case IssueResult.Throttled throttled -> throw new IssueLimitExceededException(throttled.violations());
+            case DeliveryResult.Accepted accepted -> accepted.expiresAt();
+            case DeliveryResult.Uncertain uncertain -> uncertain.expiresAt();
         };
     }
 

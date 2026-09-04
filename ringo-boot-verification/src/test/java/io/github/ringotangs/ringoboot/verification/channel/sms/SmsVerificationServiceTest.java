@@ -6,10 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.ringotangs.ringoboot.verification.IssueResult;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.channel.CodeSendResult;
+import io.github.ringotangs.ringoboot.verification.channel.DeliveryResult;
 import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.context.CompositeIssueContextManager;
 import io.github.ringotangs.ringoboot.verification.context.IssueContext;
@@ -50,7 +50,7 @@ class SmsVerificationServiceTest {
                     return CodeSendResult.ACCEPTED;
                 });
 
-        IssueResult.Accepted result = assertInstanceOf(IssueResult.Accepted.class, service.issue(key));
+        DeliveryResult.Accepted result = assertInstanceOf(DeliveryResult.Accepted.class, service.issue(key));
 
         assertEquals("account", captured.get().key().namespace());
         assertEquals(VerificationChannel.SMS, capturedChannel.get());

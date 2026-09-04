@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import io.github.ringotangs.ringoboot.verification.channel.CodeSendRejectedException;
 import io.github.ringotangs.ringoboot.verification.channel.CodeSendResult;
 import io.github.ringotangs.ringoboot.verification.channel.CodeSenderException;
+import io.github.ringotangs.ringoboot.verification.channel.DeliveryResult;
 import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.context.CompositeIssueContextManager;
 import io.github.ringotangs.ringoboot.verification.context.IssueContext;
@@ -18,6 +19,7 @@ import io.github.ringotangs.ringoboot.verification.context.IssueContextManager;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueLimitStore;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitExceededException;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitRule;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimiter;
@@ -45,7 +47,7 @@ class AbstractVerificationServiceTest {
         CapturingVerificationService template = template(length -> "123456", new InMemoryVerificationStore());
         Instant earliestExpiration = Instant.now().plus(Duration.ofMinutes(5));
 
-        IssueResult.Accepted issued = assertInstanceOf(IssueResult.Accepted.class, template.issue(LOGIN));
+        DeliveryResult.Accepted issued = assertInstanceOf(DeliveryResult.Accepted.class, template.issue(LOGIN));
 
         assertFalse(issued.expiresAt().isBefore(earliestExpiration));
         assertEquals(LOGIN, template.delivery().context().key());
@@ -59,7 +61,8 @@ class AbstractVerificationServiceTest {
         CapturingVerificationService template = template(length -> "123456", new InMemoryVerificationStore());
 
         template.issue(LOGIN);
-        IssueResult.Throttled throttled = assertInstanceOf(IssueResult.Throttled.class, template.issue(LOGIN));
+        IssueLimitExceededException throttled =
+                assertThrows(IssueLimitExceededException.class, () -> template.issue(LOGIN));
 
         assertEquals(1, template.dispatches());
         assertFalse(throttled.retryAfter().isNegative());
@@ -72,8 +75,8 @@ class AbstractVerificationServiceTest {
         CapturingVerificationService template =
                 new CapturingVerificationService(length -> "123456", new InMemoryVerificationStore());
 
-        assertInstanceOf(IssueResult.Accepted.class, template.issue(LOGIN));
-        assertInstanceOf(IssueResult.Accepted.class, template.issue(LOGIN));
+        assertInstanceOf(DeliveryResult.Accepted.class, template.issue(LOGIN));
+        assertInstanceOf(DeliveryResult.Accepted.class, template.issue(LOGIN));
 
         assertEquals(2, template.dispatches());
     }
@@ -90,7 +93,7 @@ class AbstractVerificationServiceTest {
                 new VerificationPolicy(4, Duration.ofMinutes(1), 2));
 
         Instant earliestExpiration = Instant.now().plus(Duration.ofMinutes(1));
-        IssueResult.Accepted issued = assertInstanceOf(IssueResult.Accepted.class, template.issue(LOGIN));
+        DeliveryResult.Accepted issued = assertInstanceOf(DeliveryResult.Accepted.class, template.issue(LOGIN));
 
         assertEquals(4, requestedLength.get());
         assertFalse(issued.expiresAt().isBefore(earliestExpiration));
@@ -104,10 +107,9 @@ class AbstractVerificationServiceTest {
 
         CodeSenderException thrown = assertThrows(CodeSenderException.class, () -> template.issue(LOGIN));
         template.failWith(null);
-        IssueResult result = template.issue(LOGIN);
 
         assertSame(failure, thrown);
-        assertInstanceOf(IssueResult.Throttled.class, result);
+        assertThrows(IssueLimitExceededException.class, () -> template.issue(LOGIN));
     }
 
     @Test
@@ -119,7 +121,7 @@ class AbstractVerificationServiceTest {
         assertEquals(VerificationChannel.EMAIL, rejected.channel());
         template.respondWith(CodeSendResult.ACCEPTED);
 
-        assertInstanceOf(IssueResult.Throttled.class, template.issue(LOGIN));
+        assertThrows(IssueLimitExceededException.class, () -> template.issue(LOGIN));
     }
 
     @Test
@@ -127,8 +129,8 @@ class AbstractVerificationServiceTest {
         CapturingVerificationService template = template(length -> "123456", new InMemoryVerificationStore());
         template.respondWith(CodeSendResult.UNKNOWN);
 
-        assertInstanceOf(IssueResult.Uncertain.class, template.issue(LOGIN));
-        assertInstanceOf(IssueResult.Throttled.class, template.issue(LOGIN));
+        assertInstanceOf(DeliveryResult.Uncertain.class, template.issue(LOGIN));
+        assertThrows(IssueLimitExceededException.class, () -> template.issue(LOGIN));
         assertEquals(VerifyResult.SUCCESS, template.verify(LOGIN, "123456"));
     }
 
@@ -254,7 +256,7 @@ class AbstractVerificationServiceTest {
                 new CompositeIssueContextManager(List.of(
                         context -> context.with("ip-address", "203.0.113.10"),
                         context -> context.with("service", "capturing"))));
-        assertInstanceOf(IssueResult.Accepted.class, template.issue(LOGIN));
+        assertInstanceOf(DeliveryResult.Accepted.class, template.issue(LOGIN));
 
         assertSame(captured.get(), template.delivery().context());
         assertEquals(LOGIN, captured.get().key());
@@ -464,7 +466,7 @@ class AbstractVerificationServiceTest {
                 new CompositeIssueContextManager(contributors));
     }
 
-    private static final class CapturingVerificationService extends AbstractVerificationService {
+    private static final class CapturingVerificationService extends AbstractVerificationService<DeliveryResult> {
 
         private final AtomicReference<TestDispatch> delivery = new AtomicReference<>();
         private final AtomicInteger dispatches = new AtomicInteger();
@@ -498,15 +500,15 @@ class AbstractVerificationServiceTest {
         }
 
         @Override
-        protected IssueResult completeIssue(IssueContext context, String code, Instant expiresAt) {
+        protected DeliveryResult completeIssue(IssueContext context, String code, Instant expiresAt) {
             dispatches.incrementAndGet();
             if (failure != null) {
                 throw failure;
             }
             delivery.set(new TestDispatch(context, code, expiresAt));
             return switch (result) {
-                case ACCEPTED -> new IssueResult.Accepted(expiresAt);
-                case UNKNOWN -> new IssueResult.Uncertain(expiresAt);
+                case ACCEPTED -> new DeliveryResult.Accepted(expiresAt);
+                case UNKNOWN -> new DeliveryResult.Uncertain(expiresAt);
                 case REJECTED -> throw new CodeSendRejectedException(context.channel());
             };
         }

@@ -1,7 +1,6 @@
 package io.github.ringotangs.ringoboot.verification.channel.image;
 
 import io.github.ringotangs.ringoboot.verification.AbstractVerificationService;
-import io.github.ringotangs.ringoboot.verification.IssueResult;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.context.IssueContext;
@@ -15,7 +14,7 @@ import java.util.Objects;
 /**
  * 统一编排验证码生命周期并同步返回图片验证码。
  */
-public final class ImageCaptchaService extends AbstractVerificationService {
+public final class ImageCaptchaService extends AbstractVerificationService<ImageCaptchaResult> {
 
     private final ImageCaptchaRenderer renderer;
 
@@ -34,10 +33,10 @@ public final class ImageCaptchaService extends AbstractVerificationService {
     }
 
     @Override
-    protected IssueResult completeIssue(IssueContext context, String code, Instant expiresAt) {
+    protected ImageCaptchaResult completeIssue(IssueContext context, String code, Instant expiresAt) {
         CaptchaImage image = Objects.requireNonNull(
                 renderer.render(context, code), "image captcha renderer result must not be null");
-        return new IssueResult.ImageCaptcha(expiresAt, image);
+        return new ImageCaptchaResult(expiresAt, image);
     }
 
     @Override

@@ -84,7 +84,7 @@ Store 根据 `issuedAt + policy.ttl()` 计算过期时间，并保存：
 - 过期时间。
 - `policy.maxAttempts()` 提供的最大校验次数。
 
-返回的 `Instant` 会继续传给发送渠道和 `IssueResult`，保证存储、邮件或短信内容以及接口响应使用同一个
+返回的 `Instant` 会继续传给发送渠道和 `DeliveryResult`，保证存储、邮件或短信内容以及接口响应使用同一个
 过期时间。
 
 ### verifyAndConsume：校验并消费验证码
@@ -137,10 +137,10 @@ sequenceDiagram
     Service->>Sender: dispatch(code, expiresAt)
     alt 发送已受理
         Sender-->>Service: ACCEPTED
-        Service-->>App: IssueResult.Accepted
+        Service-->>App: DeliveryResult.Accepted
     else 发送结果未知
         Sender-->>Service: UNKNOWN
-        Service-->>App: IssueResult.Uncertain
+        Service-->>App: DeliveryResult.Uncertain
     else 发送拒绝或抛出异常
         Sender-->>Service: REJECTED / exception
         Service->>Store: invalidate(storeKey, code)
@@ -157,7 +157,7 @@ sequenceDiagram
 `NOT_FOUND`。
 
 当发送明确拒绝或抛出异常时，服务会调用 `invalidate` 撤销刚保存的验证码。发送结果为 `UNKNOWN` 时不会撤销，因为供应商
-可能已经完成投递；调用方得到 `IssueResult.Uncertain` 后可以提示用户稍后重试或重新获取。
+可能已经完成投递；调用方得到 `DeliveryResult.Uncertain` 后可以提示用户稍后重试或重新获取。
 
 如果发送异常且撤销操作也失败，原始发送异常仍然是主异常，撤销异常会作为 suppressed exception 附加，便于服务端诊断。
 

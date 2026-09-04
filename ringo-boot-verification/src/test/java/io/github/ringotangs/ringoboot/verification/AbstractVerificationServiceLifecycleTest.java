@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.ringotangs.ringoboot.verification.channel.DeliveryResult;
 import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.context.CompositeIssueContextManager;
 import io.github.ringotangs.ringoboot.verification.context.IssueContext;
@@ -12,6 +13,7 @@ import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationExcep
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
 import io.github.ringotangs.ringoboot.verification.limit.InMemoryIssueLimitStore;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitBucket;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitExceededException;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitRule;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimiter;
 import io.github.ringotangs.ringoboot.verification.limit.RuleBasedIssueLimiter;
@@ -40,7 +42,7 @@ class AbstractVerificationServiceLifecycleTest {
         TestVerificationService service = service(length -> "123456");
         Instant earliestExpiration = Instant.now().plus(Duration.ofMinutes(5));
 
-        IssueResult.Accepted issued = assertInstanceOf(IssueResult.Accepted.class, service.issue(LOGIN));
+        DeliveryResult.Accepted issued = assertInstanceOf(DeliveryResult.Accepted.class, service.issue(LOGIN));
 
         assertTrue(!issued.expiresAt().isBefore(earliestExpiration));
         assertEquals("123456", service.lastCode());
@@ -52,8 +54,9 @@ class AbstractVerificationServiceLifecycleTest {
         AtomicInteger sequence = new AtomicInteger(111110);
         TestVerificationService service = service(length -> Integer.toString(sequence.incrementAndGet()));
 
-        assertInstanceOf(IssueResult.Accepted.class, service.issue(LOGIN));
-        IssueResult.Throttled throttled = assertInstanceOf(IssueResult.Throttled.class, service.issue(LOGIN));
+        assertInstanceOf(DeliveryResult.Accepted.class, service.issue(LOGIN));
+        IssueLimitExceededException throttled =
+                assertThrows(IssueLimitExceededException.class, () -> service.issue(LOGIN));
         assertTrue(!throttled.retryAfter().isNegative());
         assertTrue(throttled.retryAfter().compareTo(Duration.ofSeconds(60)) <= 0);
         assertEquals("test-key-cooldown", throttled.violations().getFirst().ruleId());
@@ -62,7 +65,7 @@ class AbstractVerificationServiceLifecycleTest {
     @Test
     void limitsAttemptsAndRemovesExhaustedCode() {
         VerificationPolicy policy = new VerificationPolicy(6, Duration.ofMinutes(5), 2);
-        VerificationService service = service(length -> "123456", policy);
+        VerificationService<DeliveryResult> service = service(length -> "123456", policy);
         service.issue(LOGIN);
 
         assertEquals(VerifyResult.MISMATCH, service.verify(LOGIN, ""));
@@ -72,7 +75,7 @@ class AbstractVerificationServiceLifecycleTest {
 
     @Test
     void isolatesPurposeAndSubject() {
-        VerificationService service = service(length -> "123456");
+        VerificationService<DeliveryResult> service = service(length -> "123456");
         VerificationKey paymentLogin = new VerificationKey("payment", LOGIN.purpose(), LOGIN.subject());
         VerificationKey registration = new VerificationKey(LOGIN.namespace(), "register", LOGIN.subject());
         VerificationKey otherUser = new VerificationKey(LOGIN.namespace(), LOGIN.purpose(), "other@example.com");
@@ -89,7 +92,7 @@ class AbstractVerificationServiceLifecycleTest {
 
     @Test
     void permitsOnlyOneConcurrentSuccess() throws Exception {
-        VerificationService service = service(length -> "123456");
+        VerificationService<DeliveryResult> service = service(length -> "123456");
         service.issue(LOGIN);
         int threads = 16;
         CountDownLatch start = new CountDownLatch(1);
@@ -116,7 +119,7 @@ class AbstractVerificationServiceLifecycleTest {
 
     @Test
     void doesNotKeepPlaintextCodeInMemoryEntries() throws Exception {
-        VerificationService service = service(length -> "987654");
+        VerificationService<DeliveryResult> service = service(length -> "987654");
         service.issue(LOGIN);
 
         Field entriesField = InMemoryVerificationStore.class.getDeclaredField("entries");
@@ -129,7 +132,7 @@ class AbstractVerificationServiceLifecycleTest {
 
     @Test
     void rejectsNullInputsAndGeneratedCode() {
-        VerificationService service = service(length -> "123456");
+        VerificationService<DeliveryResult> service = service(length -> "123456");
         assertThrows(NullPointerException.class, () -> service.issue((VerificationKey) null));
         assertThrows(NullPointerException.class, () -> service.verify(LOGIN, null));
         assertThrows(NullPointerException.class, () -> service(null).issue(LOGIN));
@@ -178,7 +181,7 @@ class AbstractVerificationServiceLifecycleTest {
         return new RuleBasedIssueLimiter(List.of(rule), new InMemoryIssueLimitStore());
     }
 
-    private static final class TestVerificationService extends AbstractVerificationService {
+    private static final class TestVerificationService extends AbstractVerificationService<DeliveryResult> {
 
         private String lastCode;
 
@@ -191,9 +194,9 @@ class AbstractVerificationServiceLifecycleTest {
         }
 
         @Override
-        protected IssueResult completeIssue(IssueContext context, String code, Instant expiresAt) {
+        protected DeliveryResult completeIssue(IssueContext context, String code, Instant expiresAt) {
             lastCode = code;
-            return new IssueResult.Accepted(expiresAt);
+            return new DeliveryResult.Accepted(expiresAt);
         }
 
         @Override

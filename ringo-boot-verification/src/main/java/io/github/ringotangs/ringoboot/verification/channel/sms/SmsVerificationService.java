@@ -1,10 +1,10 @@
 package io.github.ringotangs.ringoboot.verification.channel.sms;
 
 import io.github.ringotangs.ringoboot.verification.AbstractVerificationService;
-import io.github.ringotangs.ringoboot.verification.IssueResult;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.channel.CodeSendRejectedException;
 import io.github.ringotangs.ringoboot.verification.channel.CodeSenderException;
+import io.github.ringotangs.ringoboot.verification.channel.DeliveryResult;
 import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.context.IssueContext;
 import io.github.ringotangs.ringoboot.verification.context.IssueContextManager;
@@ -17,7 +17,7 @@ import java.util.Objects;
 /**
  * 统一编排验证码生命周期并通过短信渠道派发。
  */
-public class SmsVerificationService extends AbstractVerificationService {
+public class SmsVerificationService extends AbstractVerificationService<DeliveryResult> {
 
     private final SmsCodeSender sender;
 
@@ -51,11 +51,11 @@ public class SmsVerificationService extends AbstractVerificationService {
      * @throws CodeSenderException 当短信派发失败时
      */
     @Override
-    protected IssueResult completeIssue(IssueContext context, String code, Instant expiresAt)
+    protected DeliveryResult completeIssue(IssueContext context, String code, Instant expiresAt)
             throws CodeSenderException {
         return switch (sender.send(context, code, expiresAt)) {
-            case ACCEPTED -> new IssueResult.Accepted(expiresAt);
-            case UNKNOWN -> new IssueResult.Uncertain(expiresAt);
+            case ACCEPTED -> new DeliveryResult.Accepted(expiresAt);
+            case UNKNOWN -> new DeliveryResult.Uncertain(expiresAt);
             case REJECTED -> throw new CodeSendRejectedException(context.channel());
         };
     }

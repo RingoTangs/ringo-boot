@@ -1,17 +1,16 @@
 package io.github.ringotangs.ringoboot.verification.channel.image;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.github.ringotangs.ringoboot.verification.IssueResult;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
 import io.github.ringotangs.ringoboot.verification.VerifyResult;
 import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.context.CompositeIssueContextManager;
 import io.github.ringotangs.ringoboot.verification.context.IssueContext;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitExceededException;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitViolation;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimiter;
@@ -41,7 +40,7 @@ class ImageCaptchaServiceTest {
         });
         Instant earliestExpiration = Instant.now().plus(POLICY.ttl());
 
-        IssueResult.ImageCaptcha result = assertInstanceOf(IssueResult.ImageCaptcha.class, service.issue(KEY));
+        ImageCaptchaResult result = service.issue(KEY);
 
         assertSame(image, result.image());
         assertEquals("1234", renderedCode.get());
@@ -63,7 +62,7 @@ class ImageCaptchaServiceTest {
             return new CaptchaImage("image/png", new byte[] {1});
         });
 
-        IssueResult.Throttled result = assertInstanceOf(IssueResult.Throttled.class, service.issue(KEY));
+        IssueLimitExceededException result = assertThrows(IssueLimitExceededException.class, () -> service.issue(KEY));
 
         assertEquals(Duration.ofSeconds(30), result.retryAfter());
         assertEquals(0, renders.get());

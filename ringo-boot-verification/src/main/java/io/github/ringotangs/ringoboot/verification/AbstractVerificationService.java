@@ -6,6 +6,7 @@ import io.github.ringotangs.ringoboot.verification.context.IssueContextManager;
 import io.github.ringotangs.ringoboot.verification.context.IssueContextValidator;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerator;
+import io.github.ringotangs.ringoboot.verification.limit.IssueLimitExceededException;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitResult;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitViolation;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimiter;
@@ -22,8 +23,10 @@ import java.util.Objects;
  * <p><strong>API 注意事项：</strong> 子类通过 {@link #channel()} 声明渠道，实现 {@link #completeIssue(IssueContext, String, Instant)}
  * 完成渠道发送或同步渲染；
  * 请求级属性通过 {@link IssueContextManager} 统一提供。
+ *
+ * @param <R> 渠道成功签发后的结果类型
  */
-public abstract class AbstractVerificationService implements VerificationService {
+public abstract class AbstractVerificationService<R> implements VerificationService<R> {
 
     private final CodeGenerator codeGenerator;
     private final VerificationStore store;
@@ -58,7 +61,7 @@ public abstract class AbstractVerificationService implements VerificationService
      * {@inheritDoc}
      */
     @Override
-    public final IssueResult issue(VerificationKey key) throws VerificationException {
+    public final R issue(VerificationKey key) throws VerificationException {
         Objects.requireNonNull(key, "key must not be null");
         VerificationChannel channel = Objects.requireNonNull(channel(), "verification channel must not be null");
         IssueContext baseContext = IssueContext.of(key, channel, verificationPolicy);
@@ -69,7 +72,7 @@ public abstract class AbstractVerificationService implements VerificationService
         IssueLimitResult limitResult = Objects.requireNonNull(
                 issueLimiter.acquire(context, issuedAt), "issue rate limiter result must not be null");
         if (limitResult instanceof IssueLimitResult.Throttled(List<IssueLimitViolation> violations)) {
-            return new IssueResult.Throttled(violations);
+            throw new IssueLimitExceededException(violations);
         }
         int codeLength = verificationPolicy.length();
         String code = codeGenerator.generate(codeLength);
@@ -103,7 +106,7 @@ public abstract class AbstractVerificationService implements VerificationService
      * @return 渠道对应的签发结果
      * @throws VerificationException 当渠道发送或渲染失败时
      */
-    protected abstract IssueResult completeIssue(IssueContext context, String code, Instant expiresAt)
+    protected abstract R completeIssue(IssueContext context, String code, Instant expiresAt)
             throws VerificationException;
 
     /**
@@ -113,7 +116,7 @@ public abstract class AbstractVerificationService implements VerificationService
      */
     protected abstract VerificationChannel channel();
 
-    private IssueResult completeStoredIssue(IssueContext context, String code, Instant expiresAt) {
+    private R completeStoredIssue(IssueContext context, String code, Instant expiresAt) {
         try {
             return Objects.requireNonNull(
                     completeIssue(context, code, expiresAt), "issue completion result must not be null");
