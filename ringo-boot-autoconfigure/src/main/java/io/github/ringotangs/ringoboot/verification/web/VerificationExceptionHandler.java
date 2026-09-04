@@ -88,7 +88,7 @@ public class VerificationExceptionHandler {
     }
 
     private String formatRetryAfter(String template, long seconds) {
-        Object[] arguments = {seconds, ceilDiv(seconds, 60L), ceilDiv(seconds, 3_600L), ceilDiv(seconds, 86_400L)};
+        Object[] arguments = {seconds, ceilDiv(seconds, 60L)};
         return new MessageFormat(template, Locale.ROOT).format(arguments);
     }
 

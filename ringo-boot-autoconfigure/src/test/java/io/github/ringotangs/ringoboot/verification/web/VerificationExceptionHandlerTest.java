@@ -185,10 +185,10 @@ class VerificationExceptionHandlerTest {
         "1, 'Please retry after 1 second'",
         "89, 'Please retry after approximately 89 seconds'",
         "90, 'Please retry after approximately 2 minutes'",
-        "5399, 'Please retry after approximately 90 minutes'",
-        "5400, 'Please retry after approximately 2 hours'",
-        "129599, 'Please retry after approximately 36 hours'",
-        "129600, 'Please retry after approximately 2 days'"
+        "3599, 'Please retry after approximately 60 minutes'",
+        "3600, 'Please try again later'",
+        "3601, 'Please try again later'",
+        "129600, 'Please try again later'"
     })
     void formatsRetryAfterUsingAReadableUnit(long seconds, String expectedDetail) {
         ResponseEntity<ProblemDetail> response =
