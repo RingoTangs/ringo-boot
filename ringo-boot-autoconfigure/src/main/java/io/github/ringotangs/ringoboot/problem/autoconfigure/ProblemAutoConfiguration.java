@@ -3,45 +3,23 @@ package io.github.ringotangs.ringoboot.problem.autoconfigure;
 import io.github.ringotangs.ringoboot.problem.ProblemException;
 import io.github.ringotangs.ringoboot.problem.web.FallbackExceptionHandler;
 import io.github.ringotangs.ringoboot.problem.web.ProblemExceptionHandler;
-import io.github.ringotangs.ringoboot.problem.web.SpringMvcExceptionHandler;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.*;
-import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.ProblemDetail;
-import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 /**
  * 自动配置 Ringo Boot Problem Details 异常处理体系。
  *
- * <p>{@code spring.mvc.problemdetails.enabled} 是总开关。业务问题、Spring MVC 和未知异常处理均默认关闭，
- * 需要通过 {@code handlers} 分组分别开启。</p>
+ * <p>{@code spring.mvc.problemdetails.enabled} 是总开关。业务问题和未知异常处理均默认关闭，需要通过
+ * {@code handlers} 分组分别开启。</p>
  */
-@AutoConfiguration(before = WebMvcAutoConfiguration.class)
+@AutoConfiguration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass({ProblemDetail.class, ProblemException.class})
 @ConditionalOnBooleanProperty("spring.mvc.problemdetails.enabled")
 public class ProblemAutoConfiguration {
-
-    /**
-     * 配置 Spring MVC 内置异常的稳定 Problem Details 映射。
-     */
-    @Configuration(proxyBeanMethods = false)
-    @ConditionalOnClass(ResponseEntityExceptionHandler.class)
-    @ConditionalOnProperty(prefix = ProblemProperties.HANDLERS_PREFIX, name = "mvc", havingValue = "true")
-    static class SpringMvcConfiguration {
-
-        /**
-         * 用户提供 ResponseEntityExceptionHandler 时不创建默认 MVC 处理器。
-         */
-        @Bean
-        @ConditionalOnMissingBean(ResponseEntityExceptionHandler.class)
-        SpringMvcExceptionHandler springMvcExceptionHandler(ApplicationContext applicationContext) {
-            return new SpringMvcExceptionHandler(applicationContext);
-        }
-    }
 
     /**
      * 在业务问题异常处理开关开启时装配处理器。

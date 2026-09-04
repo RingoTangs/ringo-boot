@@ -3,7 +3,6 @@ package io.github.ringotangs.ringoboot.verification.autoconfigure;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.ringotangs.ringoboot.problem.ProblemDescriptor;
-import io.github.ringotangs.ringoboot.problem.autoconfigure.ProblemAutoConfiguration;
 import io.github.ringotangs.ringoboot.verification.InvalidVerificationCodeException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitExceededException;
@@ -23,12 +22,10 @@ import org.springframework.http.ProblemDetail;
 class VerificationProblemAutoConfigurationTest {
 
     private final WebApplicationContextRunner contextRunner = new WebApplicationContextRunner()
-            .withConfiguration(
-                    AutoConfigurations.of(ProblemAutoConfiguration.class, VerificationProblemAutoConfiguration.class));
+            .withConfiguration(AutoConfigurations.of(VerificationProblemAutoConfiguration.class));
 
     private final ApplicationContextRunner nonWebContextRunner = new ApplicationContextRunner()
-            .withConfiguration(
-                    AutoConfigurations.of(ProblemAutoConfiguration.class, VerificationProblemAutoConfiguration.class));
+            .withConfiguration(AutoConfigurations.of(VerificationProblemAutoConfiguration.class));
 
     @Test
     void configuresVerificationHandlingIndependently() {
