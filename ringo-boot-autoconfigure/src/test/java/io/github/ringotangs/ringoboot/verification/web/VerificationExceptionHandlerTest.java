@@ -8,6 +8,7 @@ import ch.qos.logback.classic.Logger;
 import io.github.ringotangs.ringoboot.verification.VerificationException;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationRejectedException;
+import io.github.ringotangs.ringoboot.verification.VerifyResult;
 import io.github.ringotangs.ringoboot.verification.channel.CodeSendRejectedException;
 import io.github.ringotangs.ringoboot.verification.channel.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
@@ -17,7 +18,6 @@ import io.github.ringotangs.ringoboot.verification.limit.IssueLimitStoreExceptio
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitViolation;
 import io.github.ringotangs.ringoboot.verification.limit.MissingIssueLimitRuleException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
-import io.github.ringotangs.ringoboot.verification.store.VerifyResult;
 import java.net.URI;
 import java.time.Duration;
 import java.util.List;

@@ -1,10 +1,10 @@
 package io.github.ringotangs.ringoboot.verification.redis;
 
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
+import io.github.ringotangs.ringoboot.verification.VerifyResult;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreKey;
-import io.github.ringotangs.ringoboot.verification.store.VerifyResult;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;

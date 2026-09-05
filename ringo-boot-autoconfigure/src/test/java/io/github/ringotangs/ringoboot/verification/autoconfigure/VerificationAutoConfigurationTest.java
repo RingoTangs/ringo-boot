@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
+import io.github.ringotangs.ringoboot.verification.VerifyResult;
 import io.github.ringotangs.ringoboot.verification.channel.VerificationChannel;
 import io.github.ringotangs.ringoboot.verification.channel.email.EmailCodeSender;
 import io.github.ringotangs.ringoboot.verification.channel.email.EmailVerificationService;
@@ -22,7 +23,6 @@ import io.github.ringotangs.ringoboot.verification.redis.VerificationHmacKey;
 import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreKey;
-import io.github.ringotangs.ringoboot.verification.store.VerifyResult;
 import io.github.ringotangs.ringoboot.verification.web.ClientIpContributor;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.Duration;

@@ -5,6 +5,9 @@ import java.util.Objects;
 
 /**
  * 表示验证码渠道派发操作失败。
+ *
+ * <p>请求超时、响应丢失等无法确认供应商接受状态的情况应返回 CodeSendResult.UNKNOWN。
+ * 抛出 CodeSenderException 会触发服务撤销验证码；适配器必须区分确定失败与接受状态不确定。
  */
 public class CodeSenderException extends VerificationException {
 

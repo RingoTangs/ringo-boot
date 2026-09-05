@@ -1,7 +1,7 @@
-package io.github.ringotangs.ringoboot.verification.store;
+package io.github.ringotangs.ringoboot.verification;
 
 /**
- * 表示验证码存储执行一次原子校验与消费操作的结果。
+ * 表示验证码校验结果，由存储返回，并在业务拒绝异常中保留失败原因。
  */
 public enum VerifyResult {
     /**

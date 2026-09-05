@@ -1,6 +1,7 @@
 package io.github.ringotangs.ringoboot.verification.store;
 
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
+import io.github.ringotangs.ringoboot.verification.VerifyResult;
 import java.time.Instant;
 
 /**
@@ -16,6 +17,7 @@ public interface VerificationStore {
 
     /**
      * 保存新的验证码状态，并覆盖同一验证码键的旧状态。
+     * 同一存储键最后写入的记录生效，发送顺序不保证与写入顺序一致。
      * 实现可以在本次调用期间读取明文验证码，但只能保存不可逆的安全表示。
      *
      *
@@ -46,6 +48,7 @@ public interface VerificationStore {
 
     /**
      * 当验证码键与明文验证码同时匹配时原子地删除记录。
+     * 若两次签发生成相同验证码，本操作无法区分签发批次。
      *
      *
      * @param key 渠道隔离的验证码存储键

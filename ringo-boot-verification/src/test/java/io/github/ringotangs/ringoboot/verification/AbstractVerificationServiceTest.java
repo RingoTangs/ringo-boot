@@ -30,7 +30,6 @@ import io.github.ringotangs.ringoboot.verification.store.InMemoryVerificationSto
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreKey;
-import io.github.ringotangs.ringoboot.verification.store.VerifyResult;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -42,6 +41,71 @@ class AbstractVerificationServiceTest {
 
     private static final VerificationKey LOGIN = new VerificationKey("account", "login", "user@example.com");
     private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
+
+    @Test
+    void channelSendersPreserveUnknownAndRevokeFailures() {
+        for (VerificationChannel channel : List.of(VerificationChannel.EMAIL, VerificationChannel.SMS)) {
+            AtomicReference<CodeSendResult> outcome = new AtomicReference<>(CodeSendResult.UNKNOWN);
+            CodeSenderException failure = new CodeSenderException(channel, "delivery failed");
+            java.util.function.Supplier<CodeSendResult> send = () -> {
+                if (outcome.get() == null) {
+                    throw failure;
+                }
+                return outcome.get();
+            };
+            VerificationService<DeliveryResult> service = channel.equals(VerificationChannel.EMAIL)
+                    ? new io.github.ringotangs.ringoboot.verification.channel.email.EmailVerificationService(
+                            length -> "123456",
+                            new InMemoryVerificationStore(),
+                            IssueLimiter.permitAll(),
+                            VerificationPolicy.defaults(),
+                            context -> context,
+                            (context, code, expiresAt) -> send.get())
+                    : new io.github.ringotangs.ringoboot.verification.channel.sms.SmsVerificationService(
+                            length -> "123456",
+                            new InMemoryVerificationStore(),
+                            IssueLimiter.permitAll(),
+                            VerificationPolicy.defaults(),
+                            context -> context,
+                            (context, code, expiresAt) -> send.get());
+
+            assertInstanceOf(DeliveryResult.Uncertain.class, service.issue(LOGIN));
+            service.verify(LOGIN, "123456");
+
+            outcome.set(CodeSendResult.REJECTED);
+            assertThrows(CodeSendRejectedException.class, () -> service.issue(LOGIN));
+            assertEquals(
+                    VerifyResult.NOT_FOUND,
+                    assertThrows(VerificationRejectedException.class, () -> service.verify(LOGIN, "123456"))
+                            .result());
+
+            outcome.set(null);
+            assertSame(failure, assertThrows(CodeSenderException.class, () -> service.issue(LOGIN)));
+            assertEquals(
+                    VerifyResult.NOT_FOUND,
+                    assertThrows(VerificationRejectedException.class, () -> service.verify(LOGIN, "123456"))
+                            .result());
+        }
+    }
+
+    @Test
+    void timestampsStorageAfterCodeGeneration() {
+        AtomicReference<Instant> generatedAt = new AtomicReference<>();
+        VerificationStore store = new StubVerificationStore() {
+            @Override
+            public Instant store(VerificationStoreKey key, String code, VerificationPolicy policy, Instant issuedAt) {
+                assertFalse(issuedAt.isBefore(generatedAt.get()));
+                return issuedAt.plus(policy.ttl());
+            }
+        };
+        template(
+                        length -> {
+                            generatedAt.set(Instant.now());
+                            return "123456";
+                        },
+                        store)
+                .issue(LOGIN);
+    }
 
     @Test
     void issuesDispatchesAndVerifiesThroughServiceWithoutExposingCodeInResult() {

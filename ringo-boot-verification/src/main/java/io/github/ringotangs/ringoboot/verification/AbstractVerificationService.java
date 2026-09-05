@@ -12,7 +12,6 @@ import io.github.ringotangs.ringoboot.verification.limit.IssueLimitViolation;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimiter;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStore;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreKey;
-import io.github.ringotangs.ringoboot.verification.store.VerifyResult;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -69,9 +68,9 @@ public abstract class AbstractVerificationService<R> implements VerificationServ
         IssueContext context = Objects.requireNonNull(
                 issueContextManager.enrich(baseContext), "issue context manager result must not be null");
         IssueContextValidator.requirePreservedContext(baseContext, context, "issue context manager");
-        Instant issuedAt = clock.instant();
+        Instant requestedAt = clock.instant();
         IssueLimitResult limitResult = Objects.requireNonNull(
-                issueLimiter.acquire(context, issuedAt), "issue rate limiter result must not be null");
+                issueLimiter.acquire(context, requestedAt), "issue limiter result must not be null");
         if (limitResult instanceof IssueLimitResult.Throttled(List<IssueLimitViolation> violations)) {
             throw new IssueLimitExceededException(violations);
         }
@@ -81,6 +80,7 @@ public abstract class AbstractVerificationService<R> implements VerificationServ
         if (code == null || code.isBlank() || code.length() != codeLength) {
             throw new CodeGenerationException("generated code must be non-blank and have length " + codeLength);
         }
+        Instant issuedAt = clock.instant();
         Instant expiresAt = Objects.requireNonNull(
                 store.store(storeKey(context), code, verificationPolicy, issuedAt),
                 "verification store expiration must not be null");
@@ -105,6 +105,10 @@ public abstract class AbstractVerificationService<R> implements VerificationServ
 
     /**
      * 完成已生成并存储验证码的渠道发送或同步渲染。
+     *
+     * <p>正常返回必须非空；运行时异常会触发按存储键和验证码条件撤销。
+     * 邮件、短信接受状态不确定时应正常返回 DeliveryResult.Uncertain，保留验证码。
+     * 发送或渲染耗时计入验证码有效期。
      *
      * @param context   当前签发流程的上下文
      * @param code      仅供发送期间使用的明文验证码

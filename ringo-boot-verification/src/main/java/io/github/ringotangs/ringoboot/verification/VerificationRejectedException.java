@@ -1,6 +1,5 @@
 package io.github.ringotangs.ringoboot.verification;
 
-import io.github.ringotangs.ringoboot.verification.store.VerifyResult;
 import java.util.Objects;
 
 /**

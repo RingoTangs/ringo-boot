@@ -1,6 +1,7 @@
 package io.github.ringotangs.ringoboot.verification.store;
 
 import io.github.ringotangs.ringoboot.verification.VerificationPolicy;
+import io.github.ringotangs.ringoboot.verification.VerifyResult;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -115,7 +116,7 @@ public final class InMemoryVerificationStore implements VerificationStore {
     }
 
     /**
-     * 通过摘要匹配原子地删除指定验证码，避免删除同一键下后来签发的新验证码。
+     * 通过摘要匹配原子地删除指定验证码，保护同一键下验证码不同的新记录；相同验证码无法区分签发批次。
      *
      *
      * @param key 渠道隔离的验证码存储键

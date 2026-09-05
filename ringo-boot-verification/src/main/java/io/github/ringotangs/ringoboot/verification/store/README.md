@@ -64,7 +64,8 @@ payment + login    + user@example.com
 account + login    + other@example.com
 ```
 
-对同一个 `VerificationStoreKey` 再次执行 `store` 会覆盖旧记录。相同业务键在不同渠道下是独立记录。
+对同一个 `VerificationStoreKey` 再次执行 `store` 会覆盖旧记录，最后写入的记录生效。相同业务键在不同渠道下是独立记录。
+并发签发可能发送多个验证码，发送顺序不保证与写入顺序一致；重发冷却能减少并发请求，但不能保证发送顺序。
 
 ## 四、VerificationStore 的三个操作
 
@@ -165,7 +166,7 @@ sequenceDiagram
 
 如果发送异常且撤销操作也失败，原始发送异常仍然是主异常，撤销异常会作为 suppressed exception 附加，便于服务端诊断。
 
-`VerifyResult` 是 Store 层的精细状态协议。业务级 `VerificationService.verify` 不返回这些状态：校验成功时正常返回，其他状态统一
+`verification.VerifyResult` 是 Store 与 Service 异常共享的领域校验结果。业务级 `VerificationService.verify` 不返回这些状态：校验成功时正常返回，其他状态统一
 抛出携带 `VerifyResult` 的 `VerificationRejectedException`，保留内部诊断信息，同时避免调用方泄露验证码是否存在、过期或次数耗尽。
 
 ## 六、InMemoryVerificationStore 如何存储
@@ -372,7 +373,7 @@ entries.compute(key, (ignored, existing) -> {
 - 同一个 Key 的新验证码覆盖旧验证码。
 - `verifyAndConsume` 原子完成过期判断、摘要比较、次数扣减和删除。
 - 并发校验同一个验证码时最多返回一次 `SUCCESS`。
-- `invalidate` 同时匹配 Key 和验证码，不能误删后来签发的新记录。
+- `invalidate` 同时匹配 Key 和验证码，保护验证码不同的新记录；若两次签发生成相同验证码，无法区分签发批次，旧请求补偿仍可能删除新记录。
 - 过期边界与接口语义一致：`verifiedAt >= expiresAt` 即为过期。
 - 将连接、超时、序列化和原子脚本故障包装为 `VerificationStoreException`。
 - 不在异常、日志或 `toString()` 中输出明文验证码、摘要、密钥或完整接收方信息。

@@ -4,12 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.ringotangs.ringoboot.problem.ProblemDescriptor;
 import io.github.ringotangs.ringoboot.verification.VerificationRejectedException;
+import io.github.ringotangs.ringoboot.verification.VerifyResult;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitExceededException;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitViolation;
 import io.github.ringotangs.ringoboot.verification.limit.MissingIssueLimitRuleException;
 import io.github.ringotangs.ringoboot.verification.store.VerificationStoreException;
-import io.github.ringotangs.ringoboot.verification.store.VerifyResult;
 import io.github.ringotangs.ringoboot.verification.web.VerificationExceptionHandler;
 import java.time.Duration;
 import java.util.List;
