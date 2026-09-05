@@ -6,8 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import io.github.ringotangs.ringoboot.verification.VerificationException;
+import io.github.ringotangs.ringoboot.verification.VerificationFailedException;
 import io.github.ringotangs.ringoboot.verification.VerificationKey;
-import io.github.ringotangs.ringoboot.verification.VerificationRejectedException;
 import io.github.ringotangs.ringoboot.verification.VerifyResult;
 import io.github.ringotangs.ringoboot.verification.channel.CodeSendRejectedException;
 import io.github.ringotangs.ringoboot.verification.channel.CodeSenderException;
@@ -85,7 +85,7 @@ class VerificationExceptionHandlerTest {
         ExceptionHandlerMethodResolver resolver =
                 new ExceptionHandlerMethodResolver(VerificationExceptionHandler.class);
 
-        assertHandler(resolver, new VerificationRejectedException(VerifyResult.MISMATCH), "handleVerificationRejected");
+        assertHandler(resolver, new VerificationFailedException(VerifyResult.MISMATCH), "handleVerificationFailed");
         assertHandler(resolver, exceeded(Duration.ofSeconds(1)), "handleIssueLimitExceeded");
         assertHandler(resolver, new CodeGenerationException("internal"), "handleVerificationException");
         assertHandler(
@@ -148,7 +148,7 @@ class VerificationExceptionHandlerTest {
         for (VerifyResult result : VerifyResult.values()) {
             if (result != VerifyResult.SUCCESS) {
                 assertProblem(
-                        handler.handleVerificationRejected(new VerificationRejectedException(result)),
+                        handler.handleVerificationFailed(new VerificationFailedException(result)),
                         400,
                         "urn:problem:business:verification:invalid-code",
                         "Invalid verification code",

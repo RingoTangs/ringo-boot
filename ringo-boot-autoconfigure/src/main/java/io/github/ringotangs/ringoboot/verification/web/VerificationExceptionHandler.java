@@ -3,7 +3,7 @@ package io.github.ringotangs.ringoboot.verification.web;
 import io.github.ringotangs.ringoboot.problem.ProblemDescriptor;
 import io.github.ringotangs.ringoboot.problem.web.ProblemDetails;
 import io.github.ringotangs.ringoboot.verification.VerificationException;
-import io.github.ringotangs.ringoboot.verification.VerificationRejectedException;
+import io.github.ringotangs.ringoboot.verification.VerificationFailedException;
 import io.github.ringotangs.ringoboot.verification.channel.CodeSenderException;
 import io.github.ringotangs.ringoboot.verification.generator.CodeGenerationException;
 import io.github.ringotangs.ringoboot.verification.limit.IssueLimitExceededException;
@@ -77,8 +77,8 @@ public class VerificationExceptionHandler {
      * @param exception 验证码无效异常
      * @return 验证码无效 Problem Details
      */
-    @ExceptionHandler(VerificationRejectedException.class)
-    public ProblemDetail handleVerificationRejected(VerificationRejectedException exception) {
+    @ExceptionHandler(VerificationFailedException.class)
+    public ProblemDetail handleVerificationFailed(VerificationFailedException exception) {
         return ProblemDetails.create(VerificationProblems.INVALID_CODE);
     }
 

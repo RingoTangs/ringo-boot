@@ -76,14 +76,14 @@ class AbstractVerificationServiceTest {
             assertThrows(CodeSendRejectedException.class, () -> service.issue(LOGIN));
             assertEquals(
                     VerifyResult.NOT_FOUND,
-                    assertThrows(VerificationRejectedException.class, () -> service.verify(LOGIN, "123456"))
+                    assertThrows(VerificationFailedException.class, () -> service.verify(LOGIN, "123456"))
                             .result());
 
             outcome.set(null);
             assertSame(failure, assertThrows(CodeSenderException.class, () -> service.issue(LOGIN)));
             assertEquals(
                     VerifyResult.NOT_FOUND,
-                    assertThrows(VerificationRejectedException.class, () -> service.verify(LOGIN, "123456"))
+                    assertThrows(VerificationFailedException.class, () -> service.verify(LOGIN, "123456"))
                             .result());
         }
     }
@@ -271,7 +271,7 @@ class AbstractVerificationServiceTest {
     }
 
     @Test
-    void preservesRejectedStoreResultInException() {
+    void preservesFailedStoreResultInException() {
         for (VerifyResult result : VerifyResult.values()) {
             if (result == VerifyResult.SUCCESS) {
                 continue;
@@ -284,17 +284,17 @@ class AbstractVerificationServiceTest {
             };
             CapturingVerificationService template = template(length -> "123456", store);
 
-            VerificationRejectedException thrown =
-                    assertThrows(VerificationRejectedException.class, () -> template.verify(LOGIN, "123456"));
+            VerificationFailedException thrown =
+                    assertThrows(VerificationFailedException.class, () -> template.verify(LOGIN, "123456"));
 
             assertSame(result, thrown.result());
         }
     }
 
     @Test
-    void rejectsInvalidVerificationRejectedExceptionResults() {
-        assertThrows(NullPointerException.class, () -> new VerificationRejectedException(null));
-        assertThrows(IllegalArgumentException.class, () -> new VerificationRejectedException(VerifyResult.SUCCESS));
+    void rejectsInvalidVerificationFailedExceptionResults() {
+        assertThrows(NullPointerException.class, () -> new VerificationFailedException(null));
+        assertThrows(IllegalArgumentException.class, () -> new VerificationFailedException(VerifyResult.SUCCESS));
     }
 
     @Test
@@ -340,7 +340,7 @@ class AbstractVerificationServiceTest {
         template.respondWith(CodeSendResult.REJECTED);
 
         assertThrows(CodeSendRejectedException.class, () -> template.issue(LOGIN));
-        assertThrows(VerificationRejectedException.class, () -> template.verify(LOGIN, "123456"));
+        assertThrows(VerificationFailedException.class, () -> template.verify(LOGIN, "123456"));
 
         VerificationStoreKey expected = new VerificationStoreKey(LOGIN, VerificationChannel.EMAIL);
         assertEquals(expected, stored.get());

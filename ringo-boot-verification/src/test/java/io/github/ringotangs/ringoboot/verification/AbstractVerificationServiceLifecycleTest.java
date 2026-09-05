@@ -68,9 +68,9 @@ class AbstractVerificationServiceLifecycleTest {
         VerificationService<DeliveryResult> service = service(length -> "123456", policy);
         service.issue(LOGIN);
 
-        assertThrows(VerificationRejectedException.class, () -> service.verify(LOGIN, ""));
-        assertThrows(VerificationRejectedException.class, () -> service.verify(LOGIN, "000000"));
-        assertThrows(VerificationRejectedException.class, () -> service.verify(LOGIN, "123456"));
+        assertThrows(VerificationFailedException.class, () -> service.verify(LOGIN, ""));
+        assertThrows(VerificationFailedException.class, () -> service.verify(LOGIN, "000000"));
+        assertThrows(VerificationFailedException.class, () -> service.verify(LOGIN, "123456"));
     }
 
     @Test
@@ -105,7 +105,7 @@ class AbstractVerificationServiceLifecycleTest {
                     try {
                         service.verify(LOGIN, "123456");
                         return true;
-                    } catch (VerificationRejectedException ignored) {
+                    } catch (VerificationFailedException ignored) {
                         return false;
                     }
                 });

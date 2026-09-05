@@ -99,7 +99,7 @@ public abstract class AbstractVerificationService<R> implements VerificationServ
                 store.verifyAndConsume(new VerificationStoreKey(key, channel), code, clock.instant()),
                 "verification store result must not be null");
         if (result != VerifyResult.SUCCESS) {
-            throw new VerificationRejectedException(result);
+            throw new VerificationFailedException(result);
         }
     }
 
